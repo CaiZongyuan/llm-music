@@ -1,6 +1,6 @@
 # Runtime Doctor — issue #14 verification
 
-Date: 2026-10-06. Baseline: `38dc7004b421b1ee81173d01b003cb7168f70fcb`. Scope: the independent ComfyUI environment, Model Registry, P0 CLI, GPU-free CLI checks, and paired maintenance guides. No formal application API or Web was created.
+Date: 2026-10-07. Baseline: `38dc7004b421b1ee81173d01b003cb7168f70fcb`. Scope: the independent ComfyUI environment, Model Registry, P0 CLI, GPU-free CLI checks, and paired maintenance guides. No formal application API or Web was created.
 
 ## Executed checks
 
@@ -16,11 +16,11 @@ Tests cover combined missing GPU/runtime/models, same-size corrupt weights, part
 
 Independent source receipts and oracle evidence are retained in the PM workspace at `.scratch/p0-development/sources/`. The source investigation did not install dependencies, download model bytes, execute CUDA, or perform inference.
 
-## Actual readiness still pending at candidate freeze
+## Actual preparation and pending readiness
 
-The PM owns heavy dependency/model downloads, the target GPU, and port 8188. At this source freeze, the Developer has not executed the real GPU Doctor or server launch. Their results must be added after actual execution. Full P0 transcription, generation, queue, cancellation, repetition and cleanup remain later tickets; this issue cannot claim that P0 passed.
+The PM owns heavy dependency/model downloads, the target GPU, and port 8188. Both actual model files are downloaded and match their published byte counts and full SHA256; receipts are retained at `.scratch/p0-development/model-download-receipts.json`. The PM also ran the public `download-models` command against these existing files: both were reused and fully verified, and the command exited `0`.
 
-The public `prepare` and `download-models` commands have not yet been run against the final real installation by the Developer. Existing-file refusal is tested; live HTTP transfer/resumption and the actual server launch still require PM execution. A completed source checkout or HF metadata response does not prove downloaded weights are ready.
+Heavy environment synchronization is still in progress. The real GPU Doctor, public `prepare` command, and server launch remain pending. Existing-file refusal is tested; the downloader's first-transfer HTTP/resumption path has not been exercised by the public command. Full P0 transcription, generation, queue, cancellation, repetition and cleanup remain later tickets; this issue cannot claim that P0 passed.
 
 ## Dependency and resource impact
 
@@ -34,4 +34,8 @@ The launch contract owns only a local foreground ComfyUI process and its selecte
 
 The pass inspected all issue-owned new files against the baseline. The CLI and subprocess probe retain distinct responsibilities: a broken import or CUDA process cannot prevent other readiness diagnostics. Disk reservation now reads the model checks directly, and a redundant exception subtype was removed. Schema/path validation, full-file hashes, source provenance, failure aggregation, startup gating, and data ownership remain intact. No broad refactor was needed.
 
-The Windows CI workflow runs the same eight CLI tests with exact Python 3.12.13 and no CUDA packages, model downloads, or uv environment sync. Its actual GitHub run is pending publication. There is no documentation site yet, so this change does not claim Astro build, browser navigation, or GitHub Pages publication.
+The Windows CI workflow runs the same eight CLI tests with exact Python 3.12.13 and no CUDA packages, model downloads, or project environment sync. The first two runs on candidate `5c3635a0a17eab1fac6352fc1698fad80aac85bf` failed before tests: `actions/setup-python` could not provide Python 3.12.13 x64 on Windows 2025. See [push run](https://github.com/CaiZongyuan/llm-music/actions/runs/37493312995) and [PR run](https://github.com/CaiZongyuan/llm-music/actions/runs/37493313718).
+
+The repair uses verified `astral-sh/setup-uv` v10.2.0 at `c18668ad3cf93ea998bef934396af7bb5c839dc7`, pins the official [uv 0.11.28 release](https://github.com/astral-sh/uv/releases/tag/0.11.28), and explicitly runs `uv python install 3.12.13`. uv lists the Windows x64 Python 3.12.13 build from the official [20260623 standalone provider release](https://github.com/astral-sh/python-build-standalone/releases/tag/20260623); its exact install-only stripped archive exists in that release. This preserves the exact interpreter instead of changing the target to fit another provider. The local matching command still passes all eight tests. The repaired GitHub head must be observed after publication before CI is reported green.
+
+There is no documentation site yet, so this change does not claim Astro build, browser navigation, or GitHub Pages publication.

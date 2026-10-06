@@ -20,9 +20,11 @@ jobs:
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
-      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
         with:
-          python-version: '3.12.13'
-          architecture: x64
+          version: '0.11.28'
+          enable-cache: false
+      - name: Install the exact managed Python without project dependencies
+        run: uv python install 3.12.13
       - name: Check public CLI behavior without GPU dependencies
-        run: python -m unittest discover -s runtime/comfyui/tests -v
+        run: uv run --no-project --python 3.12.13 python -m unittest discover -s runtime/comfyui/tests -v
