@@ -1,0 +1,62 @@
+[project]
+name = "music-workbench-comfyui"
+version = "0.1.0"
+description = "Isolated, pinned P0 inference environment"
+requires-python = "==3.12.13"
+dependencies = [
+  "comfyui-frontend-package==1.53.10",
+  "comfyui-workflow-templates==0.11.76",
+  "comfyui-embedded-docs==0.5.13",
+  "torch==2.10.0",
+  "torchvision==0.25.0",
+  "torchaudio==2.10.0",
+  "torchsde",
+  "numpy>=1.25.0",
+  "einops",
+  "transformers>=4.50.3",
+  "tokenizers>=0.13.3",
+  "sentencepiece",
+  "safetensors>=0.4.2",
+  "aiohttp>=3.11.8",
+  "yarl>=1.18.0",
+  "pyyaml",
+  "Pillow",
+  "scipy",
+  "tqdm",
+  "psutil",
+  "alembic",
+  "SQLAlchemy>=2.0.0",
+  "filelock",
+  "av>=17.0.0",
+  "comfy-kitchen==0.2.37",
+  "comfy-aimdo==0.5.5",
+  "requests>=2.28",
+  "simpleeval>=1.0.0",
+  "blake3",
+  "kornia>=0.7.1",
+  "spandrel",
+  "pydantic~=2.0",
+  "pydantic-settings~=2.0",
+  "PyOpenGL>=3.1.8",
+  "comfy-angle",
+  "tiktoken>=0.7",
+]
+
+[tool.uv]
+environments = ["sys_platform == 'win32' and platform_machine == 'AMD64'"]
+required-environments = ["sys_platform == 'win32' and platform_machine == 'AMD64'"]
+
+[[tool.uv.index]]
+name = "pypi"
+url = "https://pypi.org/simple"
+default = true
+
+[[tool.uv.index]]
+name = "pytorch-cu130"
+url = "https://download.pytorch.org/whl/cu130"
+explicit = true
+
+[tool.uv.sources]
+torch = { index = "pytorch-cu130" }
+torchvision = { index = "pytorch-cu130" }
+torchaudio = { index = "pytorch-cu130" }

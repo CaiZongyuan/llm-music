@@ -1,0 +1,36 @@
+{
+  "schema_version": 1,
+  "models": [
+    {
+      "id": "yue2-bf16",
+      "name": "YuE2-3B BF16 + standard VAE",
+      "provider": "Comfy-Org",
+      "repository": "Comfy-Org/YuE2",
+      "revision": "2f76ca75e6ee094169de899cc7fc99d6887e2196",
+      "filename": "checkpoints/yue2_3b_bf16.safetensors",
+      "sha256": "33765adbf9813c9a50318218760b2fd819a319862460a04884607581961c6fee",
+      "size_bytes": 7799983228,
+      "local_path": "checkpoints/yue2_3b_bf16.safetensors",
+      "components": ["YuE2-3B", "YuE2-VAE", "embedded tokenizer"],
+      "component_license_notes": "Aggregate checkpoint is CC-BY-NC-4.0. Standalone embedded tokenizer license is unspecified; do not infer it from the model-weight license.",
+      "weights_license": "CC-BY-NC-4.0",
+      "license_source": "https://huggingface.co/Comfy-Org/YuE2/blob/2f76ca75e6ee094169de899cc7fc99d6887e2196/README.md",
+      "hash_source": "https://huggingface.co/api/models/Comfy-Org/YuE2/revision/2f76ca75e6ee094169de899cc7fc99d6887e2196?blobs=true"
+    },
+    {
+      "id": "sheetsage2-bf16",
+      "name": "SheetSage2 BF16",
+      "provider": "Comfy-Org",
+      "repository": "Comfy-Org/YuE2",
+      "revision": "2f76ca75e6ee094169de899cc7fc99d6887e2196",
+      "filename": "audio_encoders/sheetsage2_bf16.safetensors",
+      "sha256": "5fd960ce3df281e3f3a889d174584d88f96247711480cf96377b12d7e8b6adc5",
+      "size_bytes": 1386868122,
+      "local_path": "audio_encoders/sheetsage2_bf16.safetensors",
+      "components": ["SheetSage2"],
+      "weights_license": "CC-BY-NC-4.0",
+      "license_source": "https://huggingface.co/Comfy-Org/YuE2/blob/2f76ca75e6ee094169de899cc7fc99d6887e2196/README.md",
+      "hash_source": "https://huggingface.co/api/models/Comfy-Org/YuE2/revision/2f76ca75e6ee094169de899cc7fc99d6887e2196?blobs=true"
+    }
+  ]
+}
