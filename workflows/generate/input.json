@@ -1,0 +1,8 @@
+{
+  "schema_version": 1,
+  "style": "English, gentle folk pop, warm clear voice, acoustic guitar and piano, light bass and drums, 96 BPM",
+  "lyrics": "[Verse]\nMorning gathers on the window\nQuiet streets begin to glow\nI will carry one small promise\nEvery step can help it grow\n\n[Chorus]\nWalk with me into the daylight\nLet the little river flow\nWe can make a brighter moment\nWith the kindness that we show",
+  "seed": 2026100701,
+  "max_seconds": 35,
+  "content_origin": "Original lyrics written for this repository's fixed P0 generation sample."
+}
