@@ -36,6 +36,9 @@ def validate_runtime(config):
             raise ValueError(f"runtime.{name} must be a nonnegative integer")
     if not 1 <= config["port"] <= 65535:
         raise ValueError("runtime.port must be between 1 and 65535")
+    timeout = config.get("probe_timeout_seconds", 120)
+    if type(timeout) not in (int, float) or not 0 < timeout <= 120:
+        raise ValueError("runtime.probe_timeout_seconds must be positive and at most 120")
     if not isinstance(config.get("required_nodes"), list) or not config["required_nodes"]:
         raise ValueError("runtime.required_nodes must be a nonempty list")
     if not all(isinstance(node, str) and node for node in config["required_nodes"]):
@@ -78,9 +81,9 @@ def validate_registry(registry):
                 raise ValueError(f"model.{field} must stay inside its root")
 
 
-def run(command, **kwargs):
+def run(command, *, timeout=120, **kwargs):
     return subprocess.run(command, capture_output=True, text=True, encoding="utf-8",
-                          errors="replace", check=True, timeout=120, **kwargs)
+                          errors="replace", check=True, timeout=timeout, **kwargs)
 
 
 def check_result(identifier, passed, message, recovery="", **facts):
@@ -117,22 +120,61 @@ def gpu_check(args, config):
 
 
 def import_checks(args, config):
+    timeout = config.get("probe_timeout_seconds", 120)
+    stdout = stderr = ""
+    process_completed = timed_out = False
+    exit_code = None
+    error_detail = ""
     try:
         environment = dict(os.environ, YUE2_MODELS_ROOT=str(args.models_root.resolve()), PYTHONUTF8="1")
-        result = run([sys.executable, str(PROJECT / "probe.py"), str(args.runtime_root)], env=environment)
-        lines = [line for line in result.stdout.splitlines() if line.startswith("MUSIC_DOCTOR_JSON=")]
-        facts = json.loads(lines[-1].partition("=")[2])
-    except (OSError, ValueError, IndexError, subprocess.SubprocessError) as error:
-        facts = dict(torch_ok=False, comfyui_ok=False, plugin_ok=False, import_error=str(error))
+        result = run([sys.executable, str(PROJECT / "probe.py"), str(args.runtime_root)], env=environment, timeout=timeout)
+        stdout, stderr = result.stdout, result.stderr
+        process_completed, exit_code = True, result.returncode
+    except subprocess.TimeoutExpired as error:
+        timed_out = True
+        stdout, stderr = error.stdout or "", error.stderr or ""
+        error_detail = f"Runtime probe timed out after {timeout} seconds"
+    except subprocess.CalledProcessError as error:
+        process_completed, exit_code = True, error.returncode
+        stdout, stderr = error.stdout or "", error.stderr or ""
+        error_detail = f"Runtime probe exited with code {exit_code}"
+    except OSError as error:
+        error_detail = str(error)
+    # TimeoutExpired may carry bytes even when subprocess.run uses text=True.
+    if isinstance(stdout, bytes):
+        stdout = stdout.decode("utf-8", errors="replace")
+    if isinstance(stderr, bytes):
+        stderr = stderr.decode("utf-8", errors="replace")
+    facts = {}
+    lines = [line for line in stdout.splitlines() if line.startswith("MUSIC_DOCTOR_JSON=")]
+    for line in reversed(lines):
+        try:
+            snapshot = json.loads(line.partition("=")[2])
+            if isinstance(snapshot, dict):
+                facts = snapshot
+                break
+        except ValueError:
+            continue
+    probe_ready = process_completed and exit_code == 0 and facts.get("probe_complete") is True
+    if not facts:
+        facts["import_error"] = error_detail or "Runtime probe returned no valid facts"
+    # Match NVIDIA's integer MiB reporting precision while retaining raw addressable bytes.
+    facts["vram_rounded_mib"] = (facts.get("vram_bytes", 0) + 524288) // 1048576
+    facts["required_vram_mib"] = config["min_vram_mib"]
     torch_ready = (facts.get("torch_ok", False) and facts.get("torch") == config["torch"]
                    and facts.get("torch_cuda") == config["torch_cuda"]
                    and facts.get("gpu") == config["gpu_name"]
-                   and facts.get("vram_bytes", 0) >= config["min_vram_mib"] * 1024 * 1024)
+                   and facts["vram_rounded_mib"] >= config["min_vram_mib"])
     registered = set(facts.get("registered_nodes", []))
     missing = sorted(set(config["required_nodes"]) - registered)
     recovery = "Run uv sync --project runtime/comfyui --frozen, use that environment, and inspect facts/traceback."
     return [
-        check_result("torch_cuda", torch_ready, "Pinned Torch CUDA and BF16 operational" if torch_ready else "Torch CUDA/BF16 or pinned version unavailable",
+        check_result("runtime_probe", probe_ready, "Runtime probe process completed" if probe_ready else error_detail or "Runtime probe did not emit complete facts",
+                     "Inspect last_stage and bounded stdout/stderr diagnostics; retain completed facts and rerun Doctor after resolving that stage.",
+                     timed_out=timed_out, process_completed=process_completed, exit_code=exit_code,
+                     last_stage=facts.get("probe_stage", "unavailable"), timeout_seconds=timeout,
+                     stdout_tail=stdout[-4096:], stderr_tail=stderr[-4096:]),
+        check_result("torch_cuda", torch_ready, "Pinned Torch CUDA and BF16 operational" if torch_ready else "Torch CUDA/BF16, target capacity, or pinned version not verified",
                      recovery, **facts),
         check_result("runtime_import", facts.get("comfyui_ok", False), "ComfyUI nodes import" if facts.get("comfyui_ok") else "ComfyUI import failed",
                      recovery, import_error=facts.get("import_error"), traceback=facts.get("traceback")),

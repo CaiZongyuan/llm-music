@@ -7,6 +7,7 @@
   "min_vram_mib": 8192,
   "min_free_disk_bytes": 10737418240,
   "port": 8188,
+  "probe_timeout_seconds": 120,
   "sources": {
     "comfyui": {
       "repository": "https://github.com/Comfy-Org/ComfyUI.git",

@@ -24,6 +24,8 @@ uv run --project runtime/comfyui --no-sync python runtime/comfyui/manage.py doct
 
 成功输出 `Runtime READY`，退出码为 `0`。失败输出 `Runtime NOT READY`，逐项显示恢复动作，退出码为 `1`。错误的配置或参数退出码为 `2`。中断命令退出码为 `130`。加 `--json` 得到有时间戳的检查、版本事实、模型状态和恢复动作。`ready` 只表示推理前提就绪；`p0_passed` 始终为 `false`，直到后续票据完成真实 GPU 转谱、生成、排队、取消、重复任务和清理验收。
 
+`runtime_probe` 要求检查进程正常退出，并完成最后的检查阶段。进程超时或非零退出时，已完成的 CUDA/import 事实仍保留，但整个 Runtime 不能 ready。JSON 包含最后的 `last_stage`、退出状态和最多各 4096 字符的 stdout/stderr 尾部。`runtime.json` 的 `probe_timeout_seconds` 默认为 120 秒，可为自动化缩短到正数，不能超过 120 秒。先检查停在哪个阶段，再决定恢复动作。
+
 ## 使用已有合法本地权重
 
 Doctor 不会下载或移动文件。使用模型根目录覆盖默认路径，或对一个模型指定现有文件：
@@ -42,6 +44,7 @@ uv run --project runtime/comfyui --no-sync python runtime/comfyui/manage.py doct
 | Torch CUDA、BF16 或版本不符 | 执行 `uv sync --project runtime/comfyui --frozen`，用此环境重试；检查 JSON 中的设备和 import traceback。 |
 | Runtime revision 不符或 tracked 修改 | 先保留本地修改，再恢复配置指定提交的干净 checkout。`prepare` 不会重置已有文件。 |
 | 必需节点或 lazy inference import 失败 | 检查 traceback，并恢复锁定依赖和插件代码；节点入口能 import 不等于模型代码可用。 |
+| runtime_probe 超时或非零退出 | 检查 `last_stage`、`stdout_tail` 和 `stderr_tail`；已完成阶段不等于整个检查成功。解决对应阶段后重试。 |
 | 模型 missing / downloading | 执行 `download-models`。中断数据保留为 `.part`，重新运行会续传；`.part` 不算 ready。 |
 | 模型 invalid size / SHA256 | 保留或移走损坏文件后重新下载。命令不自动覆盖已有 invalid 模型；相同大小也必须通过完整 SHA256。 |
 | 磁盘不足 | 在模型卷腾出空间。Doctor 要求 10 GiB 工作余量，并为尚未 ready 的模型预留下载空间。 |
@@ -62,6 +65,8 @@ uv run --project runtime/comfyui --no-sync python runtime/comfyui/manage.py star
 依赖完整固定在独立的 [uv.lock](../../runtime/comfyui/uv.lock)。Torch、torchvision、torchaudio 采用 CUDA 13.0 Windows CPython 3.12 wheel，与锁定 ComfyUI 的推荐一致；本机驱动兼容性仍由实际 CUDA 运算验证。PyPI 使用显式官方索引，避免镜像缺包改变解析结果。`torchaudio` 是 SheetSage2 对非 24 kHz 输入重采样的前提。
 
 Doctor 分别检查 NVIDIA 元数据、实际 BF16 CUDA 矩阵运算、目标设备、Python/Torch/CUDA、干净代码提交、ComfyUI 原生节点加载、lazy YuE2/VAE/tokenizer/SheetSage2 import、48→24 kHz 重采样、全文件模型 SHA256、磁盘和本地端口。它不加载完整权重或证明音乐质量。YuE2 BF16 checkpoint 包含标准 VAE 和 tokenizer，无需另下 VAE 或 `qwen.tiktoken`；`vae=legacy` 不在此准备路径内。
+
+容量检查使用 NVIDIA 的整数 MiB 报告精度：CUDA 的原始 `vram_bytes` 始终保留，另以最近 MiB、半单位向上取整得到 `vram_rounded_mib`，再与 8192 MiB 目标比较。本机 CUDA 可寻址容量为 8,589,410,304 字节（8191.5 MiB），NVIDIA 报告标称 8192 MiB；两者采用相同精度后符合目标。这个处理不减少标称 GPU 要求；明显更小的设备仍失败。
 
 无 GPU 的公开 CLI 行为检查：
 

@@ -24,6 +24,8 @@ uv run --project runtime/comfyui --no-sync python runtime/comfyui/manage.py doct
 
 Success prints `Runtime READY` and exits with code `0`. Failure prints `Runtime NOT READY`, gives recovery steps for each failure, and exits with code `1`. Invalid configuration or arguments exit with code `2`. An interrupted command exits with code `130`. Add `--json` for timestamped checks, version facts, model states, and recovery steps. `ready` means that inference prerequisites are available. `p0_passed` stays `false`: later tickets must verify real GPU transcription, generation, queueing, cancellation, repeated Jobs, and cleanup.
 
+`runtime_probe` requires a successful process exit and a completed final checkpoint. On timeout or nonzero exit, completed CUDA/import facts remain available, but Runtime cannot be ready. JSON includes `last_stage`, process status, and stdout/stderr tails capped at 4096 characters each. `probe_timeout_seconds` in `runtime.json` defaults to 120 seconds. Automation may choose a smaller positive bound; it cannot exceed 120 seconds. Identify the stalled stage before choosing a recovery action.
+
 ## Use existing legal local weights
 
 Doctor does not download or move files. Override the model root or select an existing file for one model:
@@ -42,6 +44,7 @@ uv run --project runtime/comfyui --no-sync python runtime/comfyui/manage.py doct
 | Torch CUDA, BF16, or pinned version fails | Run `uv sync --project runtime/comfyui --frozen`, retry in that environment, and inspect the device facts and import traceback in JSON. |
 | Runtime revision differs or tracked files changed | Preserve local edits, then restore a clean checkout at the configured commit. `prepare` does not reset existing files. |
 | Required nodes or lazy inference imports fail | Inspect the traceback and restore pinned dependencies and plugin source. A working node entrypoint does not prove that modeling imports work. |
+| runtime_probe times out or exits nonzero | Inspect `last_stage`, `stdout_tail`, and `stderr_tail`. Completed stages do not mean that the whole check succeeded. Resolve the affected stage and retry. |
 | Model is missing or downloading | Run `download-models`. Interrupted bytes remain in `.part`; rerunning resumes the transfer. A `.part` file is never ready. |
 | Model has invalid size or SHA256 | Preserve or move the corrupt file, then download again. The command does not overwrite an invalid model. Equal size still requires a full-file SHA256 match. |
 | Disk space is insufficient | Free space on the model volume. Doctor requires 10 GiB working space plus download space for models that are not ready. |
@@ -62,6 +65,8 @@ In an isolated worktree, use `--models-root D:/Projects/Backend/llm-music/data/m
 The independent [uv.lock](../../runtime/comfyui/uv.lock) pins all dependencies. Torch, torchvision, and torchaudio use CUDA 13.0 Windows CPython 3.12 wheels, matching the pinned ComfyUI recommendation. Actual CUDA execution still verifies local driver compatibility. An explicit official PyPI index prevents a stale mirror from changing resolution. SheetSage2 needs `torchaudio` to resample inputs other than 24 kHz.
 
 Doctor separately checks NVIDIA metadata, actual BF16 CUDA matrix multiplication, the target device, Python/Torch/CUDA, clean source commits, native ComfyUI node loading, lazy YuE2/VAE/tokenizer/SheetSage2 imports, 48→24 kHz resampling, full-file model SHA256, disk space, and the local port. It does not load all model weights or establish music quality. The YuE2 BF16 checkpoint includes the standard VAE and tokenizer. No separate VAE or `qwen.tiktoken` download is required. This preparation path does not cover `vae=legacy`.
+
+The capacity check uses NVIDIA's integer MiB reporting precision. It retains the original CUDA `vram_bytes`, rounds to the nearest MiB with half units rounded up as `vram_rounded_mib`, then compares against the 8192 MiB target. This device exposes 8,589,410,304 addressable bytes (8191.5 MiB) through CUDA while NVIDIA reports nominal 8192 MiB. Both meet the target at the same reporting precision. The nominal GPU requirement is unchanged; materially smaller devices still fail.
 
 Run the public CLI behavior checks without a GPU:
 
