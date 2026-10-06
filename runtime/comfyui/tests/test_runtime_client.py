@@ -81,11 +81,7 @@ class RuntimeClientTests(unittest.TestCase):
             def log_message(self, *args):
                 pass
 
-        server = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
-        thread = threading.Thread(target=server.serve_forever, daemon=True)
-        thread.start()
-        try:
-            client = RuntimeClient(f"http://127.0.0.1:{server.server_port}")
+        with self.server(Handler) as client:
             with self.assertRaises(RuntimeFailure) as failure:
                 client.submit({"transcribe": {"class_type": "YuE2Transcribe", "inputs": {}}}, "fixed-client")
             self.assertEqual(failure.exception.status, 400)
@@ -93,10 +89,6 @@ class RuntimeClientTests(unittest.TestCase):
             self.assertIn("Missing audio", str(failure.exception))
             self.assertEqual(len(received), 1)
             self.assertEqual(received[0]["client_id"], "fixed-client")
-        finally:
-            server.shutdown()
-            server.server_close()
-            thread.join()
 
 
 if __name__ == "__main__":
