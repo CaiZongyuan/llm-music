@@ -17,3 +17,9 @@
 
 - 使用 Astro + Starlight，发布到 GitHub Pages。
 - 修改正文、导航、教程示例或生成参考前，阅读 [文档维护规范](docs/agents/documentation.md)。
+
+## Agent skills
+
+- 规格与票据使用 GitHub Issues；发布、依赖和领取规则见 [追踪器配置](docs/agents/issue-tracker.md)。
+- 分流使用默认标签，映射见 [分流标签](docs/agents/triage-labels.md)。
+- 探索领域前阅读 [领域文档入口](docs/agents/domain.md)。
