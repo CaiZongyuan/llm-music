@@ -12,7 +12,8 @@ class AudioFacts:
     duration_seconds: float
     channels: int
     sample_rate: int
-    sample_width_bits: int
+    sample_width_bits: int | None
+    decoded_frames: int
 
 
 def inspect_wav(path: Path, max_seconds: float) -> AudioFacts:
@@ -32,7 +33,7 @@ def inspect_wav(path: Path, max_seconds: float) -> AudioFacts:
                 frames += len(chunk) // (channels * width)
             if frames != expected:
                 raise ValueError("Truncated PCM body")
-            return AudioFacts(duration, channels, rate, width * 8)
+            return AudioFacts(duration, channels, rate, width * 8, frames)
     except (wave.Error, EOFError, ValueError) as error:
         raise DomainError(422, "invalid_audio", "Content is not a complete supported PCM WAV audio file.",
                           "Upload nonempty mono/stereo PCM WAV, 8–32 bit integer samples, 8–192 kHz.") from error
