@@ -1,0 +1,59 @@
+# 连续运行、清理与 P0 报告
+
+此固定 P0 协议在同一 Runtime 连续执行十项 Transcribe/Generate，记录每项真实产物与连续资源样本，然后只发送一次 `/free` 并验证两种模型仍可工作。它不创建正式 API/Web，也不自动解锁 P1。
+
+## 先冻结输入
+
+在仓库根目录完成 [Doctor](runtime-doctor.md)、[转谱](runtime-transcription.md)、[生成](api-generation.md)、[队列](runtime-queue-history.md) 和 [运行取消](runtime-running-cancel.md)。保留它们的实际 receipts 和同一进程。只有 GPU resource owner 执行真实请求；不得在十项之间重启、free、清 cache/history 或重试。
+
+```powershell
+uv run --no-project --python 3.12.13 python runtime/comfyui/p0/repeat_cleanup.py prepare --ledger-root .scratch/p0-development --output-dir data/p0/repeat/prepared-01
+```
+
+prepare 只生成 CPU fixture 和 `plan.json`，无 Runtime 写。顺序固定为 T1/G1…T5/G5；随后是 G5-after-free、T6-after-free。六个原始 CC0 16 秒、48 kHz stereo PCM16 输入只将旋律移调 +1…+6 半音；和弦、bass、percussion、时长和预算保持不变。WAV SHA256、实际 decoded float32 hash 与预期 native `yue2_track` 一起登记，不能只靠新文件名/header 绕过 cache。运行在任何 upload/prompt 前重新解码，对照 plan 的帧数、采样率、声道、时长、mark、decoded hash 和文件 hash/bytes；任一事实不一致立即拒绝。
+
+G1…G5 使用相同已验证 style/lyrics 和 seed 2026190101…2026190105。准备和运行前均核对实际历史 ledger；已使用的 seed/track mark 不再算新工作。settings 固定 BF16、offload on、low_vram false、keep_model_loaded false、cot full、sdpa、标准 VAE、35 秒预算和 download off。plan 的 source、graph IDs/bindings、manifest 和输入不能事后改动。
+
+## 运行固定系列
+
+替换示例 PID 为 owner 确认的真实 Runtime PID，`--runtime-main` 和 stderr 必须对应该进程。输出目录须为空；workspace 为独立 worktree 时，给出 root 拥有的绝对路径。
+
+```powershell
+uv run --project runtime/comfyui --no-sync python runtime/comfyui/p0/repeat_cleanup.py run --prepared data/p0/repeat/prepared-01 --doctor-report data/runtime-readiness.json --runtime-log data/runtime/comfyui/server.stderr --process-pid 12345 --runtime-main runtime/comfyui/.upstream/ComfyUI/main.py --ledger-root .scratch/p0-development --prior-root .scratch/p0-development --state-root data/runtime/comfyui --output-dir data/p0/repeat/run-01
+```
+
+每次提交前后检查 PID 和 create_time；仅当上项 history、完整 ABC/MIDI/audio 校验和一致 idle 窗口都结束才提交下一项。Runtime map、request、history、输入/输出 hash 和 log spans 逐项持久保存。任何 OOM、crash、timeout、归属不明、PID 更换、进程查询不可用、cache hit、无 reload/phase 日志或无效产物会停止新提交，原失败保留。已接受请求后进程消失或查询被拒绝也会保存失败报告、request map 和采样证据，须先检查归属再恢复。不会重试、换参数凑数或自动取消仍在运行的请求。
+
+系列 sampler 从首项前 idle 连续覆盖提交、history、产物校验、每次相同的 idle、一次 cleanup 和两个 witness；默认 sample interval 1 秒、idle 2 秒，可显式配置正数。每项 active/idle 窗口从同一 monotonic 时间原点切片，记录样本数、gap、sampled peak/min/last；空窗口不能继承全系列 peak。背景与边界采样使用同一锁，timestamp、append 和整条 JSONL 写入串行。窗口先固定截止时间，再等待当前采样事务完成并在锁内快照；采样停止后，最终报告、item receipts 与趋势按完整原始样本重切相同边界，覆盖延迟返回和 Windows 同时间戳的情况。
+
+设备值为 CUDA whole-device total−free，校正 Comfy free 中的 unused Torch reservation；它包含其他 GPU 消费者，不是 WDDM process residency。另列 Torch active allocator、Runtime RSS、whole-host RAM。锁定 Comfy 的 torch_vram_free 为 reserved−active；legacy `runtime_torch_allocator_allocated_bytes` 保留字段名和公式，实际表示 native `active_bytes.all.current`，包括 awaiting-free blocks，不等于严格 `memory_allocated()`，也不是 WDDM process residency。sampled peaks 是下界。T processing factor 除以 16 秒输入；G RTF 除以完整解码的实际音频时长。phase-exclusive/model load 无法观测时明确 unavailable，不从百分比推算。
+
+## Cleanup 的证明
+
+十项全部成功且 queue idle 后，只一次发送 `POST /free {unload_models:true,free_memory:true}`。空 200 仅是 ACK。持续采样与 bounded idle 后，精确重放实际 G5 graph，保持 core、全部 ancestors、节点 IDs、seed、settings 和 bindings；只有 SaveAudio prefix 改变。若核心 cached、加载或完整阶段缺失、media 不合法，则 cleanup 未证明，不重试或改 seed。第十二项新 T6 还要求 Sage 新 mark、重新加载/Listening/Writing 和有效 ABC/MIDI。
+
+不删除权重、Runtime upload/output/user songs 或最终证据；声明的 state root 前后保存文件 metadata。cleanup 指工作内存与 DAG reset，不是内存归零或所有 cache 消失。旧 #18 取消后高占用较晚才回落的原因仍未知，不能由 unload 日志推断即时完全释放。
+
+## 报告与判断
+
+`report.json`、`resource-samples.jsonl`、每项目录、`runtime-report.json/md`、`benchmark.md`、`known-limitations.md` 可复查。报告独立列出八个必需 case 的 passed/failed/unverified，旧 15–18 evidence 不算本次十项。fake evidence 不晋升为实际通过，工具始终 `p0_passed=false`。
+
+十项成功不能单独证明稳定。`trend_review` 按 T/G 分层列 idle 原始序列，无自创阈值；持续未解释的增长保持 unverified。Root 对原始数据、样本缺口、可识别 bounded retention 和 cleanup 后状态作有证据判断，可用 `report --run-dir ... --output-dir ... --prior-root ... --assessment ...` 记录匹配本次 run id 的 status/rationale/evidence/unexplained_growth。缺少关键窗口数据或 unexplained_growth 非 false 时，不能通过 assessment 晋升 passed。最终 gate 由 root 完成实际验证、review、CI 与集成后决定；主观试听延后不是新 gate。
+
+失败后先查持久化的 prompt/client map、queue/history 和日志。使用既有精确归属恢复入口；不整体重跑或清共享队列。所有文件保留，已接受工作可能仍在运行。
+
+```powershell
+uv run --no-project --python 3.12.13 python -m unittest discover -s runtime/comfyui/tests -v
+```
+
+CPU/fake HTTP 只验证工具逻辑。[实际验证记录](../verification/runtime-repeat-cleanup.md) 说明当前证据范围。
+
+## 当前实际记录
+
+2026-10-07，冻结源码 `caff91c8a633ddd21611369c20e1c08ea5769d91` 在同一 Runtime PID 50752 完成十项及两个 cleanup witness，无重启、重试或项间 free；每项均有 uncached core、reload/phase 日志与合法产物。一个 `/free` 后的精确 G5 replay 与新 T6 验证可继续工作。502 条连续样本完整且有序，24 个 active/idle 窗口与最终原始样本重算一致。
+
+原系列每次 G 后 Torch active 精确增加 17,039,360 bytes，从初始 86,245,376 到 G5 后 171,442,176；`/free` 后仍为 171,442,176，replay 后为 188,481,536。锁定库的 cuBLAS workspace 为 W=8,519,680 bytes，一次完整 G 访问两条 warmup stream。32 条原生 pooled stream 会循环复用；独立 40-step CUDA probe 验证了 W 增量与复用平台。同一 Runtime 追加七次真实完整 G，在第五次到达 273,678,336 active bytes（261 MiB），第六、七次各三次约一秒间隔读数相同，增量为零；未执行第八次。这些诊断补充原十项和两个 witness，不替换它们。
+
+原不同 seed 的 G idle RSS 仍保留 2,378,936,320→2,394,492,928 bytes 的变化，不能改写成恒定 RAM。追加后的单次 public `/free` 释放 13,500,416 RSS/USS bytes，与当前 CPU waveform 的 13,439,488 bytes 接近。相同输入的精确 G7 replay 回到先前 RSS/USS endpoint +8,192 bytes；单点 private committed 增加 1,933,312 bytes 的原因仍未知，未完整归因所有 CPU holders。
+
+Root 已接受此固定 16 秒转谱、35 秒生成配置下的已测 resident-memory 与 Torch active 检查。匹配的 `19-memory-assessment.json` 与 `19-reviewed-report/` 记录八个实际 case passed；[P0 实际汇总](../verification/p0-runtime-report.md) 保留证据与限制。最终独立 review、CI 和 PR 集成仍由 PM 决定最终 gate，工具保持 `p0_passed=false`。主观试听延后，长期运行、private-heap 稳定及任意输入形状未测；设备/整机值含其他消费者，追加诊断的峰值可能与已记录的误选 GPU venv 测试 probe 重叠，不影响所选 Runtime 的 settled active 计数。没有全内存稳定、无限期无泄漏或音乐质量结论。

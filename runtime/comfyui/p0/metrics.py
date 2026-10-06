@@ -61,6 +61,7 @@ class MemorySampler:
         self.process_pid, self.expected_main = process_pid, expected_main
         self.samples, self.errors = [], []
         self.stop_event = threading.Event()
+        self.sample_lock = threading.Lock()
         self.thread = None
         self.process = None
         self.process_error = "Runtime PID not supplied"
@@ -88,6 +89,15 @@ class MemorySampler:
             self.take_sample()
 
     def take_sample(self):
+        with self.sample_lock:
+            self._take_sample()
+
+    def snapshot(self):
+        """Wait for any in-flight sample before reading a closed time window."""
+        with self.sample_lock:
+            return list(self.samples)
+
+    def _take_sample(self):
         sample = dict(at=datetime.now(timezone.utc).isoformat(), elapsed_seconds=time.monotonic() - self.began,
                       device_vram_total_bytes=None, device_vram_used_bytes=None, host_ram_total_bytes=None,
                       host_ram_used_bytes=None, runtime_rss_bytes=None, runtime_torch_allocator_allocated_bytes=None,
@@ -148,7 +158,7 @@ class MemorySampler:
                     host_scope="Whole host total minus available RAM; includes other processes and system usage; sampled lower bound on peak",
                     process_ram_scope="Selected Runtime PID resident working set (psutil RSS); excludes client process memory",
                     process_pid=self.process_pid, process_ram_unavailable_reason=self.process_error,
-                    torch_allocator_scope="Selected Runtime Torch allocator only; excludes non-Torch CUDA/context allocations; not resident process GPU memory",
+                    torch_allocator_scope="Selected Runtime native Torch active_bytes.all.current reconstructed as torch_vram_total - torch_vram_free; legacy *_allocated field name preserved; includes blocks awaiting free, not strict memory_allocated(); excludes non-Torch CUDA/context allocations and is not WDDM resident process GPU memory",
                     process_gpu_resident_bytes=None,
                     process_gpu_unavailable_reason="WDDM per-process GPU residency is unavailable from this API; no device total is substituted",
                     errors=self.errors)

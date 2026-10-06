@@ -1,0 +1,59 @@
+# Continuous runs, cleanup, and the P0 report
+
+This fixed P0 protocol runs ten Transcribe/Generate items in one Runtime, records actual artifacts and continuous resource samples, then sends `/free` once and verifies both models remain usable. It creates no product API/Web and never unlocks P1 automatically.
+
+## Freeze the inputs first
+
+From the repository root, complete [Doctor](runtime-doctor.en.md), [transcription](runtime-transcription.en.md), [generation](api-generation.en.md), [queue](runtime-queue-history.en.md), and [running cancellation](runtime-running-cancel.en.md). Retain their actual receipts and the same process. Only the GPU resource owner runs real requests. Do not restart, free, clear cache/history, or retry between the ten items.
+
+```powershell
+uv run --no-project --python 3.12.13 python runtime/comfyui/p0/repeat_cleanup.py prepare --ledger-root .scratch/p0-development --output-dir data/p0/repeat/prepared-01
+```
+
+prepare creates CPU fixtures and `plan.json` without Runtime writes. Order is T1/G1…T5/G5, followed by G5-after-free and T6-after-free. Six original CC0 16-second, 48 kHz stereo PCM16 inputs shift only the melody by +1…+6 semitones. Chords, bass, percussion, timing, and budget remain fixed. WAV SHA256, actual decoded float32 hash, and expected native `yue2_track` are registered together. A new filename/header cannot bypass cache. Before any upload/prompt, execution decodes the media again and compares frames, sample rate, channels, duration, mark, decoded hash, and file hash/bytes against the plan. Any inconsistent fact is rejected.
+
+G1…G5 use the verified style/lyrics with seeds 2026190101…2026190105. Preparation and execution both check the actual history ledger; used seeds/track marks cannot count as fresh work. Settings remain BF16, offload on, low_vram false, keep_model_loaded false, cot full, sdpa, standard VAE, 35-second budget, and downloads off. Source, graph IDs/bindings, manifests, and inputs cannot be changed afterward.
+
+## Run the fixed series
+
+Replace the example PID with the owner's actual Runtime PID. `--runtime-main` and stderr must belong to it. Output must be empty. In an isolated worktree, pass absolute paths to root-owned resources.
+
+```powershell
+uv run --project runtime/comfyui --no-sync python runtime/comfyui/p0/repeat_cleanup.py run --prepared data/p0/repeat/prepared-01 --doctor-report data/runtime-readiness.json --runtime-log data/runtime/comfyui/server.stderr --process-pid 12345 --runtime-main runtime/comfyui/.upstream/ComfyUI/main.py --ledger-root .scratch/p0-development --prior-root .scratch/p0-development --state-root data/runtime/comfyui --output-dir data/p0/repeat/run-01
+```
+
+Check PID and create_time before/after each item. Submit the next item only after terminal history, complete ABC/MIDI/audio validation, and the same idle window. Persist maps, requests, history, input/output hashes, and log spans per item. OOM, crash, timeout, unknown ownership, PID replacement, unavailable process queries, cache hits, missing reload/phase logs, or invalid artifacts stop new submissions and retain the failure. A lost process or denied query after acceptance also saves the failed report, request map, and sampling evidence; inspect ownership before recovery. The tool does not retry, change settings to complete the count, or cancel active work automatically.
+
+One series sampler continuously covers initial idle, submission, history, validation, identical inter-item idles, one cleanup, and both witnesses. Defaults are a 1-second sample interval and 2-second idle; explicit bounds must be positive. Slice each active/idle window from the same monotonic origin, retaining counts, gaps, sampled peaks/min/last. Empty windows cannot inherit series peaks. Background and boundary sampling share a lock that serializes timestamp, append, and complete JSONL writes. Fix the window cutoff first, then wait for the current sampling transaction and take a snapshot under that lock. After sampling stops, final reports, item receipts, and trend vectors recompute the same cutoffs from completed raw samples, including delayed responses and equal Windows timestamps.
+
+Device values reconstruct CUDA whole-device total−free by removing unused Torch reservation from Comfy free. They include other GPU consumers and are not WDDM process residency. Torch active allocator, Runtime RSS, and whole-host RAM are separate. Pinned Comfy reports torch_vram_free as reserved−active. Legacy `runtime_torch_allocator_allocated_bytes` keeps its name and formula but represents native `active_bytes.all.current`, including awaiting-free blocks, rather than strict `memory_allocated()` or WDDM process residency. Sampled peaks are lower bounds. T processing factor divides by its 16-second input; G RTF divides by fully decoded actual audio duration. Exclusive phase/model-load times stay unavailable where unobservable and are not derived from percentages.
+
+## Prove cleanup
+
+After ten successful items and idle queue, send `POST /free {unload_models:true,free_memory:true}` only once. Empty 200 is ACK only. Continue sampling and bounded idle, then replay the actual G5 graph with identical core, every ancestor, node IDs, seed, settings, and bindings. Change only SaveAudio prefix. Cached core, missing load/stages, or invalid media leaves cleanup unverified; do not retry or change the seed. A new T6 also requires a new Sage mark, reload/Listening/Writing, and valid ABC/MIDI.
+
+Do not delete weights, Runtime upload/output/user songs, or evidence. Retain before/after file metadata for the declared state root. Cleanup concerns working memory and DAG reset, not zero memory or every cache disappearing. The reason #18's high post-cancel usage fell later remains unknown; unload logs cannot prove immediate full release.
+
+## Report and decide
+
+Retain `report.json`, `resource-samples.jsonl`, item folders, `runtime-report.json/md`, `benchmark.md`, and `known-limitations.md`. Report eight required cases separately as passed/failed/unverified; old 15–18 evidence does not count toward these ten items. Fake evidence cannot become actual acceptance, and the tool always sets `p0_passed=false`.
+
+Ten successes alone cannot prove stability. `trend_review` retains raw idle vectors by T/G without invented thresholds. Unexplained sustained growth stays unverified. Root assesses raw data, gaps, identifiable bounded retention, and post-cleanup state. `report --run-dir ... --output-dir ... --prior-root ... --assessment ...` records a matching run id with status/rationale/evidence/unexplained_growth. Missing required windows or unexplained_growth other than false cannot promote passed. Root decides the gate after actual validation, review, CI, and integration. Deferred subjective listening creates no new gate.
+
+After failure, inspect persisted prompt/client mapping, queue/history, and logs first. Use existing exact ownership recovery commands; do not rerun the whole series or clear shared work. Files remain retained, and accepted work may still be running.
+
+```powershell
+uv run --no-project --python 3.12.13 python -m unittest discover -s runtime/comfyui/tests -v
+```
+
+CPU/fake HTTP checks only prove tool logic. The [verification record](../verification/runtime-repeat-cleanup.md) states current evidence limits.
+
+## Current actual record
+
+On 2026-10-07, frozen source `caff91c8a633ddd21611369c20e1c08ea5769d91` completed ten items plus both cleanup witnesses in Runtime PID 50752 without restart, retry, or inter-item free. Every item has an uncached core, reload/phase logs, and valid artifacts. Exact G5 replay and new T6 after one `/free` prove continued operation. All 502 continuous samples are intact and ordered; recomputing the 24 active/idle windows from final raw samples finds no mismatch.
+
+In the original series, Torch active grows by exactly 17,039,360 bytes after each G, from the initial 86,245,376 to 171,442,176 after G5. It remains 171,442,176 after `/free`, then becomes 188,481,536 after replay. The pinned library's cuBLAS workspace is W=8,519,680 bytes; each full G visits two warmup streams. Its 32 native pooled streams reuse workspace keys. A separate 40-step CUDA probe verifies W increments and the reuse plateau. Seven additional genuine full G jobs in the same Runtime reach 273,678,336 active bytes (261 MiB) at the fifth job. Jobs six and seven each retain three equal readings roughly one second apart and add zero; no eighth job ran. These diagnostics supplement the original ten items and two witnesses.
+
+The original different-seed G idle RSS vector still varies from 2,378,936,320 to 2,394,492,928 bytes; it is not relabelled constant RAM. One later public `/free` releases 13,500,416 RSS/USS bytes, close to the current 13,439,488-byte CPU waveform. Exact matching-input G7 replay returns to the earlier RSS/USS endpoint plus 8,192 bytes. A single private committed-memory increase of 1,933,312 bytes remains unexplained, and individual CPU holders were not fully attributed.
+
+Root accepts the measured resident-memory and Torch active checks for this fixed 16-second transcription/35-second generation profile. Matching `19-memory-assessment.json` and `19-reviewed-report/` record eight actual cases passed; the [P0 actual report](../verification/p0-runtime-report.md) retains evidence and limits. Final independent review, CI, and PR integration still belong to the PM's final gate; the harness keeps `p0_passed=false`. Subjective listening is deferred. Indefinite operation, private-heap stability, and arbitrary input shapes remain untested. Device/host values include other consumers; extension peaks may overlap the recorded accidental GPU-venv test probe, which does not affect the selected Runtime's settled active counter. No universal RAM stability, indefinite leak freedom, or music-quality claim follows.

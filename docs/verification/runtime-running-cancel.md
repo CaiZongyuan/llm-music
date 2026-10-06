@@ -43,7 +43,7 @@ All five declared prior files retained their before/after hashes:
 
 The cancellation log records loader `unloaded`, `Processing interrupted` and prompt execution in 5.11 seconds. These observations and the successful successor establish the observed cleanup/recovery path. They do not prove immediate complete memory release or absence of leaks. Raw native point snapshots show the later fall:
 
-| Point | Native Torch usage bytes | Device VRAM usage bytes | Host RAM usage bytes |
+| Point | Native Torch active allocator bytes | Device VRAM usage bytes | Host RAM usage bytes |
 | --- | ---: | ---: | ---: |
 | Before run | 60,686,336 | 1,686,634,496 | 23,930,187,776 |
 | Score marker, before cancel | 4,728,805,616 | 6,115,819,520 | 29,115,166,720 |
