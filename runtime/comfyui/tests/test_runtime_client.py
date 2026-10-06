@@ -11,6 +11,22 @@ from runtime.comfyui.p0.runtime_client import RuntimeClient, RuntimeFailure
 
 
 class RuntimeClientTests(unittest.TestCase):
+    def test_json_write_accepts_the_native_empty_queue_response(self):
+        received = []
+
+        class Handler(BaseHTTPRequestHandler):
+            def do_POST(self):
+                received.append(json.loads(self.rfile.read(int(self.headers["Content-Length"]))))
+                self.send_response(200)
+                self.end_headers()
+
+            def log_message(self, *args):
+                pass
+
+        with self.server(Handler) as client:
+            self.assertEqual(client.post_json_bytes("/queue", {"delete": ["owned-target"]}), b"")
+        self.assertEqual(received, [{"delete": ["owned-target"]}])
+
     @contextmanager
     def server(self, handler):
         server = ThreadingHTTPServer(("127.0.0.1", 0), handler)
