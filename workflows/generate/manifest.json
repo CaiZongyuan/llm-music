@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "id": "p0.generate.bf16",
+  "version": "1.0.0",
+  "operation": "Generate",
+  "required_models": ["yue2-bf16"],
+  "required_nodes": ["YuE2Options", "YuE2GenerateSong", "SaveAudio", "PreviewAny"],
+  "runtime_revision": "7a5dad695fe1cae25efcb2550530fb20ef68da3d",
+  "plugin_revision": "fc78df9dfb214f396aa281f5b03519cefff5b00a",
+  "input_mapping": {
+    "style": {"node": "2", "input": "style"},
+    "lyrics": {"node": "2", "input": "lyrics"},
+    "seed": {"node": "2", "input": "seed"},
+    "max_seconds": {"node": "1", "input": "max_seconds"}
+  },
+  "output_mapping": {
+    "audio": {"node": "3", "key": "audio"},
+    "score": {"node": "4", "key": "text"}
+  },
+  "core_node": "2",
+  "settings_node": "1",
+  "audio_duration_seconds": {"minimum": 30, "maximum": 40},
+  "notes": "ComfyUI API-mode graph, not a Canvas export. YuE2Options pins the published sampling defaults and disables all ancillary model downloads. SaveAudio is deprecated upstream but is registered at the pinned Runtime and saves lossless FLAC. Only the GPU owner submits real jobs."
+}
