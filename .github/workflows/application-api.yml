@@ -1,0 +1,34 @@
+name: Application API
+
+on:
+  push:
+    paths:
+      - services/api/**
+      - .github/workflows/application-api.yml
+  pull_request:
+    paths:
+      - services/api/**
+      - .github/workflows/application-api.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  api:
+    runs-on: windows-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+        with:
+          version: '0.11.28'
+          enable-cache: false
+      - name: Install independent CPU application environment
+        run: uv sync --project services/api --locked --python 3.12.13
+      - name: Check types
+        run: uv run --project services/api --no-sync mypy --config-file services/api/pyproject.toml services/api/src/music_api
+      - name: Verify public HTTP, storage failures and actual process restart
+        run: uv run --project services/api --no-sync python -m pytest services/api/tests -q
+      - name: Export Pydantic OpenAPI without starting Runtime
+        run: uv run --project services/api --no-sync music-api openapi --output api-openapi.json
