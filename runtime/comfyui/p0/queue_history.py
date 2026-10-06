@@ -233,7 +233,7 @@ def run_demo(args, report):
             break
         if time.monotonic() >= deadline:
             raise RuntimeFailure("/queue", "Timed out observing owned work; inspect persisted mapping/queue/history before any retry. No interrupt is sent.")
-        time.sleep(args.poll_interval)
+        time.sleep(min(args.poll_interval, max(0, deadline - time.monotonic())))
     final_c = client.history(mapping["jobs"]["C"]["prompt_id"])
     report["final_queue"] = snapshot(client, args.output_dir, mapping, "final")
     if report["final_queue"]["queue_running"] or report["final_queue"]["queue_pending"]:

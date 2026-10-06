@@ -10,7 +10,7 @@
 uv run --project runtime/comfyui --no-sync python runtime/comfyui/p0/queue_history.py run --doctor-report data/runtime-readiness.json --output-dir data/p0/queue-history/run-01
 ```
 
-输出目录须不存在或为空。默认地址为 `http://127.0.0.1:8188`，确认窗口为 `--timeout 1800` 秒，queue/history 轮询间隔为 `--poll-interval 0.2` 秒。工具不会同步依赖、下载模型、重启 Runtime 或自动重试提交。
+输出目录须不存在或为空。默认地址为 `http://127.0.0.1:8188`，确认窗口为 `--timeout 1800` 秒，queue/history 轮询间隔为 `--poll-interval 0.2` 秒。每次 sleep 不超过剩余确认时间；较大的 poll interval 不会延长等待窗口。工具不会同步依赖、下载模型、重启 Runtime 或自动重试提交。
 
 | 顺序 | 请求 | 输入条件 |
 | --- | --- | --- |
@@ -34,6 +34,8 @@ A/B/D 必须有正耗时，执行区间按 A→B→D 有序且不重叠。全部
 主要证据为 `run-map.json`、`queue-events.jsonl`、`cancellation.json`（删除动作时的快照）以及 `report.json`（最终证明）。A/B/C/D 子目录保存实际请求；存活项保存完整 history 和有效产物。receipt 保留 Source/Model/Workflow revisions、源码与请求 hashes、新 seed/音频条件和执行区间。Root 另行保留连续 PID 和本次日志片段，确认首次 GPU 推理与 queued 目标从未执行。
 
 插件另有独立八条 Sage 结果缓存，`keep_model_loaded=false` 不清空它。以后重复此工具的相同 seed/polarity，不自动代表新的 GPU 工作。公开 history 不暴露 Sage 结果缓存；首次新条件的服务进度和 GPU 日志仍是实际验收依据。该工具没有连续资源 sampler，不能声称 peak VRAM/RAM 或性能改善。
+
+实际目标 GPU 已在候选 `027ea57` 上完成本次 A→B→D：执行区间耗时分别为 57.589、7.868、56.719 秒，互不重叠。C 仅从 pending 精确删除，最终队列为空且无 C history。A/D 得到约 34.998667 秒、48 kHz stereo FLAC 和 87/108 个 Score 音符；B 得到 32 个 ABC 音符和 60 个 MIDI 音符。日志确认新 seed 和 polarity 条件的真实 CUDA 工作，Runtime PID 连续。主观试听延后，P0 整体仍未通过；完整范围见验证记录。
 
 ## 有界恢复
 

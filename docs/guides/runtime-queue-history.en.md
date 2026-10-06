@@ -10,7 +10,7 @@ Work from the repository root. Complete [Doctor](runtime-doctor.en.md), [API tra
 uv run --project runtime/comfyui --no-sync python runtime/comfyui/p0/queue_history.py run --doctor-report data/runtime-readiness.json --output-dir data/p0/queue-history/run-01
 ```
 
-The output directory must be new or empty. Defaults are `http://127.0.0.1:8188`, a `--timeout 1800` second confirmation window, and a `--poll-interval 0.2` second queue/history interval. The tool does not sync dependencies, download models, restart Runtime, or retry submissions automatically.
+The output directory must be new or empty. Defaults are `http://127.0.0.1:8188`, a `--timeout 1800` second confirmation window, and a `--poll-interval 0.2` second queue/history interval. Each sleep is capped by the remaining confirmation time; a large poll interval cannot extend that window. The tool does not sync dependencies, download models, restart Runtime, or retry submissions automatically.
 
 | Order | Request | Input condition |
 | --- | --- | --- |
@@ -34,6 +34,8 @@ A/B/D must have positive durations and ordered, nonoverlapping A→B→D interva
 Main evidence is `run-map.json`, `queue-events.jsonl`, `cancellation.json` (the deletion-time snapshot), and `report.json` (final proof). A/B/C/D folders retain submitted requests; survivors retain full history and valid artifacts. The receipt retains Source/Model/Workflow revisions, source/request hashes, new seed/audio conditions, and execution intervals. Root separately retains continuous PID and same-run logs to establish first GPU work and that the queued target never executed.
 
 The plugin also retains an independent eight-result Sage cache; `keep_model_loaded=false` does not clear it. Repeating this tool with the same seeds/polarity does not automatically mean fresh GPU work. Public history does not expose Sage's result cache, so first-condition progress and GPU logs remain actual acceptance evidence. This tool has no continuous resource sampler and cannot claim peak VRAM/RAM or a performance improvement.
+
+The target GPU completed A→B→D on candidate `027ea57`, with nonoverlapping execution intervals of 57.589, 7.868, and 56.719 seconds. C was deleted only while pending; final queue was empty and C had no history. A/D produced approximately 34.998667-second, 48 kHz stereo FLAC and 87/108 Score notes; B produced 32 ABC notes and 60 MIDI notes. Logs establish actual CUDA work for the new seed/polarity conditions and continuous Runtime PID identity. Subjective listening is deferred and full P0 remains unpassed; see the verification record for the exact scope.
 
 ## Recover within a bound
 

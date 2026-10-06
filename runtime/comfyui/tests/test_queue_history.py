@@ -20,7 +20,7 @@ CLI = Path(__file__).resolve().parents[1] / "p0" / "queue_history.py"
 
 class QueueHistoryTests(unittest.TestCase):
     @contextmanager
-    def demo_runtime(self, overlap=False, zero_duration=False):
+    def demo_runtime(self, overlap=False, zero_duration=False, never_finish=False):
         state = dict(jobs={}, deleted=False, ticks=0, after_delete=False)
         writes = []
         audio = io.BytesIO()
@@ -55,7 +55,7 @@ class QueueHistoryTests(unittest.TestCase):
                     elif not state["deleted"]:
                         self.respond(dict(queue_running=[row("A")], queue_pending=[row(label) for label in ["B", "C", "D"] if label in state["jobs"]]))
                     else:
-                        if state["after_delete"]:
+                        if state["after_delete"] and not never_finish:
                             state["ticks"] += 1
                         state["after_delete"] = True
                         stage = state["ticks"]
@@ -122,7 +122,7 @@ class QueueHistoryTests(unittest.TestCase):
             server.server_close()
             worker.join()
 
-    def run_demo(self, root, address):
+    def run_demo(self, root, address, timeout="5", poll_interval="0.01", process_timeout=None):
         project = CLI.parents[1]
         config = json.loads((project / "runtime.json").read_text(encoding="utf-8"))
         models = json.loads((project / "models.json").read_text(encoding="utf-8"))["models"]
@@ -132,8 +132,8 @@ class QueueHistoryTests(unittest.TestCase):
         ready.write_text(json.dumps({"ready": True, "checks": checks, "verification_scope": "fake HTTP only"}), encoding="utf-8")
         output = root / "evidence"
         result = subprocess.run([sys.executable, str(CLI), "run", "--doctor-report", str(ready), "--url", address,
-                                 "--output-dir", str(output), "--evidence-kind", "fake", "--poll-interval", "0.01", "--timeout", "5"],
-                                capture_output=True, text=True, encoding="utf-8")
+                                 "--output-dir", str(output), "--evidence-kind", "fake", "--poll-interval", poll_interval, "--timeout", timeout],
+                                capture_output=True, text=True, encoding="utf-8", timeout=process_timeout)
         return result, json.loads((output / "report.json").read_text(encoding="utf-8")), output
 
     def test_complete_owned_mixed_queue_recovers_outputs_and_proves_pending_cancel(self):
@@ -163,6 +163,18 @@ class QueueHistoryTests(unittest.TestCase):
         self.assertEqual(result.returncode, 1)
         self.assertFalse(report["verified"])
         self.assertIn("timestamps", report["error"])
+
+    def test_long_poll_interval_cannot_extend_the_confirmation_deadline(self):
+        with tempfile.TemporaryDirectory() as directory, self.demo_runtime(never_finish=True) as (address, writes):
+            try:
+                result, report, output = self.run_demo(Path(directory), address, timeout="1", poll_interval="3600", process_timeout=10)
+            except subprocess.TimeoutExpired:
+                self.fail("Public queue CLI slept beyond its confirmation deadline")
+            self.assertTrue((output / "run-map.json").exists())
+        self.assertEqual(result.returncode, 1)
+        self.assertFalse(report["verified"])
+        self.assertIn("Timed out", report["error"])
+        self.assertFalse(any(path == "/interrupt" for path, body in writes))
     @contextmanager
     def runtime(self, scenario="removed"):
         writes = []
