@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "id": "transcribe-sheetsage2",
+  "version": "1",
+  "operation": "Transcribe",
+  "runtime_baseline": {"comfyui_version": "0.39.0"},
+  "required_models": ["sheetsage2-bf16"],
+  "required_nodes": ["LoadAudio", "YuE2Options", "YuE2Transcribe", "PreviewAny"],
+  "input_mapping": {"reference_audio": {"node": "audio", "input": "audio", "source": "Runtime upload input descriptor"}},
+  "output_mapping": {"abc": {"node": "score", "field": "text", "index": 0}, "lyrics": {"node": "lyrics", "field": "text", "index": 0}},
+  "execution_node": "transcribe",
+  "validation_routes": {"abc": "/yue2/score/read", "midi_export": "/yue2/score/midi", "midi_read": "/yue2/midi/tracks"},
+  "notes": "SheetSage2 only; ASR disabled, downloads off. Fixed full mode and whole-song listening. No saved edited score can bypass inference."
+}

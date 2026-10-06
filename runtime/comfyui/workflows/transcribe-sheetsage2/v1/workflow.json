@@ -1,0 +1,13 @@
+{
+  "audio": {"class_type": "LoadAudio", "inputs": {"audio": "reference.wav"}},
+  "options": {
+    "class_type": "YuE2Options",
+    "inputs": {"cot": "full", "max_seconds": 0, "keep_model_loaded": false, "device": "cuda:0", "attention_backend": "sdpa", "download": "off", "quantization": "bf16", "offload": "on", "low_vram": false, "vae": "standard", "vocals_only": false}
+  },
+  "transcribe": {
+    "class_type": "YuE2Transcribe",
+    "inputs": {"audio": ["audio", 0], "options": ["options", 0], "mode": "full", "lyrics_auto_recognition": false, "model": "auto", "seed": 831001, "listen": "the whole song", "score_abc": "", "lyrics": ""}
+  },
+  "score": {"class_type": "PreviewAny", "inputs": {"source": ["transcribe", 0]}},
+  "lyrics": {"class_type": "PreviewAny", "inputs": {"source": ["transcribe", 1]}}
+}
