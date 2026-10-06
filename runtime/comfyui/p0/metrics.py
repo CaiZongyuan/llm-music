@@ -61,6 +61,7 @@ class MemorySampler:
         self.process_pid, self.expected_main = process_pid, expected_main
         self.samples, self.errors = [], []
         self.stop_event = threading.Event()
+        self.sample_lock = threading.Lock()
         self.thread = None
         self.process = None
         self.process_error = "Runtime PID not supplied"
@@ -88,6 +89,10 @@ class MemorySampler:
             self.take_sample()
 
     def take_sample(self):
+        with self.sample_lock:
+            self._take_sample()
+
+    def _take_sample(self):
         sample = dict(at=datetime.now(timezone.utc).isoformat(), elapsed_seconds=time.monotonic() - self.began,
                       device_vram_total_bytes=None, device_vram_used_bytes=None, host_ram_total_bytes=None,
                       host_ram_used_bytes=None, runtime_rss_bytes=None, runtime_torch_allocator_allocated_bytes=None,
