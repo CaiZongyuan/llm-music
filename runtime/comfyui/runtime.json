@@ -1,0 +1,34 @@
+{
+  "schema_version": 1,
+  "python": "3.12.13",
+  "torch": "2.10.0+cu130",
+  "torch_cuda": "13.0",
+  "gpu_name": "NVIDIA GeForce RTX 3070 Ti Laptop GPU",
+  "min_vram_mib": 8192,
+  "min_free_disk_bytes": 10737418240,
+  "port": 8188,
+  "probe_timeout_seconds": 120,
+  "sources": {
+    "comfyui": {
+      "repository": "https://github.com/Comfy-Org/ComfyUI.git",
+      "revision": "7a5dad695fe1cae25efcb2550530fb20ef68da3d",
+      "code_license": "GPL-3.0",
+      "license_source": "https://github.com/Comfy-Org/ComfyUI/blob/7a5dad695fe1cae25efcb2550530fb20ef68da3d/LICENSE"
+    },
+    "plugin": {
+      "repository": "https://github.com/pytraveler/YuE2-ComfyUI.git",
+      "revision": "fc78df9dfb214f396aa281f5b03519cefff5b00a",
+      "code_license": "Apache-2.0; vendored inference code retains its upstream license",
+      "license_source": "https://github.com/pytraveler/YuE2-ComfyUI/blob/fc78df9dfb214f396aa281f5b03519cefff5b00a/NOTICE.md"
+    }
+  },
+  "required_nodes": ["YuE2GenerateSong", "YuE2Options", "YuE2Transcribe"],
+  "p0_defaults": {
+    "dtype": "bfloat16",
+    "offload": true,
+    "low_vram": false,
+    "keep_model_loaded": false,
+    "cot": "full",
+    "vae": "standard"
+  }
+}
