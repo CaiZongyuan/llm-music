@@ -14,7 +14,7 @@ Source/readiness knowledge from issue #14 and the shared public HTTP/Score bound
 
 New consumers of RuntimeClient are the generation CLI and resource sampler; validate_abc is shared with transcription. Their public contracts are consumed unchanged. The generation manifest owns only its input/output/node mappings. Runtime, plugin, registry, environment, ports, and shared helper files remain under their existing owners. Real requests verify clean pinned Runtime sources and the selected PID before submission; an occupied queue fails without mutation.
 
-RTF uses actual history timestamps and decoded output duration. The reported boundary includes saving nodes; weight-hash preflight and client decode/Score validation are separate. Resource values are sampled, not exact peaks. CUDA available/allocated device view, Comfy availability proxy, Torch allocator subset, host RAM, selected process RSS, and unavailable WDDM per-process GPU residency are named separately. Exclusive model-load time is unavailable; the plugin's rounded loading-and-other total is labeled as such. No weighted progress percentage is claimed.
+RTF uses actual history timestamps and decoded output duration. The reported boundary includes saving nodes; weight-hash preflight and client decode/Score validation are separate. Resource values are sampled, not exact peaks. CUDA available/allocated device view, Comfy availability proxy, Torch active allocator subset, host RAM, selected process RSS, and unavailable WDDM per-process GPU residency are named separately. The pinned native counter is `active_bytes.all.current`: `torch_vram_total - torch_vram_free = reserved - (reserved - active)`. The legacy `*_allocated` field and formula are preserved, but active may include awaiting-free blocks and is not strictly `memory_allocated()`. Exclusive model-load time is unavailable; the plugin's rounded loading-and-other total is labeled as such. No weighted progress percentage is claimed.
 
 Cold/repeat labels are caller-declared session conditions. Preflight hashes read model files and may warm filesystem cache. Core DAG cache hits preserve outputs but remove the generation performance claim. No global cache setting or inference variable is changed to manufacture uncached work.
 
@@ -38,7 +38,7 @@ The PM executed the first strict-serial request on the clean frozen candidate `3
 | Sampled CUDA whole-device peak | 6,013,059,072 bytes; allocated/available view including other GPU consumers, not WDDM process residency. |
 | Sampled Comfy proxy peak | 5,995,527,920 bytes; separately excludes unused Torch reservation. |
 | Sampled host RAM / Runtime RSS peaks | Whole-host used RAM 32,421,019,648 bytes; selected PID 50752 resident working set 10,536,738,816 bytes. Host value includes other consumers; client memory is outside the selected-process scope. |
-| Sampled Torch allocator subset peak | 4,680,089,328 bytes; excludes non-Torch/context allocations and is not total process GPU resident memory. |
+| Sampled Torch active allocator subset peak | 4,680,089,328 bytes; native active blocks including awaiting-free, excludes non-Torch/context allocations and is not WDDM process GPU resident memory. |
 | Sampling limits | 53 samples; configured interval 1 s; largest observed gap 2.813 s; no sampler errors. Peaks remain sampling-limited lower bounds. |
 | Inference settings | Baseline BF16/offload=on/low_vram=false/keep_model_loaded=false/cot=full/standard VAE/sdpa/35-second ceiling retained. No OOM and no low_vram fallback run. |
 

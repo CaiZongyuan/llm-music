@@ -29,7 +29,7 @@ uv run --project runtime/comfyui --no-sync python runtime/comfyui/p0/generation.
 ## 读取资源与时间报告
 
 - `memory-samples.jsonl` 保留 UTC 时间和逐次读数。默认每秒取样，可用 `--sample-interval` 改变；报告同时保留实际最大取样间隔。采样峰值是可观测下界，不能保证捕获两个样本之间的峰值。
-- 设备读数来自 `/system_stats`。Comfy 的 vram_free 包含未使用的 Torch reservation；工具减去 torch_vram_free 重建 CUDA free，再计算整个设备的使用量。另保留 Comfy 可用量代理、Torch allocator 子集、整机 RAM，以及指定 Runtime PID 的 RSS。设备和整机值包含其他消费者；WDDM 进程 GPU resident memory 明确 unavailable，不能用设备总量代替。
+- 设备读数来自 `/system_stats`。Comfy 的 vram_free 包含未使用的 Torch reservation；工具减去 torch_vram_free 重建 CUDA free，再计算整个设备的使用量。另保留 Comfy 可用量代理、Torch active allocator 子集、整机 RAM，以及指定 Runtime PID 的 RSS。锁定 Comfy 的 torch_vram_free 为 reserved−active，因此 legacy `runtime_torch_allocator_allocated_bytes` 实际重构 native `active_bytes.all.current`，包含 awaiting-free blocks，不等于严格 `memory_allocated()`；字段名与数值公式保留兼容。设备和整机值包含其他消费者；WDDM 进程 GPU resident memory 明确 unavailable，不能用设备总量代替。
 - RTF 为 history 的 execution_start→execution_success 秒数 / 完整解码的音频秒数。该计量包含 Workflow 保存节点，不是 model-only RTF。另记录客户端等待与验证时间；预先校验权重的读取不在该时间内，会影响文件系统缓存。
 - 同一请求日志有唯一插件 summary 时，记录其四个阶段的 0.1 秒舍入值。插件的 “loading and the rest” 包含加载、卸载和其他工作；exclusive model_load 保持 unavailable。缺日志或存在歧义时阶段值保持 unavailable。不会把加权 progress bar 当作真实总体百分比。
 - `cold` / `repeat` 是调用者对当前 Runtime session 的声明，不代表服务器冷启动。history 的 execution_cached 会保留；核心 Generate 节点命中 DAG cache 时保留输出，但拒绝生成性能结论。keep_model_loaded=false 不关闭 DAG cache。不能默认相同 seed/输入的重复请求执行了新推理。

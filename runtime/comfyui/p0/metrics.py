@@ -158,7 +158,7 @@ class MemorySampler:
                     host_scope="Whole host total minus available RAM; includes other processes and system usage; sampled lower bound on peak",
                     process_ram_scope="Selected Runtime PID resident working set (psutil RSS); excludes client process memory",
                     process_pid=self.process_pid, process_ram_unavailable_reason=self.process_error,
-                    torch_allocator_scope="Selected Runtime Torch allocator only; excludes non-Torch CUDA/context allocations; not resident process GPU memory",
+                    torch_allocator_scope="Selected Runtime native Torch active_bytes.all.current reconstructed as torch_vram_total - torch_vram_free; legacy *_allocated field name preserved; includes blocks awaiting free, not strict memory_allocated(); excludes non-Torch CUDA/context allocations and is not WDDM resident process GPU memory",
                     process_gpu_resident_bytes=None,
                     process_gpu_unavailable_reason="WDDM per-process GPU residency is unavailable from this API; no device total is substituted",
                     errors=self.errors)
