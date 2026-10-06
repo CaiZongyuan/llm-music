@@ -37,10 +37,14 @@ class Identity:
             return dict(state="fake/unverified", pid=None, create_time=None)
         import psutil
 
-        process = psutil.Process(self.args.process_pid)
-        if not process.is_running() or not any(Path(arg).is_file() and Path(arg).samefile(self.args.runtime_main) for arg in process.cmdline()[1:]):
-            raise ValueError("Runtime process identity does not execute the declared pinned main.py")
-        value = dict(pid=process.pid, create_time=process.create_time(), state="observed")
+        try:
+            process = psutil.Process(self.args.process_pid)
+            if not process.is_running() or not any(Path(arg).is_file() and Path(arg).samefile(self.args.runtime_main) for arg in process.cmdline()[1:]):
+                raise ValueError("Runtime process identity does not execute the declared pinned main.py")
+            value = dict(pid=process.pid, create_time=process.create_time(), state="observed")
+        except psutil.Error as error:
+            raise ValueError(f"Runtime process verification unavailable ({type(error).__name__}): {error}; "
+                             "preserve the request mapping and inspect ownership before recovery; no further submissions or cleanup") from error
         if self.initial is not None and value != self.initial:
             raise ValueError("Runtime PID/create_time changed; continuous series stops")
         return value
@@ -59,7 +63,8 @@ def idle(client, identity, sampler, args):
             break
         time.sleep(min(args.poll_interval, max(0, deadline - time.monotonic())))
     sampler.take_sample()
-    return window(sampler.samples, start, time.monotonic() - sampler.began)
+    end = time.monotonic() - sampler.began
+    return window(sampler.snapshot(), start, end)
 
 
 def wait_owned(client, identity, job, args):
@@ -150,7 +155,7 @@ def execute(job, client, identity, sampler, args, record, mapping, g5_graph=None
         audio = next(target.glob("audio.*"))
         item["outputs"]["signal"] = signal(audio)
         item["core_fingerprint"] = fingerprint(graph, job["manifest"])
-    item["memory"] = dict(active=window(sampler.samples, begin, terminal), idle=idle(client, identity, sampler, args))
+    item["memory"] = dict(active=window(sampler.snapshot(), begin, terminal), idle=idle(client, identity, sampler, args))
     item.update(status="completed", identity_after=identity.read(), prompt_id=runtime_job["prompt_id"], request_sha256=sha256(target / "request.json"))
     write_json(target / "item.json", item)
     write_json(args.output_dir / "report.json", record)
@@ -219,9 +224,24 @@ def run(args):
         record.update(status="failed", error=str(error), error_details=getattr(error, "details", None))
         if record["items"] and record["items"][-1]["status"] != "completed":
             record["items"][-1].update(status="failed", error=str(error))
+    samples = sampler.snapshot()
+    for item in record["items"]:
+        if "memory" not in item:
+            continue
+        for phase, previous in item["memory"].items():
+            item["memory"][phase] = window(samples, previous["start_elapsed_seconds"], previous["end_elapsed_seconds"])
+        write_json(args.output_dir / item["label"] / "item.json", item)
+    if "initial_idle" in record:
+        previous = record["initial_idle"]
+        record["initial_idle"] = window(samples, previous["start_elapsed_seconds"], previous["end_elapsed_seconds"])
+    if "post_ack_idle" in record.get("cleanup", {}):
+        previous = record["cleanup"]["post_ack_idle"]
+        record["cleanup"]["post_ack_idle"] = window(samples, previous["start_elapsed_seconds"], previous["end_elapsed_seconds"])
+    if "trend_review" in record:
+        record["trend_review"] = trends(record["items"])
     record["sampling"] = sampler.summary()
     record["sampling"]["sampling_window"] = "One series sampler: first pre-submission idle through ten jobs, artifact validation, every same-duration idle, one /free and two cleanup witnesses; failed run ends at its failure boundary"
-    record["sampling"]["whole_window"] = window(sampler.samples, 0, time.monotonic() - sampler.began)
+    record["sampling"]["whole_window"] = window(samples, 0, time.monotonic() - sampler.began)
     record["finished_at"] = datetime.now(timezone.utc).isoformat()
     record["retained_files"]["after"] = files_manifest(args.state_root)
     final_models = model_files(prior, args.evidence_kind)

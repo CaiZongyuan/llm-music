@@ -137,7 +137,8 @@ def verify_plan(plan, prepared):
             relative = Path(job["input"]["file"])
             if relative.is_absolute() or relative.drive or ".." in relative.parts:
                 raise ValueError("Prepared fixture path leaves the owned directory")
-            if sha256(prepared / relative) != job["input"]["sha256"]:
-                raise ValueError("Prepared waveform bytes changed")
+            observed = track_mark(prepared / relative)
+            if any(job["input"].get(name) != value for name, value in observed.items()):
+                raise ValueError("Prepared waveform metadata differs from decoded PCM16 audio; no Runtime write")
         if job["graph"] != expected:
             raise ValueError("Frozen graph IDs/bindings/settings differ from the validated Workflow")

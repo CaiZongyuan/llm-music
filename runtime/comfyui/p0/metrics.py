@@ -92,6 +92,11 @@ class MemorySampler:
         with self.sample_lock:
             self._take_sample()
 
+    def snapshot(self):
+        """Wait for any in-flight sample before reading a closed time window."""
+        with self.sample_lock:
+            return list(self.samples)
+
     def _take_sample(self):
         sample = dict(at=datetime.now(timezone.utc).isoformat(), elapsed_seconds=time.monotonic() - self.began,
                       device_vram_total_bytes=None, device_vram_used_bytes=None, host_ram_total_bytes=None,

@@ -36,9 +36,10 @@ class RepeatCleanupTests(unittest.TestCase):
         cls.prepared_owner.cleanup()
 
     @contextmanager
-    def runtime(self, log, cached_witness=False, stress_samples=False):
-        observed = dict(submitted=[], free=0)
+    def runtime(self, log, cached_witness=False, stress_samples=False, delayed_window=False):
+        observed = dict(submitted=[], uploads=0, free=0, delayed_stats=0)
         native = {}
+        t1_accepted, stats_started, release_stats = threading.Event(), threading.Event(), threading.Event()
         waveform = io.BytesIO()
         with wave.open(waveform, "wb") as audio:
             audio.setparams((1, 2, 8000, 0, "NONE", "not compressed"))
@@ -64,14 +65,22 @@ class RepeatCleanupTests(unittest.TestCase):
                     self.reply(dict(queue_running=[], queue_pending=[]))
                 elif path == "/system_stats":
                     observed["samples"] = observed.get("samples", 0) + 1
+                    delayed_sample = delayed_window and t1_accepted.is_set() and not stats_started.is_set()
+                    if delayed_sample:
+                        observed["delayed_stats"] += 1
+                        stats_started.set()
+                        release_stats.wait(2)
+                        time.sleep(0.08)
                     if stress_samples and observed["samples"] % 2:
                         time.sleep(0.02)
-                    self.reply({"system": {"python_version": "3.12.13", "pytorch_version": "2.10.0+cu130", "ram_total": 10000000, "ram_free": 5000000},
+                    self.reply({"system": {"python_version": "3.12.13", "pytorch_version": "2.10.0+cu130", "ram_total": 10000000, "ram_free": 4000000 if delayed_sample else 5000000},
                                 "devices": [{"type": "cuda", "index": 0, "vram_total": 8589410304, "vram_free": 8000000000, "torch_vram_total": 1000000, "torch_vram_free": 500000}]})
                 elif path == "/object_info":
                     self.reply(schema)
                 elif path.startswith("/history/"):
                     identifier = path.removeprefix("/history/")
+                    if delayed_window and identifier == "prompt-T1":
+                        stats_started.wait(2)
                     self.reply({identifier: native[identifier]} if identifier in native else {})
                 elif path == "/view":
                     self.send_response(200)
@@ -84,6 +93,7 @@ class RepeatCleanupTests(unittest.TestCase):
                 raw = self.rfile.read(int(self.headers["Content-Length"]))
                 body = json.loads(raw) if self.headers["Content-Type"].startswith("application/json") else None
                 if self.path == "/upload/image":
+                    observed["uploads"] += 1
                     import re
                     name = re.search(rb'filename="([^"]+)"', raw).group(1).decode()
                     self.reply({"name": name, "subfolder": "fake", "type": "input"})
@@ -101,6 +111,8 @@ class RepeatCleanupTests(unittest.TestCase):
                             stream.write("loaded sheetsage2_bf16.safetensors on cuda:0\nListening to the recording\nWriting down what it hears\n")
                         else:
                             stream.write("[yue2_comfy.loader] LM: rebuilt\nresident on cuda:0\n[yue2_comfy] stages: score 0.2 s, performance 0.3 s, acoustic 0.2 s, decode 0.1 s | loading and the rest 0.2 s\n[yue2_comfy.loader] unloaded\n")
+                    if label == "T1":
+                        t1_accepted.set()
                     self.reply({"prompt_id": identifier})
                 elif self.path == "/free":
                     observed["free"] += 1
@@ -111,6 +123,7 @@ class RepeatCleanupTests(unittest.TestCase):
                 elif self.path == "/yue2/score/midi":
                     self.reply({"data": base64.b64encode(midi).decode()})
                 elif self.path == "/yue2/midi/tracks":
+                    release_stats.set()
                     self.reply({"parts": [{"notes": 1}]})
                 else:
                     self.send_error(404)
@@ -128,7 +141,7 @@ class RepeatCleanupTests(unittest.TestCase):
             server.server_close()
             thread.join()
 
-    def execute(self, root, cached_witness=False, changed_process=False, stress_samples=False):
+    def execute(self, root, cached_witness=False, changed_process=False, stress_samples=False, process_failure=None, prepared=None, delayed_window=False):
         project = CLI.parents[1]
         config = json.loads((project / "runtime.json").read_text(encoding="utf-8"))
         models = json.loads((project / "models.json").read_text(encoding="utf-8"))["models"]
@@ -138,7 +151,7 @@ class RepeatCleanupTests(unittest.TestCase):
         ready.write_text(json.dumps({"ready": True, "checks": checks}), encoding="utf-8")
         log.write_bytes(b"old logs\n")
         extra, environment = [], dict(os.environ)
-        if changed_process:
+        if changed_process or process_failure:
             for check in checks:
                 if check["id"].startswith("model:"):
                     model_path = root / (check["facts"]["id"] + ".fake")
@@ -150,22 +163,27 @@ class RepeatCleanupTests(unittest.TestCase):
             main = root / "runtime-main.py"
             main.write_text("# fake external main\n", encoding="utf-8")
             (dependency / "psutil.py").write_text(
-                "from types import SimpleNamespace\ncounter = 0\nclass Process:\n"
+                "from types import SimpleNamespace\nfrom pathlib import Path\ncounter = 0\n"
+                "class Error(Exception): pass\nclass NoSuchProcess(Error): pass\nclass AccessDenied(Error): pass\nclass Process:\n"
                 "    def __init__(self,pid): self.pid=pid\n"
                 "    def is_running(self): return True\n"
                 f"    def cmdline(self): return ['python', {str(main)!r}]\n"
-                "    def create_time(self):\n        global counter\n        counter += 1\n        return 10 + counter\n"
+                "    def create_time(self):\n        global counter\n"
+                f"        if {bool(process_failure)!r} and 'Writing down what it hears' in Path({str(log)!r}).read_text():\n"
+                f"            raise {process_failure or 'Error'}('process query failed after accepted work')\n"
+                f"        counter += 1\n        return 10 + counter if {changed_process!r} else 10\n"
                 "    def memory_info(self): return SimpleNamespace(rss=1000)\n", encoding="utf-8")
             environment["PYTHONPATH"] = str(dependency)
             ledger = root / "ledger"
             ledger.mkdir()
             extra = ["--evidence-kind", "real", "--process-pid", "100", "--runtime-main", str(main), "--ledger-root", str(ledger)]
-        with self.runtime(log, cached_witness, stress_samples) as (address, observed):
-            result = subprocess.run([sys.executable, str(CLI), "run", "--prepared", str(self.prepared), "--output-dir", str(output),
+        with self.runtime(log, cached_witness, stress_samples, delayed_window) as (address, observed):
+            result = subprocess.run([sys.executable, str(CLI), "run", "--prepared", str(prepared or self.prepared), "--output-dir", str(output),
                                      "--doctor-report", str(ready), "--runtime-log", str(log), "--url", address, "--evidence-kind", "fake",
                                      "--poll-interval", "0.01", "--sample-interval", "0.01", "--idle-seconds", "0.01", "--timeout", "1", *extra],
                                     capture_output=True, text=True, encoding="utf-8", timeout=30, env=environment)
-        return result, json.loads((output / "report.json").read_text(encoding="utf-8")), observed, output
+        report = json.loads((output / "report.json").read_text(encoding="utf-8")) if (output / "report.json").exists() else None
+        return result, report, observed, output
 
     def test_mixed_series_preserves_exact_g5_replay_and_one_free_without_p0_gate(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -199,6 +217,68 @@ class RepeatCleanupTests(unittest.TestCase):
         self.assertEqual(observed["submitted"], [])
         self.assertEqual(observed["free"], 0)
         self.assertIn("PID/create_time", report["error"])
+
+    def test_unavailable_process_after_accepted_work_preserves_failure_evidence(self):
+        for failure in ["NoSuchProcess", "AccessDenied"]:
+            with self.subTest(failure=failure), tempfile.TemporaryDirectory() as directory:
+                result, report, observed, output = self.execute(Path(directory), process_failure=failure)
+                self.assertEqual(result.returncode, 1)
+                self.assertIsNotNone(report, result.stderr)
+                self.assertEqual(report["status"], "failed")
+                self.assertIn(failure, report["error"])
+                self.assertIn("inspect ownership", report["error"])
+                self.assertEqual([label for label, _ in observed["submitted"]], ["T1"])
+                self.assertEqual(observed["free"], 0)
+                mapping = json.loads((output / "run-map.json").read_text(encoding="utf-8"))
+                self.assertEqual(list(mapping["jobs"]), ["T1"])
+                self.assertEqual(mapping["jobs"]["T1"]["prompt_id"], "prompt-T1")
+                self.assertTrue((output / "resource-samples.jsonl").read_text(encoding="utf-8").strip())
+                self.assertGreater(report["sampling"]["sample_count"], 0)
+                summary = json.loads((output / "runtime-report.json").read_text(encoding="utf-8"))
+                self.assertFalse(summary["p0_passed"])
+
+    def test_tampered_transcription_measurement_facts_stop_before_runtime_writes(self):
+        original = self.plan["jobs"][0]["input"]
+        changes = dict(duration_seconds=original["duration_seconds"] * 2, frames=original["frames"] * 2,
+                       sample_rate=original["sample_rate"] * 2, channels=original["channels"] + 1,
+                       track_mark="0" * 16, decoded_float32_sha256="0" * 64,
+                       sha256="0" * 64, bytes=original["bytes"] + 1)
+        for field, value in changes.items():
+            with self.subTest(field=field), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                copied = root / "prepared"
+                shutil.copytree(self.prepared, copied)
+                plan = json.loads((copied / "plan.json").read_text(encoding="utf-8"))
+                plan["jobs"][0]["input"][field] = value
+                (copied / "plan.json").write_text(json.dumps(plan), encoding="utf-8")
+                result, report, observed, output = self.execute(root, prepared=copied)
+                self.assertEqual(result.returncode, 1)
+                self.assertIn("metadata differs from decoded PCM16 audio", result.stderr)
+                self.assertEqual(observed["uploads"], 0)
+                self.assertEqual(observed["submitted"], [])
+                self.assertEqual(observed["free"], 0)
+
+    def test_closed_windows_include_sample_queries_completed_after_terminal_history(self):
+        with tempfile.TemporaryDirectory() as directory:
+            result, report, observed, output = self.execute(Path(directory), delayed_window=True)
+            samples = [json.loads(line) for line in (output / "resource-samples.jsonl").read_text(encoding="utf-8").splitlines()]
+            persisted = {item["label"]: json.loads((output / item["label"] / "item.json").read_text(encoding="utf-8"))["memory"] for item in report["items"]}
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(observed["delayed_stats"], 1)
+        active = report["items"][0]["memory"]["active"]
+        rows = [row for row in samples if active["start_elapsed_seconds"] <= row["elapsed_seconds"] <= active["end_elapsed_seconds"]]
+        self.assertTrue(any(row["host_ram_used_bytes"] == 6000000 for row in rows), "Delayed query must start inside T1 active window")
+        for item in report["items"]:
+            self.assertEqual(persisted[item["label"]], item["memory"])
+            for state in ["active", "idle"]:
+                stored = item["memory"][state]
+                rows = [row for row in samples if stored["start_elapsed_seconds"] <= row["elapsed_seconds"] <= stored["end_elapsed_seconds"]]
+                self.assertEqual(stored["sample_count"], len(rows), (item["label"], state))
+                values = [row["host_ram_used_bytes"] for row in rows if row["host_ram_used_bytes"] is not None]
+                self.assertEqual(stored["memory"]["host_ram_used_bytes"]["sampled_peak"], max(values) if values else None, (item["label"], state))
+        for stored in [report["initial_idle"], report["cleanup"]["post_ack_idle"]]:
+            rows = [row for row in samples if stored["start_elapsed_seconds"] <= row["elapsed_seconds"] <= stored["end_elapsed_seconds"]]
+            self.assertEqual(stored["sample_count"], len(rows))
 
     def test_changed_core_ancestor_plan_is_rejected_before_any_runtime_write(self):
         with tempfile.TemporaryDirectory() as directory:
