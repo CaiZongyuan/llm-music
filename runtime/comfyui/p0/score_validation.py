@@ -11,7 +11,7 @@ else:
 def validate_abc(client, text):
     endpoint = "/yue2/score/read"
     if not isinstance(text, str) or not text.strip():
-        raise RuntimeFailure(endpoint, "Transcription returned no ABC Score.")
+        raise RuntimeFailure(endpoint, "Runtime returned no ABC Score.")
     result = client.post_json(endpoint, {"abc": text})
     sheet = result.get("sheet")
     if not isinstance(sheet, dict) or sheet.get("cut") is not False:

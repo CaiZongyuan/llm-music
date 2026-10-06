@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "id": "original-instrumental-16s",
+  "version": "1",
+  "source": "Project-authored deterministic synthesis; no third-party recording or copied melody",
+  "generator": "reference_fixture.py",
+  "license": "CC0-1.0",
+  "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+  "duration_seconds": 16,
+  "sample_rate": 48000,
+  "channels": 2,
+  "sample_width": 2,
+  "size_bytes": 3072044,
+  "sha256": "8cfe7f7dda6d17874bbae291ddcc7b59494de57b242c1b302bc4660537f924a9",
+  "limitations": "Synthetic instrumental fixture at 120 BPM. Tests exchangeable Score/MIDI, not transcription accuracy for vocals or arbitrary music."
+}
