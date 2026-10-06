@@ -33,6 +33,10 @@ uv run --project runtime/comfyui --no-sync python runtime/comfyui/p0/running_can
 
 完整验证成功退出 `0`，`report.json` 为 `verified=true`。`p0_passed` 始终为 `false`，连续重复和清理仍需后续验收。该 receipt 保留原生响应、history、queue、日志 byte 区间、源码/模型/Workflow hashes、B 产物及 `/system_stats` 点快照。点快照不代表 peak、进程专属显存或已完全释放 GPU 内存。真实 GPU、loader cleanup 和后续推理事实由同次日志及实际运行记录补足。
 
+目标 GPU 已在冻结候选 `58d62ab` 上完成本次验证，退出 `0`。A 在新 score token 标记后取消，原生执行区间为 5.108 秒；其 history 为 `error`、`completed=false`、本目标 `execution_interrupted`，Job 查询确认为 cancelled。普通 terminal guard 零写入；B running 时两次针对旧 A 的原生调用均返回 false，随后 B 成功。B 执行区间为 52.776 秒，得到 99 个 Score 音符与 34.998667 秒、48 kHz stereo FLAC；完整解码 1,679,936 帧，音频 SHA256 为 `270d1a460ed5424b87735f8ee9b1f2ea85bd483dcbd7e6ea0a4414fddf69439c`。五个声明保留的文件 hash 不变，包括原 Runtime 输出和此前验证副本/MIDI；最终队列为空，同一 Runtime PID、creation identity 和源码保持连续。
+
+日志出现 loader `unloaded` 与 `Processing interrupted`。原生 Torch 使用量点快照从 score 阶段的 4,728,805,616 bytes 降至取消后、B 前的 3,000,510,600 bytes，再降至 B 后的 86,245,376 bytes；同期 device 使用量为 6,115,819,520 → 4,438,097,920 → 1,720,188,928 bytes。取消后仍有较高用量，较晚快照继续回落；原因尚未确定。此结果不证明取消立即完全释放或无泄漏，连续观察与清理由 #19 验证。主观试听延后，P0 整体仍未通过。
+
 ## 有界恢复
 
 失败退出 `1` 并保留已接受的映射和证据。参数或目录冲突退出 `2`。超时/断联后，原请求可能仍 active。先查询保存的 id；不要重跑完整 demo。
