@@ -1,7 +1,9 @@
 """Exercise public HTTP with real isolated SQLite and application storage."""
 
 from pathlib import Path
+from contextlib import closing
 import hashlib
+import builtins
 import io
 import wave
 import sqlite3
@@ -97,7 +99,7 @@ def test_metadata_insert_failure_compensates_only_this_upload(tmp_path: Path) ->
         base = "/projects/" + project["id"] + "/assets"
         prior = client.post(base, files={"file": ("prior.wav", reference_wav())}).json()
         before = {path.relative_to(tmp_path): path.read_bytes() for path in (tmp_path / "assets").rglob("*.wav")}
-        with sqlite3.connect(tmp_path / "app.sqlite") as database:
+        with closing(sqlite3.connect(tmp_path / "app.sqlite")) as database, database:
             database.execute("CREATE TRIGGER fail_asset BEFORE INSERT ON assets BEGIN SELECT RAISE(ABORT, 'injected commit failure'); END")
         response = client.post(base, files={"file": ("new.wav", reference_wav())})
         assert response.status_code == 503
@@ -204,7 +206,7 @@ def test_corrupt_storage_reference_is_rejected_without_reading_another_path(tmp_
         project = client.post("/projects", json={"name": "Morning song"}).json()
         base = "/projects/" + project["id"] + "/assets"
         asset = client.post(base, files={"file": ("reference.wav", reference_wav())}).json()
-        with sqlite3.connect(tmp_path / "app.sqlite") as database:
+        with closing(sqlite3.connect(tmp_path / "app.sqlite")) as database, database:
             database.execute("UPDATE assets SET storage_key=? WHERE id=?", (key, asset["id"]))
         response = client.get(base + "/" + asset["id"] + "/content")
         assert response.status_code == 409
@@ -215,7 +217,7 @@ def test_initial_migration_is_wal_and_restart_preserves_existing_rows(tmp_path: 
     configured = Settings(data_dir=tmp_path)
     with TestClient(create_app(configured)) as client:
         project = client.post("/projects", json={"name": "Morning song"}).json()
-    with sqlite3.connect(tmp_path / "app.sqlite") as database:
+    with closing(sqlite3.connect(tmp_path / "app.sqlite")) as database, database:
         assert database.execute("PRAGMA journal_mode").fetchone()[0] == "wal"
         assert database.execute("SELECT version_num FROM alembic_version").fetchone()[0] == "0001_project_audio"
     with TestClient(create_app(configured)) as client:
@@ -275,7 +277,7 @@ def test_cleanup_failure_retains_isolated_stage_and_still_compensates_uncommitte
     with TestClient(create_app(Settings(data_dir=tmp_path))) as client:
         project = client.post("/projects", json={"name": "Morning song"}).json()
         base = "/projects/" + project["id"] + "/assets"
-        with sqlite3.connect(tmp_path / "app.sqlite") as database:
+        with closing(sqlite3.connect(tmp_path / "app.sqlite")) as database, database:
             database.execute("CREATE TRIGGER fail_asset BEFORE INSERT ON assets BEGIN SELECT RAISE(ABORT, 'injected'); END")
         monkeypatch.setattr(Path, "unlink", block_staged_cleanup)
         response = client.post(base, files={"file": ("reference.wav", reference_wav())})
@@ -304,3 +306,32 @@ def test_interrupted_initial_schema_creation_can_restart_without_partial_tables(
         assert client.get("/projects").json() == []
         response = client.post("/projects", json={"name": "Recovered morning song"})
         assert response.status_code == 201
+
+
+def test_os_read_denial_returns_recovery_before_headers_and_preserves_audio(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    data = reference_wav()
+    real_builtin_open, real_io_open = builtins.open, io.open
+    with TestClient(create_app(Settings(data_dir=tmp_path)), raise_server_exceptions=False) as client:
+        project = client.post("/projects", json={"name": "Morning song"}).json()
+        base = "/projects/" + project["id"] + "/assets"
+        asset = client.post(base, files={"file": ("reference.wav", data)}).json()
+        target = next((tmp_path / "assets").rglob("*.wav")).resolve()
+
+        def denied(file, mode="r", *args, **kwargs):
+            if isinstance(file, (str, Path)) and Path(file).resolve() == target and "r" in mode:
+                raise PermissionError("Injected stable OS read denial")
+            return real_builtin_open(file, mode, *args, **kwargs)
+
+        def denied_io(file, mode="r", *args, **kwargs):
+            if isinstance(file, (str, Path)) and Path(file).resolve() == target and "r" in mode:
+                raise PermissionError("Injected stable OS read denial")
+            return real_io_open(file, mode, *args, **kwargs)
+
+        with monkeypatch.context() as fault:
+            fault.setattr(builtins, "open", denied)
+            fault.setattr(io, "open", denied_io)
+            responses = [client.get(url) for url in [base, base + "/" + asset["id"], base + "/" + asset["id"] + "/content"]]
+        assert [response.status_code for response in responses] == [503, 503, 503]
+        assert all(response.json()["error"]["code"] == "asset_storage_unavailable" for response in responses)
+        assert client.get(base).json() == [asset]
+        assert client.get(base + "/" + asset["id"] + "/content").content == data

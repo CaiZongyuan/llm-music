@@ -1,6 +1,6 @@
 """Real CPU HTTP processes verify committed data survives an actual stop/restart."""
 
-from contextlib import contextmanager
+from contextlib import closing, contextmanager
 import importlib.util
 import json
 from pathlib import Path
@@ -22,8 +22,9 @@ def server(data_dir: Path, log_path: Path) -> Iterator[httpx.Client]:
         reservation.bind(("127.0.0.1", 0))
         port = reservation.getsockname()[1]
     with log_path.open("wb") as log:
-        process = subprocess.Popen([sys.executable, "-m", "music_api", "serve", "--data-dir", str(data_dir), "--port", str(port)],
-                                   stdout=log, stderr=log, creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
+        process = subprocess.Popen([sys.executable, str(Path(__file__).with_name("run_server.py")), str(data_dir), str(port)],
+                                   stdin=subprocess.PIPE, stdout=log, stderr=log,
+                                   creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
         try:
             with httpx.Client(base_url=f"http://127.0.0.1:{port}", timeout=2) as client:
                 deadline = time.monotonic() + 15
@@ -41,8 +42,18 @@ def server(data_dir: Path, log_path: Path) -> Iterator[httpx.Client]:
                     time.sleep(min(0.05, max(0, deadline - time.monotonic())))
                 yield client
         finally:
-            process.terminate()
-            process.wait(timeout=10)
+            if process.poll() is None:
+                assert process.stdin is not None
+                process.stdin.write(b"\n")
+                process.stdin.flush()
+                process.stdin.close()
+                try:
+                    process.wait(timeout=10)
+                except subprocess.TimeoutExpired:
+                    process.terminate()
+                    process.wait(timeout=10)
+                    raise AssertionError("Owned API did not acknowledge graceful shutdown")
+            assert "Application shutdown complete." in log_path.read_text(encoding="utf-8", errors="replace")
 
 
 def test_actual_process_restart_and_runtime_scratch_cleanup_preserve_audio(tmp_path: Path) -> None:
@@ -80,13 +91,13 @@ def test_unknown_schema_startup_failure_preserves_existing_project(tmp_path: Pat
     data_dir = tmp_path / "application"
     with server(data_dir, tmp_path / "good-server.log") as client:
         project = client.post("/projects", json={"name": "Morning song"}).json()
-    with sqlite3.connect(data_dir / "app.sqlite") as database:
+    with closing(sqlite3.connect(data_dir / "app.sqlite")) as database, database:
         database.execute("UPDATE alembic_version SET version_num='unsupported_revision'")
     result = subprocess.run([sys.executable, "-m", "music_api", "migrate", "--data-dir", str(data_dir)],
                             capture_output=True, text=True, encoding="utf-8", timeout=15)
     assert result.returncode != 0
     assert "unsupported_revision" in result.stderr
-    with sqlite3.connect(data_dir / "app.sqlite") as database:
+    with closing(sqlite3.connect(data_dir / "app.sqlite")) as database, database:
         assert database.execute("SELECT name FROM projects WHERE id=?", (project["id"],)).fetchone()[0] == "Morning song"
         database.execute("UPDATE alembic_version SET version_num='0001_project_audio'")
     with server(data_dir, tmp_path / "restored-server.log") as client:

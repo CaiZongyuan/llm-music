@@ -56,6 +56,7 @@ Project 名称去掉首尾空白，长度 1–200 字符；描述至多 2000 字
 | Project/Asset 不存在或跨 Project | `404 project_not_found` / `asset_not_found`；选择目标 Project 的 Asset。 |
 | 既有文件缺失/不完整、路径映射越界 | `409 asset_unavailable` / `asset_path_invalid`；从备份恢复原文件/元数据。列出素材时也会明确报告不可读取状态。 |
 | 写文件或明确未提交的元数据失败 | `503 asset_write_failed` / `asset_persistence_failed`；检查应用 storage/数据库，修复后显式重试。 |
+| 文件读取被拒绝或元数据暂不可用 | `503 asset_storage_unavailable` / `metadata_unavailable`；由 owner 恢复文件读取权限或数据库访问，再查询原 id。 |
 | 提交回执或结果无法确认 | `503 asset_commit_unconfirmed`；保留文件，先用 `resource_id` 查询同 Project 的 Asset 和 content，避免重复上传。 |
 | 本次文件补偿失败 | `503 storage_cleanup_failed`；先查询 id，保留日志并由 owner 处理本次隔离文件。 |
 

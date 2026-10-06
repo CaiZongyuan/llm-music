@@ -109,4 +109,9 @@ class Storage:
         if not path.is_file() or path.stat().st_size != size:
             raise DomainError(409, "asset_unavailable", "The stored Asset file is missing or incomplete.",
                               "Restore this Asset from a backup; do not overwrite it with a different file.")
+        # Check current OS read access before metadata or FileResponse sends success headers.
+        with path.open("rb") as source:
+            if not source.read(1):
+                raise DomainError(409, "asset_unavailable", "The stored Asset file is empty.",
+                                  "Restore this Asset's original content from a backup.")
         return path

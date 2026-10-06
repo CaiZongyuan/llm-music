@@ -56,6 +56,7 @@ Errors return `{ "error": { "code", "message", "recovery", "resource_id" } }`. D
 | Missing Project/Asset or cross-Project reference | `404 project_not_found` / `asset_not_found`; choose an Asset from that Project. |
 | Missing/incomplete prior file or invalid mapping/path | `409 asset_unavailable` / `asset_path_invalid`; restore original file/metadata from backup. Listing also reports unreadable stored content explicitly. |
 | File write or confirmed uncommitted metadata failure | `503 asset_write_failed` / `asset_persistence_failed`; restore application storage/database access, then retry explicitly. |
+| Denied file read or unavailable metadata | `503 asset_storage_unavailable` / `metadata_unavailable`; have the owner restore read permissions or database access, then query the original id. |
 | Unconfirmed commit acknowledgement/result | `503 asset_commit_unconfirmed`; retain the file and query the same Project's `resource_id` and content before retrying. |
 | Failed file compensation | `503 storage_cleanup_failed`; query the id first, retain logs and have the owner recover this attempt's isolated files. |
 
