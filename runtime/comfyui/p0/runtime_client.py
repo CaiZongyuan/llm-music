@@ -54,6 +54,10 @@ class RuntimeClient:
     def post_json(self, endpoint, payload):
         return self._json(endpoint, json.dumps(payload).encode("utf-8"), "application/json")
 
+    def post_json_bytes(self, endpoint, payload):
+        """Write JSON once when the native endpoint returns an empty/raw body."""
+        return self._request(endpoint, json.dumps(payload).encode("utf-8"), "application/json")
+
     def submit(self, graph, client_id=None):
         payload = {"prompt": graph, "client_id": client_id or str(uuid.uuid4())}
         result = self.post_json("/prompt", payload)
