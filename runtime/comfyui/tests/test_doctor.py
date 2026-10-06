@@ -16,7 +16,7 @@ CLI = Path(__file__).resolve().parents[1] / "manage.py"
 
 class DoctorTests(unittest.TestCase):
     @contextmanager
-    def external_runtime(self, capacity_bytes, stalled=False):
+    def external_runtime(self, capacity_bytes, probe_scenario="complete"):
         """Fake external libraries exercise the real CLI and real probe process."""
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -54,12 +54,12 @@ class DoctorTests(unittest.TestCase):
                     NODE_CLASS_MAPPINGS.update(module.NODE_CLASS_MAPPINGS)
                     return True
             """)
-            if stalled == "nonzero_after_complete":
+            if probe_scenario == "nonzero_after_complete":
                 nodes = "import atexit,os\natexit.register(lambda: os._exit(7))\n" + nodes
-            elif stalled == "after_complete":
+            elif probe_scenario == "after_complete":
                 nodes = "import atexit,sys,time\ndef stall_exit():\n    print('STALLED_EXIT', file=sys.stderr, flush=True)\n    time.sleep(3)\natexit.register(stall_exit)\n" + nodes
                 config["probe_timeout_seconds"] = 1
-            elif stalled:
+            elif probe_scenario == "stalled_import":
                 nodes = "import sys,time\nprint('x' * 10000 + 'STALLED_NODES_IMPORT', file=sys.stderr, flush=True)\ntime.sleep(3)\n" + nodes
                 config["probe_timeout_seconds"] = 1
             (root / "nodes.py").write_text(nodes, encoding="utf-8")
@@ -108,7 +108,7 @@ class DoctorTests(unittest.TestCase):
                 self.assertFalse(report["p0_passed"])
 
     def test_probe_timeout_keeps_completed_cuda_facts_and_bounded_stage_diagnostics(self):
-        with self.external_runtime(8589934592, stalled=True) as (directory, extra):
+        with self.external_runtime(8589934592, probe_scenario="stalled_import") as (directory, extra):
             result = self.run_fixture(directory, *extra, "--json")
         report = json.loads(result.stdout)
         self.assertEqual(result.returncode, 1)
@@ -126,7 +126,7 @@ class DoctorTests(unittest.TestCase):
         self.assertLessEqual(len(probe["facts"]["stdout_tail"]), 4096)
 
     def test_probe_timeout_after_all_positive_checkpoints_still_prevents_ready(self):
-        with self.external_runtime(8589934592, stalled="after_complete") as (directory, extra):
+        with self.external_runtime(8589934592, probe_scenario="after_complete") as (directory, extra):
             result = self.run_fixture(directory, *extra, "--json")
         report = json.loads(result.stdout)
         self.assertEqual(result.returncode, 1)
@@ -139,7 +139,7 @@ class DoctorTests(unittest.TestCase):
         self.assertFalse(checks["runtime_probe"]["facts"]["process_completed"])
 
     def test_nonzero_probe_exit_preserves_positive_facts_without_claiming_ready(self):
-        with self.external_runtime(8589934592, stalled="nonzero_after_complete") as (directory, extra):
+        with self.external_runtime(8589934592, probe_scenario="nonzero_after_complete") as (directory, extra):
             result = self.run_fixture(directory, *extra, "--json")
         report = json.loads(result.stdout)
         self.assertEqual(result.returncode, 1)
