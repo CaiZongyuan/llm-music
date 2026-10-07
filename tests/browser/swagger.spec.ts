@@ -2,6 +2,8 @@ import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import { execute, expect, object, openDocs, operation, stringField, test } from './swagger.js';
 
+test.use({ video: 'off' });
+
 test('Swagger validates inputs and saves a generated Candidate as one stable Version', async ({ page }) => {
   await openDocs(page);
   const list = await operation(page, 'GET', '/projects');
