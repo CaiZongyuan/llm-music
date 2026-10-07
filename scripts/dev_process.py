@@ -3,6 +3,7 @@
 import json
 import os
 from pathlib import Path
+import time
 
 import psutil
 
@@ -11,7 +12,16 @@ def write_json(path: Path, value: object) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     temporary = path.with_name(path.name + ".tmp")
     temporary.write_text(json.dumps(value, indent=2) + "\n", encoding="utf-8")
-    temporary.replace(path)
+    deadline = time.monotonic() + 2
+    while True:
+        try:
+            temporary.replace(path)
+            return
+        except PermissionError:
+            # Windows readers can briefly hold a file without delete sharing.
+            if os.name != "nt" or time.monotonic() >= deadline:
+                raise
+            time.sleep(0.02)
 
 
 def identity(pid: int) -> dict:

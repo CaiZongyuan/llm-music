@@ -13,3 +13,14 @@
 - 真实 GPU/目标机器三个服务启动、原生 Runtime 复用和停止由 Root 独立验收；此候选不将 Fake 结果视为真实 Runtime 通过。
 
 Root 集成登记项：根 `dev`、`test:launcher`，显式 CPU CI 执行，`docs/site.json` 成对登记 `guide-dev-launcher`（`guides/dev-launcher`）。作者不修改共享根包、CI 或站点清单。
+
+## 独立审查后的环境来源修复
+
+- 原冻结 `867ad1d75b416996ab878cc0d9cf58dfd320d7f7` 保留。独立 Standards 发现新 uv 探测进程的 `sys.prefix` 加 listener 共同基础 Python 不能证明后者环境；两个真实 CPU uv 环境确实共有基础解释器。
+- 复用现在要求 listener 的实际启动解释器路径，或 Windows 仍存活的直接 venv redirector。来源须对应同一命令、PID/创建时间与直接父子关系；当前项目锁与已安装环境只用 `uv sync --frozen --check` 验证，不修改它们。未证明或错误环境明确拒绝。该检查不声称读取进程内实时 `sys.prefix`，也不重写模型 receipt 时间。
+- 公开 CPU 来源 oracle 使用同一个标准库 HTTP peer，在两个独立 uv 环境运行。比较实际进程基础 executable 相同，但原始 `sys.prefix` 不同；正确启动来源通过，错误环境被拒绝，两个外部服务在检查后都保持可读取。完整 collector 的模型/source 事实继续复用原有 API 证据；此 oracle 只证明新增环境来源边界。
+- 第一次来源正例被拒绝：Windows redirector 的 `cwd` 读数可能与实际 child 不同。来源证明仅依赖精确解释器/命令/父子身份；实际 Runtime 源路径仍由 collector 校验。原失败 JUnit 为 `origin-repair-tests.xml`、`origin-debug-tests.xml`。
+- 回归读取会话时还暴露 Windows 短暂文件 sharing 使原子替换失败；`write_json` 现在对这种占用有两秒上限的重试，CLI 输出统一 UTF8。原失败保留在 `origin-repair-final.xml`。
+- 对真实 PID50752 仅执行公开来源检查，得到直接 creator38748、Runtime 项目14环境以及当前 lock `a2d73a2672b098f1cc6dd1160d6f760a9b31b49652f0e1a541e74946bd044225`。证据为 `.scratch/p2-development/37-launcher/protected-origin-readonly.json`；没有 Runtime HTTP、模型读取、CUDA import、启动或停止。
+- 修复后的最终完整 CPU 检查 8 通过，43.14 秒，JUnit `origin-full-final.xml`。同配置复用正常停止保留原服务；来源正例与错误环境拒绝的两个 peer 在检查后仍可读，测试最终只清理自有进程并读回端口无监听。CLI help、Python 编译、Node 语法及 `git diff --check` 通过。
+- 有界简化保留单一 `interpreter_origin` 来源边界，由完整启动和只读 CLI 共用；移除新探测进程共同基础 executable 的错误推断，没有扩展 Runtime HTTP/API 合同。实际三服务验收与双轴独立刷新仍由 Root 完成。
