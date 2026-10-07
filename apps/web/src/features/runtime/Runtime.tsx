@@ -61,9 +61,9 @@ export function Runtime() {
     <div className="workspace-grid">
       <section className="surface" aria-label={t.health}><h2>{t.health}</h2>
         {health.isPending ? <Loading /> : health.isError ? <RuntimeReadFailure error={health.error} onRetry={refresh} /> : <>
-          <dl className="facts"><dt>{t.backend}</dt><dd><strong>{freshness(health.data.backend.observation, now) === 'fresh' ? t.reachable : t.stale}</strong><Observation source={health.data.backend.observation} now={now} /></dd>
+          <dl className="facts"><dt>{t.backend}</dt><dd><strong>{freshness(health.data.backend.observation, now) === 'fresh' ? t.reachable : t[freshness(health.data.backend.observation, now)]}</strong><Observation source={health.data.backend.observation} now={now} /></dd>
             <dt>{t.backendVersion}</dt><dd>{health.data.backend.version}</dd><dt>{t.python}</dt><dd>{health.data.backend.python_version}</dd>
-            <dt>{t.runtime}</dt><dd><strong>{!health.data.runtime.reachable ? t.notReachable : freshness(health.data.runtime.observation, now) !== 'fresh' ? t.stale : t[health.data.runtime.status]}</strong><Observation source={health.data.runtime.observation} now={now} /></dd>
+            <dt>{t.runtime}</dt><dd><strong>{!health.data.runtime.reachable ? t.notReachable : freshness(health.data.runtime.observation, now) !== 'fresh' ? t[freshness(health.data.runtime.observation, now)] : t[health.data.runtime.status]}</strong><Observation source={health.data.runtime.observation} now={now} /></dd>
           </dl><Reasons reasons={health.data.runtime.reasons} />
         </>}
         {capabilities.isPending ? <Loading /> : capabilities.isError ? <RuntimeReadFailure error={capabilities.error} onRetry={refresh} /> : capabilities.data.capabilities.map(capability => <div className="runtime-metric" key={capability.operation}>
@@ -87,7 +87,7 @@ export function Runtime() {
       </section>
       <section className="surface soft" aria-label={t.queue}><h2>{t.queue}</h2><p>{t.queueScope}</p>
         {diagnostics.isPending ? <Loading /> : diagnostics.isError ? <RuntimeReadFailure error={diagnostics.error} onRetry={refresh} /> : queue && d ? <>
-          {freshness(queue.observation, now) === 'fresh' ? <dl className="facts"><dt>{t.queued}</dt><dd>{queue.queued}</dd><dt>{t.running}</dt><dd>{queue.running}</dd></dl> : <strong>{t.stale}</strong>}
+          {freshness(queue.observation, now) === 'fresh' ? <dl className="facts"><dt>{t.queued}</dt><dd>{queue.queued}</dd><dt>{t.running}</dt><dd>{queue.running}</dd></dl> : <strong>{t[freshness(queue.observation, now)]}</strong>}
           <Observation source={queue.observation} now={now} />
           <dl className="facts"><dt>{t.current}</dt><dd><ObservedValue reading={queue.recorded_running_job} now={now}><code>{queue.recorded_running_job.value}</code></ObservedValue></dd>
             <dt>{t.nativeQueue}</dt><dd><ObservedValue reading={d.native_queue_occupancy} now={now}>{d.native_queue_occupancy.value}</ObservedValue></dd></dl>
