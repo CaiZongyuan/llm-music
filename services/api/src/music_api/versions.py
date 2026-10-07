@@ -50,6 +50,7 @@ def readable_outputs(session: Session, storage: Storage, result: Candidate | Ver
 def save_version(database: Database, session: Session, storage: Storage, project_id: UUID,
                  value: VersionSave) -> tuple[Version, bool]:
     identifier = uuid4()
+    known_version_id: str | None = None
     parent = str(value.parent_version_id) if value.parent_version_id else None
     parent_allowed = literal(True) if parent is None else exists(select(Version.id).where(Version.id == parent, Version.project_id == str(project_id)))
     # First statement acquires the writer slot before any read snapshot. Concurrent
@@ -67,6 +68,7 @@ def save_version(database: Database, session: Session, storage: Storage, project
         if version is None:
             candidate_in(session, project_id, value.candidate_id)
             raise DomainError(404, "parent_version_not_found", "Parent Version does not exist in this Project.", "Choose a parent from this Project or omit it.")
+        known_version_id = version.id
         if version.name != value.name or version.parent_version_id != parent:
             raise DomainError(409, "version_already_saved", "Candidate was already saved with a different name or parent.",
                               "Read the existing Version; generate another Candidate for a new saved intent.", UUID(version.id))
@@ -82,7 +84,7 @@ def save_version(database: Database, session: Session, storage: Storage, project
             session.rollback()
         except Exception:
             log.exception("Version rollback acknowledgement failed", extra={"event": "version_rollback_unknown", "version_id": str(identifier)})
-        recovered_id = None
+        recovered_id = known_version_id
         try:
             with database.sessions() as check:
                 recovered = check.scalar(select(Version).where(Version.candidate_id == str(value.candidate_id), Version.project_id == str(project_id)))

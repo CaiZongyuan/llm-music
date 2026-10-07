@@ -267,7 +267,8 @@ def test_version_save_failure_before_commit_preserves_candidate_and_can_retry(tm
         event.remove(Session, "before_commit", fail_save)
 
 
-def test_lost_save_acknowledgement_with_unavailable_readback_keeps_durable_version(tmp_path: Path, monkeypatch) -> None:
+@pytest.mark.parametrize("existing_saved", [False, True], ids=["first-save", "same-intent-repeat"])
+def test_lost_save_acknowledgement_with_unavailable_readback_keeps_durable_version(tmp_path: Path, monkeypatch, existing_saved: bool) -> None:
     armed = {"value": False, "block_readback": False}
 
     def lose_acknowledgement(session: Session) -> None:
@@ -285,6 +286,14 @@ def test_lost_save_acknowledgement_with_unavailable_readback_keeps_durable_versi
             submitted = client.post(base + "/jobs/generate", json=INPUTS).json()
             job = wait_job(client, project["id"], submitted["id"])
             intent = {"candidate_id": job["result"]["candidate_id"], "name": "Unconfirmed morning"}
+            original_version = None
+            if existing_saved:
+                first_save = client.post(base + "/versions", json=intent)
+                assert first_save.status_code == 201
+                original_version = first_save.json()
+            candidate = client.get(base + "/candidates/" + intent["candidate_id"]).json()
+            assets = client.get(base + "/assets").json()
+            content = {asset["id"]: client.get(base + "/assets/" + asset["id"] + "/content").content for asset in assets}
             sessions = app.state.database.sessions
 
             def temporarily_unavailable():
@@ -298,14 +307,23 @@ def test_lost_save_acknowledgement_with_unavailable_readback_keeps_durable_versi
                 response = client.post(base + "/versions", json=intent)
                 assert response.status_code == 503
                 assert response.json()["error"]["code"] == "version_commit_unconfirmed"
+                assert armed == {"value": False, "block_readback": True}
             identifier = response.json()["error"]["resource_id"]
-            version = client.get(base + "/versions/" + identifier).json()
+            if original_version is not None:
+                assert identifier == original_version["id"]
+            readback = client.get(base + "/versions/" + identifier)
+            assert readback.status_code == 200
+            version = readback.json()
+            if original_version is not None:
+                assert version == original_version
             repeated = client.post(base + "/versions", json=intent)
             assert repeated.status_code == 200
             assert repeated.json() == version
             assert client.get(base + "/versions").json() == [version]
-            for asset in client.get(base + "/assets").json():
-                assert client.get(base + "/assets/" + asset["id"] + "/content").status_code == 200
+            assert client.get(base + "/candidates/" + intent["candidate_id"]).json() == candidate
+            assert client.get(base + "/assets").json() == assets
+            for asset_id, original in content.items():
+                assert client.get(base + "/assets/" + asset_id + "/content").content == original
     finally:
         event.remove(Session, "after_commit", lose_acknowledgement)
 

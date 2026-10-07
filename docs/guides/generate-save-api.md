@@ -57,7 +57,7 @@ uv run --project services/api --no-sync python services/api/examples/generate_sa
 - `422 invalid_request`：修正空输入、seed 或超出范围的字段，再提交。
 - failed Job：读取其中的错误与 recovery_required，保留该 Job。缺输出、无效 Score、未完成的 FLAC 或无法确认的输出不会创建 Candidate/Version。修复原因后显式提交新的 Job；不会自动重复推理。
 - `404 candidate_not_found` / `parent_version_not_found`：选择目标 Project 的 Candidate 或已保存 parent。跨 Project 引用不能保存。
-- `503 version_commit_unconfirmed`：先用错误中的 `resource_id` 查询 Version。确认存在时读取其结果；不存在时恢复数据库访问，再重试相同 Candidate、名称和 parent。无法确认时应用保留原有 Asset 与快照。
+- `503 version_commit_unconfirmed`：先用错误中的 `resource_id` 查询 Version。重复保存已知 Version 时，即使确认回执和独立读回都失败，该 id 仍指向既有 Version。确认存在时读取其结果；不存在时恢复数据库访问，再重试相同 Candidate、名称和 parent。无法确认时应用保留原有 Asset 与快照。
 - `409 asset_unavailable` / `asset_path_invalid`：恢复原应用文件或备份中的映射；不能用 Runtime 路径替代应用 id。
 
 真实生成由 GPU 资源 owner 在已通过 P0 的固定 Runtime 上验证。切换 `MUSIC_API_RUNTIME_MODE=comfyui`、设置 `MUSIC_API_RUNTIME_EVIDENCE_PATH` 指向最新 owner 收据，并使用单独的应用目录。按 [Runtime 诊断证据来源](../reference/runtime-evidence.md) 收集或刷新收据；历史 Doctor 报告不能代替当前收据。复用 [Runtime 准备](runtime-doctor.md) 与已验证的 [短歌 Workflow](api-generation.md)。该指南的 CPU 夹具检查不能替代真实 Runtime 验收。
