@@ -22,6 +22,8 @@ uv run --project services/api --no-sync python services/api/examples/runtime_dia
 
 The output file must not exist. The example reads five public endpoints and saves the responses without creating a Project/Job or submitting inference. Full source: [runtime_diagnostics.py](../../services/api/examples/runtime_diagnostics.py). Each request has its own snapshot; the five responses do not share an atomic sampling moment.
 
+<<< ../../services/api/examples/runtime_diagnostics.py
+
 ## Read state and sources
 
 | Endpoint | Current result |

@@ -22,6 +22,8 @@ uv run --project services/api --no-sync python services/api/examples/runtime_dia
 
 输出文件必须尚不存在。示例读取五个公开接口并保存原响应，不创建 Project/Job、不提交推理。完整源码：[runtime_diagnostics.py](../../services/api/examples/runtime_diagnostics.py)。每次请求取得自己的 snapshot；它们没有共同的原子取样时刻。
 
+<<< ../../services/api/examples/runtime_diagnostics.py
+
 ## 读取状态与来源
 
 | 接口 | 当前结果 |
