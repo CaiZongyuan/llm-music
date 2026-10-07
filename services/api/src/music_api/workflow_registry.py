@@ -77,3 +77,11 @@ class WorkflowRegistry:
 
     def workflow(self, operation: Operation) -> WorkflowDefinition:
         return self._workflows[operation]
+
+    def settings(self, operation: Operation) -> dict[str, object]:
+        """Expose pinned operation settings without requiring callers to know node ids."""
+        values = [node.get("inputs") for node in self.workflow(operation).graph.values()
+                  if isinstance(node, dict) and node.get("class_type") == "YuE2Options"]
+        if len(values) != 1 or not isinstance(values[0], dict):
+            raise ValueError("Pinned operation has no unique settings descriptor")
+        return dict(cast(dict[str, object], values[0]))

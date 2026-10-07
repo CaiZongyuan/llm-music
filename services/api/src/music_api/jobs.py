@@ -96,6 +96,7 @@ class JobService:
         workflow = self.registry.workflow(operation)
         requirements = self.registry.requirements()
         provenance: dict[str, object] = dict(runtime_kind=self.runtime.mode, workflow_id=workflow.id, workflow_version=workflow.version,
+                                            settings=self.registry.settings(operation),
                                             manifest_sha256=workflow.manifest_sha256, definition_sha256=workflow.definition_sha256,
                                             runtime_revision=requirements.runtime_revision if self.runtime.mode == "comfyui" else "fake-fixture-v1",
                                             plugin_revision=requirements.plugin_revision if self.runtime.mode == "comfyui" else None,
