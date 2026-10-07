@@ -3,6 +3,11 @@
   "private": true,
   "packageManager": "pnpm@11.22.0",
   "scripts": {
+    "web:dev": "pnpm --filter @llm-music/api-client build && pnpm --filter @llm-music/web dev",
+    "web:check": "pnpm --filter @llm-music/api-client build && pnpm --filter @llm-music/web check",
+    "web:build": "pnpm --filter @llm-music/api-client build && pnpm --filter @llm-music/web build",
+    "web:preview": "pnpm --filter @llm-music/web preview",
+    "test:web": "pnpm --filter @llm-music/api-client build && pnpm --filter @llm-music/browser-tests test:web",
     "client:generate": "pnpm --filter @llm-music/api-client generate",
     "client:check": "pnpm --filter @llm-music/api-client check",
     "test:client": "pnpm --filter @llm-music/api-client test",
