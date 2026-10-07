@@ -1,0 +1,35 @@
+{
+  "recorded_at": "2026-10-07T11:58:04.151597+00:00",
+  "source_commit": "c8c3133fac886f7949ac07c1f3a754c1ae40e5ef",
+  "pull_request": 67,
+  "scope": "Actual frozen Astro creator documentation in a real CPU browser; historical audio sample; silent browser recording, no API/Runtime/GPU business writes",
+  "recording": {
+    "filename": "creator-tutorials.webm",
+    "bytes": 330044,
+    "sha256": "f12fd9671afd61edc4dcbd2cf97c268989cd169d2804e45d29529d5fbf7ad8ac",
+    "codec": "VP9 WebM, CPU CRF36",
+    "width": 960,
+    "height": 600,
+    "frames": 258,
+    "last_frame_seconds": 10.28,
+    "silent": true
+  },
+  "original": {
+    "bytes": 1090275,
+    "sha256": "a42a7f55680910e7d25fd3dfcaf25365aee5874f01742a8dc6685936adb3858c",
+    "retained_unchanged": true
+  },
+  "copy_feedback": {
+    "at": "2026-10-07T11:41:04.148Z",
+    "action": "Copy selected input returns actionable feedback",
+    "feedback": "自动复制被浏览器阻止，请选择输入后手动复制。",
+    "automaticCopy": false
+  },
+  "music": {
+    "source": "Earlier real PR58 music; no new generation",
+    "sample_commit": "c8c3133fac886f7949ac07c1f3a754c1ae40e5ef",
+    "sample_path": "apps/docs/public/examples/morning-song.mp3",
+    "seed": 2026192201
+  },
+  "limits": "First capture incorrectly required automatic clipboard permission; its failed take is retained. Final take verifies the supported actionable clipboard feedback. No new inference or Workbench Web claim."
+}
