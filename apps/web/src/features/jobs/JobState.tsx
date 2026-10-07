@@ -1,5 +1,4 @@
 import { useQuery } from '@tanstack/react-query';
-import { Link } from '@tanstack/react-router';
 import type { JobRead } from '@llm-music/api-client';
 import { Loading, ErrorNotice } from '../../components/States';
 import { ApiFailure } from '../../lib/api';
@@ -9,6 +8,7 @@ import { isActiveJob, projectJobsOptions } from './queries';
 import { useJobMonitor } from './monitor';
 import { useCancelJob, useRetryJob } from './mutations';
 import { JobStatus, problemMessage } from './JobStatus';
+import { JobLink } from './JobLink';
 import './jobs.css';
 
 function JobControls({ job, onRetry }: { job: JobRead; onRetry?: (job: JobRead) => void }) {
@@ -18,18 +18,20 @@ function JobControls({ job, onRetry }: { job: JobRead; onRetry?: (job: JobRead) 
   const retryable = job.status === 'failed' || job.status === 'cancelled';
   const attempts = useQuery({ ...projectJobsOptions(job.project_id), enabled: retryable });
   const newAttempt = retry.data ?? attempts.data?.find(item => item.provenance.retry_of_job_id === job.id);
-  const uncertain = retry.isError && (!(retry.error instanceof ApiFailure) || retry.error.status >= 500 || retry.error.detail?.code.includes('unconfirmed'));
+  const rejection = retry.error instanceof ApiFailure ? retry.error.detail?.code : undefined;
+  const rejectedBeforeCreation = rejection && ['model_missing', 'capability_missing', 'runtime_unavailable', 'runtime_observation_stale', 'runtime_evidence_stale', 'model_evidence_stale'].includes(rejection);
+  const uncertain = retry.isError && (!(retry.error instanceof ApiFailure) || !rejection || (retry.error.status >= 500 && !rejectedBeforeCreation) || rejection.includes('unconfirmed'));
   async function createRetry() {
     try { const next = await retry.mutateAsync(); onRetry?.(next); } catch { /* Keep the readable outcome below; never automatically resend. */ }
   }
   return <div className="job-controls">
     {isActiveJob(job) ? <button type="button" disabled={cancel.isPending} onClick={() => cancel.mutate()}>{cancel.isPending ? t.cancelPending : job.cancel_requested ? t.cancelAgain : t.cancelAction}</button> : null}
     {cancel.isPending ? <p role="status">{t.cancel}</p> : null}
-    {cancel.isError ? <div className="error-box" role="alert"><p>{problemMessage(cancel.error instanceof ApiFailure ? cancel.error.detail?.code : 'runtime_unavailable', t)}</p></div> : null}
+    {cancel.isError && isActiveJob(job) ? <div className="error-box" role="alert"><p>{problemMessage(cancel.error instanceof ApiFailure ? cancel.error.detail?.code : 'runtime_unavailable', t)}</p></div> : null}
     {retryable && !newAttempt ? <><p className="hint">{t.retryHelp}</p><button type="button" disabled={retry.isPending || Boolean(uncertain) || attempts.isPending || attempts.isError} onClick={() => void createRetry()}>{retry.isPending ? t.retryPending : t.retryAction}</button></> : null}
-    {retry.isError ? <div className="error-box" role="alert"><p>{uncertain ? t.retryUnconfirmed : problemMessage(retry.error instanceof ApiFailure ? retry.error.detail?.code : undefined, t)}</p><button type="button" onClick={() => void attempts.refetch()}>{t.inspectAttempt}</button></div> : null}
-    {attempts.isError ? <ErrorNotice error={attempts.error} onRetry={() => void attempts.refetch()} /> : null}
-    {newAttempt ? <p className="job-attempt">{t.newAttempt}: <Link className="inline-link" to="/projects/$projectId/jobs" params={{ projectId: job.project_id }} search={{ jobId: newAttempt.id }} onClick={() => onRetry?.(newAttempt)}><code>{newAttempt.id}</code></Link></p> : null}
+    {retry.isError && !newAttempt ? <div className="error-box" role="alert"><p>{uncertain ? t.retryUnconfirmed : problemMessage(retry.error instanceof ApiFailure ? retry.error.detail?.code : undefined, t)}</p><button type="button" onClick={() => void attempts.refetch()}>{t.inspectAttempt}</button></div> : null}
+    {retryable && attempts.isError ? <ErrorNotice error={attempts.error} onRetry={() => void attempts.refetch()} /> : null}
+    {newAttempt ? <p className="job-attempt">{t.newAttempt}: <JobLink href={`/projects/${encodeURIComponent(job.project_id)}/jobs?jobId=${encodeURIComponent(newAttempt.id)}`} onSelect={onRetry ? () => onRetry(newAttempt) : undefined}><code>{newAttempt.id}</code></JobLink></p> : null}
   </div>;
 }
 

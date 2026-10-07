@@ -14,8 +14,8 @@ const date = (value: unknown) => typeof value === 'string' && Number.isFinite(Da
 function isEvent(value: unknown, projectId: string, jobId: string): value is JobEventRead {
   if (!record(value) || value.type !== 'job.updated' || !Number.isSafeInteger(value.sequence) || Number(value.sequence) < 1 || !record(value.job)) return false;
   const job = value.job;
-  return job.id === jobId && job.project_id === projectId && ['Transcribe', 'Generate'].includes(String(job.operation))
-    && ['queued', 'running', 'completed', 'failed', 'cancelled'].includes(String(job.status))
+  return job.id === jobId && job.project_id === projectId && typeof job.operation === 'string' && ['Transcribe', 'Generate'].includes(job.operation)
+    && typeof job.status === 'string' && ['queued', 'running', 'completed', 'failed', 'cancelled'].includes(job.status)
     && (job.phase === null || typeof job.phase === 'string')
     && (job.progress === undefined || job.progress === null || (typeof job.progress === 'number' && Number.isFinite(job.progress) && job.progress >= 0 && job.progress <= 1))
     && record(job.inputs) && record(job.provenance) && (job.error === null || record(job.error))
@@ -32,10 +32,11 @@ function observe(cache: QueryClient, projectId: string, jobId: string, listener:
   if (!entry) {
     let socket: WebSocket | undefined;
     let retry: ReturnType<typeof setTimeout> | undefined;
+    let refreshTimer: ReturnType<typeof setTimeout> | undefined;
     let disposed = false;
     let refreshing = false;
     let refreshAgain = false;
-    entry = { listeners: new Set(), state: 'connecting', dispose: () => { disposed = true; clearTimeout(retry); socket?.close(); } };
+    entry = { listeners: new Set(), state: 'connecting', dispose: () => { disposed = true; clearTimeout(retry); clearTimeout(refreshTimer); socket?.close(); } };
     const subscription = entry;
     function update(state: Connection) {
       subscription.state = state;
@@ -52,25 +53,31 @@ function observe(cache: QueryClient, projectId: string, jobId: string, listener:
         void cache.invalidateQueries({ queryKey: jobKeys.list(projectId), exact: true }, { cancelRefetch: false });
       } finally {
         refreshing = false;
-        if (refreshAgain) { refreshAgain = false; void refresh(); }
+        if (refreshAgain) { refreshAgain = false; scheduleRefresh(); }
       }
+    }
+    function scheduleRefresh() {
+      if (disposed || refreshTimer) return;
+      refreshTimer = setTimeout(() => { refreshTimer = undefined; void refresh(); }, 250);
     }
     function connect() {
       if (disposed) return;
       let sequence = 0; // A new connection has a new live channel, not a replay cursor.
       update('connecting');
-      socket = new WebSocket(jobEventsUrl(new URL('/api', location.origin).href, projectId, jobId));
-      socket.onopen = () => { update('live'); void refresh(); };
-      socket.onmessage = event => {
+      const current = new WebSocket(jobEventsUrl(new URL('/api', location.origin).href, projectId, jobId));
+      socket = current;
+      current.onopen = () => { if (!disposed && socket === current) { update('live'); void refresh(); } };
+      current.onmessage = event => {
+        if (disposed || socket !== current) return;
         let value: unknown;
         try { value = JSON.parse(String(event.data)); } catch { return; }
         if (!isEvent(value, projectId, jobId) || value.sequence <= sequence) return;
         sequence = value.sequence;
-        void refresh();
+        scheduleRefresh();
       };
-      socket.onerror = () => socket?.close();
-      socket.onclose = () => {
-        if (disposed) return;
+      current.onerror = () => current.close();
+      current.onclose = () => {
+        if (disposed || socket !== current) return;
         update('recovering'); void refresh();
         retry = setTimeout(connect, 1_500);
       };
@@ -89,9 +96,9 @@ function observe(cache: QueryClient, projectId: string, jobId: string, listener:
 
 export function useJobMonitor(projectId: string, jobId: string, initialData?: JobRead) {
   const cache = useQueryClient();
-  const job = useQuery({ ...jobOptions(projectId, jobId), initialData });
+  const job = useQuery({ ...jobOptions(projectId, jobId), initialData: initialData?.project_id === projectId && initialData.id === jobId ? initialData : undefined });
   const [connection, setConnection] = useState<Connection>('connecting');
-  const active = !job.data || isActiveJob(job.data);
+  const active = Boolean(job.data && isActiveJob(job.data));
   useEffect(() => active ? observe(cache, projectId, jobId, setConnection) : undefined, [cache, projectId, jobId, active]);
   return { ...job, connection: active ? connection : 'settled' as const };
 }

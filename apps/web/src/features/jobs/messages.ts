@@ -21,6 +21,7 @@ export const jobMessages = defineMessages({
   creativeReason: '这次创作未能完成。原输入仍保留；确认创作资源恢复后，明确创建新的重试任务。',
   cancelledReason: '这次任务已确认取消。需要继续时，明确创建新的重试任务。',
   result: '结果已保存到项目，可从转谱或生成页面继续检查。', retryOf: '原任务',
+  inspectScore: '检查乐谱', inspectMusic: '试听生成结果',
 }, {
   title: 'Creative jobs', empty: 'No creative jobs yet', emptyBody: 'Generation and transcription jobs for this project appear here.',
   queued: 'Waiting for creative resources', running: 'Creating', completed: 'Completed', failed: 'Failed', cancelled: 'Cancelled',
@@ -43,4 +44,5 @@ export const jobMessages = defineMessages({
   creativeReason: 'This attempt could not finish. Your original input remains. Restore creative resources, then explicitly create a new retry job.',
   cancelledReason: 'Cancellation is confirmed. Explicitly create a new retry job to continue.',
   result: 'Results are saved in the project. Continue inspecting them on the transcription or generation page.', retryOf: 'Original job',
+  inspectScore: 'Inspect score', inspectMusic: 'Listen to generated results',
 });
