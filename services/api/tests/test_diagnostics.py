@@ -22,6 +22,7 @@ from evidence_fixture import bound_evidence, write_registry_fixture
 from music_api.comfy_runtime import ComfyUIRuntime
 from music_api.config import Settings
 from music_api.fake_runtime import FakeInferenceRuntime
+from music_api.fake_generation import generation_fixture
 from music_api.main import create_app
 from music_api.runtime_types import RuntimeObservation, RuntimeStatus
 from music_api.workflow_registry import WorkflowRegistry
@@ -237,19 +238,24 @@ def test_fake_observation_respects_the_configured_freshness_policy(tmp_path: Pat
         assert not output.exists()
 
 
-def test_diagnostics_report_application_queue_without_claiming_native_occupancy(tmp_path: Path) -> None:
+@pytest.mark.parametrize("operation", ["Transcribe", "Generate"])
+def test_diagnostics_report_application_queue_without_claiming_native_occupancy(tmp_path: Path, operation: str) -> None:
     release = threading.Event()
 
     class HeldExternalRuntime(FakeInferenceRuntime):
         def status(self, handle: str) -> RuntimeStatus:
-            return super().status(handle) if release.is_set() else RuntimeStatus("running", "transcribing")
+            return super().status(handle) if release.is_set() else RuntimeStatus("running", "transcribing" if operation == "Transcribe" else "synthesizing")
 
-    runtime = HeldExternalRuntime()
+    runtime = HeldExternalRuntime(result_factories={"Generate": generation_fixture})
     try:
         with TestClient(create_app(Settings(data_dir=tmp_path), runtime=runtime)) as client:
             project = client.post("/projects", json={"name": "Morning song"}).json()
-            asset = client.post("/projects/" + project["id"] + "/assets", files={"file": ("reference.wav", supported_reference())}).json()
-            job = client.post("/projects/" + project["id"] + "/transcriptions", json={"reference_asset_id": asset["id"]}).json()
+            if operation == "Transcribe":
+                asset = client.post("/projects/" + project["id"] + "/assets", files={"file": ("reference.wav", supported_reference())}).json()
+                job = client.post("/projects/" + project["id"] + "/transcriptions", json={"reference_asset_id": asset["id"]}).json()
+            else:
+                job = client.post("/projects/" + project["id"] + "/jobs/generate",
+                                  json={"style": "gentle folk pop", "lyrics": "Morning gathers on the window", "seed": 2026192201}).json()
             deadline = time.monotonic() + 5
             while client.get("/projects/" + project["id"] + "/jobs/" + job["id"]).json()["status"] != "running":
                 assert time.monotonic() < deadline
@@ -259,6 +265,7 @@ def test_diagnostics_report_application_queue_without_claiming_native_occupancy(
             assert queue["running"] == 1
             assert queue["queued"] == 0
             assert queue["jobs"][0]["id"] == job["id"]
+            assert queue["jobs"][0]["operation"] == operation
             assert queue["recorded_running_job"]["value"] == job["id"]
             assert "persisted" in queue["scope"]
             assert diagnostics["native_queue_occupancy"]["value"] is None
