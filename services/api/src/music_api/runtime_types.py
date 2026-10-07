@@ -8,7 +8,9 @@ from uuid import UUID
 
 
 Operation = Literal["Transcribe", "Generate"]
+OPERATIONS: tuple[Operation, ...] = ("Transcribe", "Generate")
 RuntimeMode = Literal["fake", "comfyui"]
+JobState = Literal["queued", "running", "completed", "failed", "cancelled"]
 ArtifactRole = Literal["abc", "midi", "audio"]
 ArtifactFormat = Literal["abc", "mid", "wav", "flac"]
 
