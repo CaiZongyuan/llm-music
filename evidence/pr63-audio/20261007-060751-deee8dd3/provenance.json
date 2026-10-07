@@ -1,0 +1,30 @@
+{
+  "source_pull_request": 63,
+  "executed_source_commit": "dace03107558c49e88ee9f72134a6fe561e3b2ae",
+  "final_product_commit": "b9db0f1b11a8c391079a8e9b5f8c4d58d5e476b2",
+  "seed": 2026240001,
+  "version_id": "f9a955f1-5aef-4ba1-9f89-1aa379758a04",
+  "creative_input_source": "workflows/generate/input.json",
+  "original": {
+    "format": "FLAC",
+    "bytes": 2678923,
+    "sha256": "576c06745a10ab687b023a47cd308f62cca699a45c8b7b27be16640c6c6ff98b",
+    "sample_rate": 48000,
+    "channels": 2,
+    "decoded_samples": 1679936,
+    "duration_seconds": 34.998666666666665
+  },
+  "listening_copy": {
+    "filename": "g35-seed2026240001.mp3",
+    "encoder": "libmp3lame software",
+    "bit_rate": 128000,
+    "bytes": 561068,
+    "sha256": "deee8dd3e4422ad589443ccc822872020a5e4a3643c45da7287c65c2577e4379",
+    "sample_rate": 48000,
+    "channels": 2,
+    "decoded_samples": 1679936,
+    "duration_seconds": 34.998666666666665
+  },
+  "scope": "Actual YuE2 G35 GPU generation observed through application HTTP/WS; complete Candidate saved explicitly as Version. Compressed listening copy only.",
+  "verification": "Full finite audio decode and duration/channel/rate checks; original lossless bytes unchanged. No subjective quality/performance comparison."
+}
