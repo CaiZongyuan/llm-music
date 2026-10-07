@@ -256,9 +256,9 @@ class ComfyUIRuntime:
                 if not isinstance(event, list) or len(event) != 2 or not isinstance(event[1], dict):
                     continue
                 stamp = event[1].get("timestamp")
-                if event[0] == "execution_start" and type(stamp) in (int, float):
+                if event[0] == "execution_start" and isinstance(stamp, (int, float)) and not isinstance(stamp, bool):
                     started = float(stamp)
-                elif event[0] == "execution_success" and type(stamp) in (int, float):
+                elif event[0] == "execution_success" and isinstance(stamp, (int, float)) and not isinstance(stamp, bool):
                     ended = float(stamp)
                 elif event[0] == "execution_cached" and isinstance(event[1].get("nodes"), list):
                     cached = str(workflow.manifest.get("execution_node", workflow.manifest.get("core_node"))) in event[1]["nodes"]
