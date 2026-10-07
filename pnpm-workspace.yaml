@@ -1,6 +1,7 @@
 packages:
   - tests/browser
   - apps/docs
+  - packages/api-client
 allowBuilds:
   '@scarf/scarf': false
   esbuild: true

@@ -17,6 +17,7 @@ from sqlalchemy.orm import Session
 from starlette.exceptions import HTTPException
 
 from music_api.config import Settings
+from music_api.contracts import MusicAPI
 from music_api.diagnostics_routes import router as diagnostics_router
 from music_api.comfy_runtime import ComfyUIRuntime
 from music_api.fake_runtime import FakeInferenceRuntime
@@ -106,7 +107,7 @@ def create_app(settings: Settings | None = None, runtime: InferenceRuntime | Non
             event_broker.close()
             database.close()
 
-    app = FastAPI(title="Music Application API", version="0.1.0", lifespan=lifespan,
+    app = MusicAPI(title="Music Application API", version="0.1.0", lifespan=lifespan,
                   responses={404: {"model": ErrorResponse}, 422: {"model": ErrorResponse}, 503: {"model": ErrorResponse}})
     app.state.settings, app.state.runtime, app.state.registry = configured, selected_runtime, registry
     app.state.job_events = event_broker
@@ -165,7 +166,9 @@ def create_app(settings: Settings | None = None, runtime: InferenceRuntime | Non
         return AssetRead.model_validate(asset)
 
     @app.get("/projects/{project_id}/assets/{asset_id}/content", response_class=FileResponse,
-             responses={200: {"content": {"audio/wav": {"schema": {"type": "string", "format": "binary"}}}}, 409: {"model": ErrorResponse}})
+             responses={200: {"content": {media: {"schema": {"type": "string", "format": "binary"}}
+                                         for media in ("audio/wav", "audio/flac", "text/vnd.abc", "audio/midi")}},
+                        409: {"model": ErrorResponse}})
     def download_asset(project_id: UUID, asset_id: UUID, request: Request,
                        session: Session = Depends(session_for)) -> FileResponse:
         asset = asset_in(session, project_id, asset_id)
