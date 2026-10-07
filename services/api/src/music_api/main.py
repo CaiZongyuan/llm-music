@@ -66,9 +66,9 @@ def asset_file(storage: Storage, asset: Asset) -> Path:
 
 
 def create_app(settings: Settings | None = None, runtime: InferenceRuntime | None = None,
-               configure_jobs: Callable[[JobService], None] | None = None) -> FastAPI:
+               configure_jobs: Callable[[JobService], None] | None = None, registry: WorkflowRegistry | None = None) -> FastAPI:
     configured = settings or Settings()
-    registry = WorkflowRegistry()
+    registry = registry or WorkflowRegistry()
     selected_runtime: InferenceRuntime = runtime or (FakeInferenceRuntime(registry=registry) if configured.runtime_mode == "fake" else ComfyUIRuntime(configured, registry))
     if selected_runtime.mode != configured.runtime_mode:
         raise ValueError("Injected Runtime mode differs from the configured data namespace")
