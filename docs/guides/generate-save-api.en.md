@@ -60,7 +60,7 @@ List `GET /projects/{project_id}/versions`, or read `/versions/{version_id}`. Do
 - `503 version_commit_unconfirmed`: first query Version using the error's `resource_id`. Read it if present. If absent, restore database access and retry the same Candidate, name, and parent. Unconfirmed saves preserve existing Assets and snapshots.
 - `409 asset_unavailable` / `asset_path_invalid`: restore the original application file or backed-up mapping. Runtime paths cannot replace application ids.
 
-The GPU resource owner validates real generation on the fixed Runtime that passed P0. Set `MUSIC_API_RUNTIME_MODE=comfyui` and `MUSIC_API_RUNTIME_EVIDENCE_PATH` to fresh owner evidence, and use a separate application directory. Reuse [Runtime preparation](runtime-doctor.en.md) and the verified [short-song Workflow](api-generation.en.md). CPU fixture checks do not replace real Runtime acceptance.
+The GPU resource owner validates real generation on the fixed Runtime that passed P0. Set `MUSIC_API_RUNTIME_MODE=comfyui` and `MUSIC_API_RUNTIME_EVIDENCE_PATH` to a fresh owner receipt, and use a separate application directory. Collect or refresh the receipt through [Runtime diagnostic evidence sources](../reference/runtime-evidence.en.md); historical Doctor reports cannot replace the current receipt. Reuse [Runtime preparation](runtime-doctor.en.md) and the verified [short-song Workflow](api-generation.en.md). CPU fixture checks do not replace real Runtime acceptance.
 
 The complete HTTP example comes from version-controlled source:
 

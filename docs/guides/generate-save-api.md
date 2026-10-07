@@ -60,7 +60,7 @@ uv run --project services/api --no-sync python services/api/examples/generate_sa
 - `503 version_commit_unconfirmed`：先用错误中的 `resource_id` 查询 Version。确认存在时读取其结果；不存在时恢复数据库访问，再重试相同 Candidate、名称和 parent。无法确认时应用保留原有 Asset 与快照。
 - `409 asset_unavailable` / `asset_path_invalid`：恢复原应用文件或备份中的映射；不能用 Runtime 路径替代应用 id。
 
-真实生成由 GPU 资源 owner 在已通过 P0 的固定 Runtime 上验证。切换 `MUSIC_API_RUNTIME_MODE=comfyui`、设置 `MUSIC_API_RUNTIME_EVIDENCE_PATH` 指向最新 owner 证据，并使用单独的应用目录。复用 [Runtime 准备](runtime-doctor.md) 与已验证的 [短歌 Workflow](api-generation.md)。该指南的 CPU 夹具检查不能替代真实 Runtime 验收。
+真实生成由 GPU 资源 owner 在已通过 P0 的固定 Runtime 上验证。切换 `MUSIC_API_RUNTIME_MODE=comfyui`、设置 `MUSIC_API_RUNTIME_EVIDENCE_PATH` 指向最新 owner 收据，并使用单独的应用目录。按 [Runtime 诊断证据来源](../reference/runtime-evidence.md) 收集或刷新收据；历史 Doctor 报告不能代替当前收据。复用 [Runtime 准备](runtime-doctor.md) 与已验证的 [短歌 Workflow](api-generation.md)。该指南的 CPU 夹具检查不能替代真实 Runtime 验收。
 
 完整 HTTP 示例来自受版本控制的源码：
 
