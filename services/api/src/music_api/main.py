@@ -17,6 +17,7 @@ from sqlalchemy.orm import Session
 from starlette.exceptions import HTTPException
 
 from music_api.config import Settings
+from music_api.diagnostics_routes import router as diagnostics_router
 from music_api.comfy_runtime import ComfyUIRuntime
 from music_api.fake_runtime import FakeInferenceRuntime
 from music_api.assets import import_audio
@@ -101,6 +102,7 @@ def create_app(settings: Settings | None = None, runtime: InferenceRuntime | Non
     app.add_exception_handler(SQLAlchemyError, dependency_error_response)
     app.add_exception_handler(OSError, dependency_error_response)
     app.add_middleware(UploadBodyLimit, max_upload_bytes=configured.max_upload_bytes)
+    app.include_router(diagnostics_router)
 
     @app.post("/projects", response_model=ProjectRead, status_code=201)
     def create_project(value: ProjectCreate, session: Session = Depends(session_for)) -> ProjectRead:
