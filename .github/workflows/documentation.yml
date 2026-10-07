@@ -11,6 +11,7 @@ on:
       - packages/api-client/**
       - docs/site.json
       - docs/guides/documentation*
+      - docs/verification/github-pages.md
       - runtime/comfyui/examples/**
       - package.json
       - pnpm-workspace.yaml
@@ -26,6 +27,7 @@ on:
       - packages/api-client/**
       - docs/site.json
       - docs/guides/documentation*
+      - docs/verification/github-pages.md
       - runtime/comfyui/examples/**
       - package.json
       - pnpm-workspace.yaml
@@ -36,14 +38,23 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: documentation-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: false
+
 jobs:
   documentation:
     runs-on: windows-latest
     timeout-minutes: 10
+    outputs:
+      source_commit: ${{ steps.provenance.outputs.source_commit }}
+      expected_url: ${{ steps.provenance.outputs.expected_url }}
+      pages_artifact_id: ${{ steps.pages-artifact.outputs.artifact_id }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: '24.18.0'
@@ -58,9 +69,64 @@ jobs:
         run: pnpm docs:check
       - name: Build and check links, anchors, assets, and Pages base
         run: pnpm docs:build
+      - name: Verify artifact source matches this clean CI checkout
+        id: provenance
+        env:
+          DOCS_EXPECTED_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: node apps/docs/scripts/pages-provenance.mjs
       - name: Preserve checked local artifact
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: documentation-${{ github.event.pull_request.head.sha || github.sha }}
           path: apps/docs/dist/
+          if-no-files-found: error
           retention-days: 7
+      - name: Package the same checked artifact for Pages
+        id: pages-artifact
+        if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+        uses: actions/upload-pages-artifact@7b1f4a764d45c48632c6b24a0339c27f5614fb0b # v4
+        with:
+          path: apps/docs/dist/
+          retention-days: 7
+
+  deploy:
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+    needs: documentation
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    concurrency:
+      group: github-pages
+      cancel-in-progress: false
+    steps:
+      - name: Read the existing repository Pages configuration
+        id: pages
+        uses: actions/configure-pages@983d7736d9b0ae728b81ab479565c72886d7745b # v5
+        with:
+          enablement: false
+      - name: Require the configured URL to match the checked Pages base
+        env:
+          PAGES_BASE_URL: ${{ steps.pages.outputs.base_url }}
+          EXPECTED_URL: ${{ needs.documentation.outputs.expected_url }}
+        run: test "${PAGES_BASE_URL%/}/" = "$EXPECTED_URL"
+      - name: Deploy the verified artifact without rebuilding
+        id: deployment
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5
+        with:
+          artifact_name: github-pages
+      - name: Record deployment outcome and artifact provenance
+        if: always()
+        env:
+          SOURCE_COMMIT: ${{ needs.documentation.outputs.source_commit }}
+          ARTIFACT_ID: ${{ needs.documentation.outputs.pages_artifact_id }}
+          EXPECTED_URL: ${{ needs.documentation.outputs.expected_url }}
+          DEPLOYED_URL: ${{ steps.deployment.outputs.page_url }}
+          DEPLOYMENT_OUTCOME: ${{ steps.deployment.outcome }}
+        run: |
+          printf 'Source commit: `%s`\n\nPages artifact ID: `%s`\n\nExpected URL: %s\n\nDeployment output URL: %s\n\nDeployment step outcome: `%s`\n\n' "$SOURCE_COMMIT" "$ARTIFACT_ID" "$EXPECTED_URL" "$DEPLOYED_URL" "$DEPLOYMENT_OUTCOME" >> "$GITHUB_STEP_SUMMARY"
+          printf 'Live browser chapter, language, search, theme, and source-version readback is recorded separately. Recovery: https://github.com/%s/blob/%s/docs/verification/github-pages.md\n' "$GITHUB_REPOSITORY" "$SOURCE_COMMIT" >> "$GITHUB_STEP_SUMMARY"
