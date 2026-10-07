@@ -27,6 +27,8 @@ from music_api.schemas import AssetRead, ErrorResponse, JobRead, ProjectCreate, 
 from music_api.audio import inspect_wav
 from music_api.job_models import Job, Score
 from music_api.jobs import JobService, job_read
+from music_api.job_events import JobEventBroker
+from music_api.event_routes import router as event_router
 from music_api.storage import Storage
 from music_api.upload_limit import UploadBodyLimit
 from music_api.runtime_types import InferenceRuntime
@@ -72,6 +74,7 @@ def create_app(settings: Settings | None = None, runtime: InferenceRuntime | Non
     from music_api.version_routes import router as version_router
 
     configured = settings or Settings()
+    event_broker = JobEventBroker()
     registry = registry or WorkflowRegistry()
     selected_runtime: InferenceRuntime = runtime or (FakeInferenceRuntime(registry=registry, max_age_seconds=configured.diagnostics_max_age_seconds,
                                                                           result_factories={"Generate": generation_fixture})
@@ -89,6 +92,7 @@ def create_app(settings: Settings | None = None, runtime: InferenceRuntime | Non
             app.state.storage = Storage(configured)
             jobs = JobService(database, app.state.storage, selected_runtime, registry, configured)
             app.state.jobs = jobs
+            jobs.on_change = event_broker.publish
             configure_generation(jobs)
             if configure_jobs is not None:
                 configure_jobs(jobs)
@@ -97,11 +101,14 @@ def create_app(settings: Settings | None = None, runtime: InferenceRuntime | Non
         finally:
             if jobs is not None:
                 jobs.close()
+            event_broker.close()
             database.close()
 
     app = FastAPI(title="Music Application API", version="0.1.0", lifespan=lifespan,
                   responses={404: {"model": ErrorResponse}, 422: {"model": ErrorResponse}, 503: {"model": ErrorResponse}})
     app.state.settings, app.state.runtime, app.state.registry = configured, selected_runtime, registry
+    app.state.job_events = event_broker
+    app.include_router(event_router)
     app.add_exception_handler(DomainError, domain_error_response)
     app.add_exception_handler(RequestValidationError, validation_error_response)
     app.add_exception_handler(HTTPException, http_error_response)
