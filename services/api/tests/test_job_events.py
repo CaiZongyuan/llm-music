@@ -219,7 +219,12 @@ def test_ws_cancel_intent_ack_loss_exposes_recovery_then_the_same_confirmed_targ
                 assert intent["status"] == "running" and intent["cancel_requested"] is True and intent["recovery_required"] is True
                 assert peer.get("/facts").json()["target_states"]["native-1"] == "running"
                 assert client.post(address + "/cancel").status_code in {200, 202}
-                cancelled = websocket.receive_json()["job"]
+                while True:
+                    cancelled = websocket.receive_json()["job"]
+                    assert cancelled["id"] == submitted["id"]
+                    if cancelled["status"] in {"completed", "failed", "cancelled"}:
+                        break
+                    assert cancelled["cancel_requested"] is True and cancelled["recovery_required"] is True
                 assert cancelled == client.get(address).json()
                 assert cancelled["status"] == "cancelled" and cancelled["recovery_required"] is False
                 assert cancelled["inputs"] == original["inputs"] and cancelled["provenance"] == original["provenance"]
