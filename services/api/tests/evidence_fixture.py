@@ -21,7 +21,10 @@ import json, os, sys, threading
 from pathlib import Path
 class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
-        payload = {"/system_stats": {"system": {"comfyui_version": "0.39.0", "python_version": "3.12.13", "pytorch_version": "2.10.0+cu130", "ram_total": 32000000000, "ram_free": 20000000000}, "devices": [{"name": "NVIDIA GeForce RTX 3070 Ti Laptop GPU", "type": "cuda", "index": 0, "vram_total": 8589934592, "vram_free": 6442450944, "torch_vram_total": 1073741824, "torch_vram_free": 268435456}]}, "/object_info": {name: {} for name in ["LoadAudio", "YuE2Options", "YuE2Transcribe", "PreviewAny", "YuE2GenerateSong"]}, "/models/checkpoints": [], "/models/audio_encoders": [], "/queue": {"queue_running": [], "queue_pending": []}}.get(self.path)
+        payloads = {"/system_stats": {"system": {"comfyui_version": "0.39.0", "python_version": "3.12.13", "pytorch_version": "2.10.0+cu130", "ram_total": 32000000000, "ram_free": 20000000000}, "devices": [{"name": "NVIDIA GeForce RTX 3070 Ti Laptop GPU", "type": "cuda", "index": 0, "vram_total": 8589934592, "vram_free": 6442450944, "torch_vram_total": 1073741824, "torch_vram_free": 268435456}]}, "/object_info": {name: {} for name in ["LoadAudio", "YuE2Options", "YuE2Transcribe", "PreviewAny", "YuE2GenerateSong"]}, "/models/checkpoints": [], "/models/audio_encoders": [], "/queue": {"queue_running": [], "queue_pending": []}}
+        override = Path(sys.argv[1]).with_suffix(".payloads.json")
+        if override.exists(): payloads.update(json.loads(override.read_text(encoding="utf-8")))
+        payload = payloads.get(self.path)
         if payload is None:
             self.send_error(404); return
         data = json.dumps(payload).encode()
