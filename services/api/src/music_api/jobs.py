@@ -236,6 +236,15 @@ class JobService:
                     session.commit()
             self.notify(identifier)
             if observed.state == "completed":
+                with self.transition_lock, self.database.sessions() as session:
+                    job = session.get(Job, identifier)
+                    assert job is not None
+                    if job.status in {"completed", "failed", "cancelled"}:
+                        return
+                    job.status, job.phase, job.progress = "running", "saving", None
+                    job.updated_at = utc_now()
+                    session.commit()
+                self.notify(identifier)
                 result = self.runtime.result(handle, operation)
                 materials = self.validators[operation](result)
                 with self.transition_lock:
