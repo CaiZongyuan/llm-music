@@ -236,7 +236,7 @@ def test_openapi_describes_only_the_implemented_domain_contract(tmp_path: Path) 
         assert "storage_key" not in schema["components"]["schemas"]["AssetRead"]["properties"]
         assert "ErrorResponse" in schema["components"]["schemas"]
         assert "/projects/{project_id}/jobs/{job_id}" in schema["paths"]
-        assert not any("versions" in path for path in schema["paths"])
+        assert not {"/prompt", "/history", "/queue", "/interrupt", "/free"}.intersection(schema["paths"])
 
 
 def test_unknown_commit_readback_retains_the_blob_until_recovery(tmp_path: Path) -> None:
