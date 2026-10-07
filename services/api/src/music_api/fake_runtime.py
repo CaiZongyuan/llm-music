@@ -23,10 +23,12 @@ class FakeInferenceRuntime:
     mode: RuntimeMode = "fake"
 
     def __init__(self, results: Mapping[Operation, RuntimeResult] | None = None, registry: WorkflowRegistry | None = None,
-                 output_dir: Path | None = None, result_factories: Mapping[Operation, Callable[[], RuntimeResult]] | None = None) -> None:
+                 output_dir: Path | None = None, result_factories: Mapping[Operation, Callable[[], RuntimeResult]] | None = None,
+                 max_age_seconds: float = 300) -> None:
         self.registry = registry or WorkflowRegistry()
         self.output_dir = output_dir
         self.result_factories = dict(result_factories or {})
+        self.max_age_seconds = max_age_seconds
         self.results: dict[Operation, RuntimeResult] = dict(results) if results is not None else {"Transcribe": RuntimeResult(
             (RuntimeArtifact("abc", ABC, "abc", "text/vnd.abc", "score.abc"), RuntimeArtifact("midi", MIDI, "mid", "audio/midi", "score.mid")),
             provenance={"runtime_kind": "fake", "validation_scope": "legal CPU fixture; no model inference"},
@@ -39,7 +41,7 @@ class FakeInferenceRuntime:
 
     def capabilities(self, observation: RuntimeObservation | None = None) -> tuple[CapabilityObservation, ...]:
         value = observation or self.health()
-        return tuple(evaluate_readiness(value, self.registry.requirements(), self.registry.workflow(operation), now=datetime.now(timezone.utc), max_age_seconds=300)
+        return tuple(evaluate_readiness(value, self.registry.requirements(), self.registry.workflow(operation), now=datetime.now(timezone.utc), max_age_seconds=self.max_age_seconds)
                      for operation in OPERATIONS)
 
     def submit(self, request: RuntimeRequest) -> SubmissionReceipt:
