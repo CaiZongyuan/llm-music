@@ -4,10 +4,12 @@
   "type": "module",
   "scripts": {
     "test": "playwright test",
+    "test:web": "playwright test --config web.playwright.config.ts",
     "test:ui": "playwright test --ui",
-    "check": "tsc --noEmit"
+    "check": "pnpm --filter @llm-music/api-client build && tsc --noEmit"
   },
   "devDependencies": {
+    "@llm-music/api-client": "workspace:*",
     "@playwright/test": "1.63.0",
     "@types/node": "24.10.0",
     "swagger-ui-dist": "5.33.1",

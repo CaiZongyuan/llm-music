@@ -1,6 +1,7 @@
 packages:
   - tests/browser
   - apps/docs
+  - apps/web
   - packages/api-client
 allowBuilds:
   '@scarf/scarf': false

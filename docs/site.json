@@ -487,6 +487,16 @@
       ]
     },
     {
+      "id": "web-workspace-guide",
+      "type": "guide",
+      "group": "help",
+      "path": "web-workspace",
+      "titles": { "zh-cn": "创建项目与保留参考音频", "en": "Create projects and keep reference audio" },
+      "labels": { "zh-cn": "项目与参考素材", "en": "Projects and reference assets" },
+      "sources": { "zh-cn": "docs/guides/web-workspace.md", "en": "docs/guides/web-workspace.en.md" },
+      "sectionIds": ["create", "audio", "preferences", "recover", "launch"]
+    },
+    {
       "id": "documentation-guide",
       "type": "guide",
       "group": "technical",
