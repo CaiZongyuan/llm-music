@@ -70,7 +70,7 @@ def create_app(settings: Settings | None = None, runtime: InferenceRuntime | Non
                configure_jobs: Callable[[JobService], None] | None = None, registry: WorkflowRegistry | None = None) -> FastAPI:
     configured = settings or Settings()
     registry = registry or WorkflowRegistry()
-    selected_runtime: InferenceRuntime = runtime or (FakeInferenceRuntime(registry=registry) if configured.runtime_mode == "fake" else ComfyUIRuntime(configured, registry))
+    selected_runtime: InferenceRuntime = runtime or (FakeInferenceRuntime(registry=registry, max_age_seconds=configured.diagnostics_max_age_seconds) if configured.runtime_mode == "fake" else ComfyUIRuntime(configured, registry))
     if selected_runtime.mode != configured.runtime_mode:
         raise ValueError("Injected Runtime mode differs from the configured data namespace")
 
