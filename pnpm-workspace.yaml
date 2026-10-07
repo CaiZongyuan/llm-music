@@ -1,0 +1,4 @@
+packages:
+  - tests/browser
+allowBuilds:
+  '@scarf/scarf': false
