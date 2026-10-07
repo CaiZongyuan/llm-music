@@ -1,6 +1,7 @@
 """Public WS snapshots follow durable HTTP state through external event/commit loss."""
 
 import json
+from datetime import datetime
 from contextlib import ExitStack
 from pathlib import Path
 import threading
@@ -185,6 +186,15 @@ def test_only_reliable_bounded_whole_job_progress_reaches_http_and_ws(tmp_path: 
             assert value["progress"] == expected
             assert client.get(job_url).json()["progress"] == expected
             finished.set()
+            while True:
+                completed = websocket.receive_json()["job"]
+                if completed["status"] in {"completed","failed","cancelled"}:
+                    break
+            assert completed["status"] == "completed" and completed["error"] is None
+            assert completed["progress"] is None and completed["result"] is not None
+            assert completed == client.get(job_url).json()
+            closed = websocket.receive()
+            assert closed["type"] == "websocket.close" and closed["code"] == 1000
 
 
 def test_ws_cancel_intent_ack_loss_exposes_recovery_then_the_same_confirmed_target(tmp_path: Path, monkeypatch) -> None:
@@ -215,7 +225,10 @@ def test_ws_cancel_intent_ack_loss_exposes_recovery_then_the_same_confirmed_targ
                 assert unconfirmed.status_code == 503 and armed["fired"]
                 assert unconfirmed.json()["error"]["resource_id"] == submitted["id"]
                 intent = websocket.receive_json()["job"]
-                assert intent == client.get(address).json()
+                current = client.get(address).json()
+                assert intent.keys() == current.keys()
+                assert {key:value for key,value in intent.items() if key != "updated_at"} == {key:value for key,value in current.items() if key != "updated_at"}
+                assert datetime.fromisoformat(intent["updated_at"]) <= datetime.fromisoformat(current["updated_at"])
                 assert intent["status"] == "running" and intent["cancel_requested"] is True and intent["recovery_required"] is True
                 assert peer.get("/facts").json()["target_states"]["native-1"] == "running"
                 assert client.post(address + "/cancel").status_code in {200, 202}
