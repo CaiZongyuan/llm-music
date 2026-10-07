@@ -207,10 +207,6 @@ class JobService:
                 session.rollback()
                 raise DomainError(409, "runtime_namespace_mismatch", "This data directory belongs to a different Runtime mode.", "Select the separate data directory for the configured mode.")
             originals = list(session.scalars(select(Job).where(Job.status.in_(("queued","running")))))
-            now = datetime.now(timezone.utc)
-            for job in originals:
-                if job.recovery_cursor is None:
-                    job.recovery_cursor = self._initial_cursor(now)
             self.recovery_ids = {job.id for job in originals}
             session.commit()
         self.thread.start()
@@ -450,42 +446,56 @@ class JobService:
 
     def _recover_startup(self) -> None:
         sources: dict[str,tuple[Operation,str,Queue[RuntimeStatus],Callable[[],None] | None]] = {}
+        admitted = False
         try:
             while self.recovery_ids and not self.stop_event.is_set():
+                if not admitted:
+                    try:
+                        self._admit_recovery()
+                    except Exception:
+                        log.exception("Recovery admission persistence unconfirmed",extra={"event":"job_recovery_admission_unconfirmed"})
+                        self.stop_event.wait(0.01)
+                        continue
+                    admitted = True
                 # Unknown originals get disposition before confirmed observation.
                 for identifier in sorted(self.recovery_ids,key=lambda item:item in sources):
-                    with self.database.sessions() as session:
-                        job = session.get(Job,identifier)
-                        finished = job is None or job.status in {"completed","failed","cancelled"}
-                        confirmed_before = job is not None and (job.recovery_cursor or {}).get("confirmed") is True
-                    if finished:
-                        self.recovery_ids.remove(identifier)
-                        source = sources.pop(identifier,None)
-                        if source is not None and source[3] is not None:
-                            source[3]()
-                        continue
-                    if not confirmed_before and identifier in sources:
-                        source = sources.pop(identifier)
-                        if source[3] is not None:
-                            source[3]()
-                    if identifier not in sources:
-                        confirmed = self._confirm_original(identifier,True)
-                        if confirmed is None:
-                            continue
-                        operation,handle = confirmed
-                        observations: Queue[RuntimeStatus] = Queue()
-                        close = None
-                        if self.subscription_factory is not None:
-                            try:
-                                close = self.subscription_factory(handle,operation,observations.put)
-                            except Exception:
-                                log.exception("Recovered Runtime subscription unavailable",extra={"event":"job_recovery_subscription_failed","job_id":identifier})
-                        sources[identifier] = operation,handle,observations,close
-                    operation,handle,observations,_ = sources[identifier]
                     try:
-                        self._observe(identifier,operation,handle,observations,True)
-                    except Exception as error:
-                        self._record_failure(identifier,error)
+                        with self.database.sessions() as session:
+                            job = session.get(Job,identifier)
+                            finished = job is None or job.status in {"completed","failed","cancelled"}
+                            confirmed_before = job is not None and (job.recovery_cursor or {}).get("confirmed") is True
+                        if finished:
+                            self.recovery_ids.remove(identifier)
+                            source = sources.pop(identifier,None)
+                            if source is not None and source[3] is not None:
+                                source[3]()
+                            continue
+                        if not confirmed_before and identifier in sources:
+                            source = sources.pop(identifier)
+                            if source[3] is not None:
+                                source[3]()
+                        if identifier not in sources:
+                            confirmed = self._confirm_original(identifier,True)
+                            if confirmed is None:
+                                continue
+                            operation,handle = confirmed
+                            observations: Queue[RuntimeStatus] = Queue()
+                            close = None
+                            if self.subscription_factory is not None:
+                                try:
+                                    close = self.subscription_factory(handle,operation,observations.put)
+                                except Exception:
+                                    log.exception("Recovered Runtime subscription unavailable",extra={"event":"job_recovery_subscription_failed","job_id":identifier})
+                            sources[identifier] = operation,handle,observations,close
+                        operation,handle,observations,_ = sources[identifier]
+                        try:
+                            self._observe(identifier,operation,handle,observations,True)
+                        except Exception as error:
+                            self._record_failure(identifier,error)
+                    except Exception:
+                        # The commit may be durable despite a lost acknowledgement.
+                        # Fresh-read on the next sweep; never reset or replay a probe.
+                        log.exception("Recovery persistence outcome unconfirmed",extra={"event":"job_recovery_persistence_unconfirmed","job_id":identifier})
                 self.stop_event.wait(0.01)
         finally:
             for _,_,_,close in sources.values():
@@ -494,6 +504,19 @@ class JobService:
                         close()
                     except Exception:
                         log.exception("Recovered Runtime source shutdown unconfirmed",extra={"event":"job_recovery_source_shutdown_unconfirmed"})
+
+    def _admit_recovery(self) -> None:
+        """Create all new budgets after worker metadata admission; retain old ones."""
+        with self.transition_lock,self.database.sessions() as session:
+            active = Job.id.in_(self.recovery_ids),Job.status.in_(("queued","running"))
+            # Acquire the writer before reading, as in ordinary Job transitions.
+            session.execute(update(Job).where(*active).values(updated_at=Job.updated_at))
+            originals = list(session.scalars(select(Job).where(*active)))
+            now = datetime.now(timezone.utc)
+            for job in originals:
+                if job.recovery_cursor is None:
+                    job.recovery_cursor = self._initial_cursor(now)
+            session.commit()
 
     def _confirm_original(self,identifier: str,one_pass: bool = False) -> tuple[Operation,str] | None:
         """Only observe retained work; the durable confirmation budget cannot renew."""

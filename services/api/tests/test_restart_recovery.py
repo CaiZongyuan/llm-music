@@ -508,7 +508,7 @@ def test_actual_0004_database_upgrade_keeps_saved_version_files_and_bounds_opaqu
             assert peer.get("/fixture/state").json()["accepted"] == 2
 
 
-@pytest.mark.parametrize("fault",["storage","before-commit","commit-ack","commit-readback"])
+@pytest.mark.parametrize("fault",["storage","before-commit","commit-ack","commit-readback","commit-readback-after-startup-delay"])
 def test_recovered_result_provider_failures_cannot_duplicate_or_downgrade_owned_results(tmp_path: Path,monkeypatch,fault):
     with recovery_peer(tmp_path,monkeypatch) as (url,receipt,registry),httpx.Client(base_url=url,trust_env=False) as peer:
         data = tmp_path/"application"
@@ -525,7 +525,10 @@ def test_recovered_result_provider_failures_cannot_duplicate_or_downgrade_owned_
         if fault == "storage":
             (data/"assets"/project["id"]).write_bytes(b"Owned path obstruction")
         peer.post("/fixture/control",json={"action":"complete"}).raise_for_status()
-        options = {} if fault == "storage" else {"MUSIC_API_FIXTURE_IMPORT_FAULT":fault}
+        provider_fault = "commit-readback" if fault == "commit-readback-after-startup-delay" else fault
+        options = {} if fault == "storage" else {"MUSIC_API_FIXTURE_IMPORT_FAULT":provider_fault}
+        if fault == "commit-readback-after-startup-delay":
+            options["MUSIC_API_FIXTURE_STARTUP_READ_DELAY"] = "0.55"
         with owned_api(data,url,receipt,registry.root,tmp_path,options) as reopened:
             value = terminal(reopened,route)
             assets = reopened.get(base+"/assets").json()
@@ -539,8 +542,10 @@ def test_recovered_result_provider_failures_cannot_duplicate_or_downgrade_owned_
                 assert len(assets) == 2 and len(reopened.get(base+"/candidates").json()) == 1
             if fault != "storage":
                 assert list(tmp_path.glob("*.fault")),"External provider fault must have executed"
-            if fault == "commit-readback":
+            if provider_fault == "commit-readback":
                 assert list(tmp_path.glob("*.readback-fault")),"Independent confirmation read fault must have executed"
+            if fault == "commit-readback-after-startup-delay":
+                assert any(float(path.read_text(encoding="utf-8"))>0.4 for path in tmp_path.glob("*.startup-delay")),"Metadata delay must exceed the unchanged confirmation window"
             downloads = {asset["id"]:reopened.get(base+"/assets/"+asset["id"]+"/content").content for asset in assets}
         with owned_api(data,url,receipt,registry.root,tmp_path) as again:
             assert again.get(route).json() == value
@@ -548,3 +553,46 @@ def test_recovered_result_provider_failures_cannot_duplicate_or_downgrade_owned_
             for identifier,content in downloads.items():
                 assert again.get(base+"/assets/"+identifier+"/content").content == content
             assert peer.get("/fixture/state").json()["accepted"] == 1
+
+
+@pytest.mark.parametrize("fault,foreign",[("attempt-ack",False),("attempt-ack-readback",False),("before-attempt",False),("accept-ack",False),("attempt-ack-readback",True),("exhausted-ack",True)])
+def test_cursor_ack_and_independent_readback_loss_reconciles_same_original_then_processes_new_live_work(tmp_path: Path,monkeypatch,fault,foreign):
+    with recovery_peer(tmp_path,monkeypatch) as (url,receipt,registry),httpx.Client(base_url=url,trust_env=False) as peer:
+        data = tmp_path/"application"
+        with owned_api(data,url,receipt,registry.root,tmp_path) as first:
+            project = first.post("/projects",json={"name":"Cursor provider recovery"}).json()
+            base = "/projects/"+project["id"]
+            inputs = {"style":"gentle folk pop","lyrics":"Morning gathers on the window","seed":202625651}
+            submitted = first.post(base+"/jobs/generate",json=inputs).json()
+            route = base+"/jobs/"+submitted["id"]
+            deadline = time.monotonic()+5
+            while first.get(route).json()["status"] != "running":
+                assert time.monotonic()<deadline
+                time.sleep(0.02)
+            sibling = first.post(base+"/jobs/generate",json=dict(inputs,seed=202625652)).json()
+            assert sibling["status"] == "queued" and peer.get("/fixture/state").json()["accepted"] == 1
+        if foreign:
+            peer.post("/fixture/edit",json={"action":"wrong_graph"}).raise_for_status()
+        peer.post("/fixture/control",json={"action":"complete"}).raise_for_status()
+        options = {"MUSIC_API_FIXTURE_CURSOR_FAULT":fault,"MUSIC_API_FIXTURE_CURSOR_FAULT_JOB_ID":submitted["id"]}
+        with owned_api(data,url,receipt,registry.root,tmp_path,options) as recovered:
+            complete = terminal(recovered,route)
+            assert complete["status"] == ("failed" if foreign else "completed"),complete
+            if foreign:
+                assert complete["error"]["code"] == "runtime_unavailable" and complete["result"] is None
+            assert list(tmp_path.glob("*.cursor-fault"))
+            if fault == "attempt-ack-readback":
+                assert list(tmp_path.glob("*.cursor-readback-fault"))
+            assert peer.get("/fixture/state").json()["accepted"] == 1
+            assert len(recovered.get(base+"/assets").json()) == (0 if foreign else 2)
+            sibling_terminal = terminal(recovered,base+"/jobs/"+sibling["id"])
+            assert sibling_terminal["status"] == "failed" and sibling_terminal["error"]["code"] == "runtime_unavailable"
+            assert sibling_terminal["result"] is None and peer.get("/fixture/state").json()["accepted"] == 1
+            following = recovered.post(base+"/jobs/generate",json=dict(inputs,seed=202625653)).json()
+            deadline = time.monotonic()+5
+            while peer.get("/fixture/state").json()["accepted"] != 2:
+                assert time.monotonic()<deadline
+                time.sleep(0.02)
+            peer.post("/fixture/control",json={"action":"complete"}).raise_for_status()
+            assert terminal(recovered,base+"/jobs/"+following["id"])["status"] == "completed"
+            assert recovered.get(route).json() == complete

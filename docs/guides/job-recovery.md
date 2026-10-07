@@ -43,7 +43,7 @@ uv run --project services/api --no-sync python services/api/examples/job_recover
 
 默认确认窗口是 300 秒，最多 30 次确认读取，间隔从 1 秒增加到 10 秒。它们分别来自 `MUSIC_API_RECOVERY_CONFIRMATION_WINDOW_SECONDS`、`MUSIC_API_RECOVERY_MAX_ATTEMPTS`、`MUSIC_API_RECOVERY_POLL_INTERVAL_SECONDS` 与 `MUSIC_API_RECOVERY_MAX_POLL_INTERVAL_SECONDS`。浮点秒数须正且有限，次数须正整数。所有读取仍受 `MUSIC_API_RUNTIME_TIMEOUT_SECONDS` 约束。
 
-首次不确定时保存的窗口与次数不会因查询、事件、轮询或再次重启而重置。超出预算后为 `failed/runtime_unavailable`，保留原输入、provenance、映射与原因。已确认运行的 Job 可继续运行超过确认窗口；下次重启先进行一次有界原证据核验，核验失败后仍遵守原预算。确认窗口不是生成时长限制。
+首次窗口在 worker 取得启动恢复元数据并接纳该组 Job 时建立；组内尚无窗口的 Job 一起开始计时。已保存的窗口与次数不会因查询、事件、轮询或再次重启而重置。游标提交回执或读回暂时失败时，worker 在下一轮重新读取已提交状态，保留已消耗的预算和原证据。超出预算后为 `failed/runtime_unavailable`，保留原输入、provenance、映射与原因。已确认运行的 Job 可继续运行超过确认窗口；下次重启先进行一次有界原证据核验，核验失败后仍遵守原预算。确认窗口不是生成时长限制。
 
 恢复 Runtime 连接或应用文件后，先查询原 Job。需要明确重试时执行：
 

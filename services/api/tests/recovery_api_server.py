@@ -42,6 +42,48 @@ if fault:
             raise RuntimeError("Owned result provider independent readback fault")
     event.listen(Session,"before_commit" if fault == "before-commit" else "after_commit",fail_commit)
     event.listen(Engine,"before_cursor_execute",fail_readback)
+cursor_fault = os.environ.get("MUSIC_API_FIXTURE_CURSOR_FAULT")
+startup_delay = float(os.environ.get("MUSIC_API_FIXTURE_STARTUP_READ_DELAY","0"))
+if cursor_fault or startup_delay:
+    from sqlalchemy import event
+    from sqlalchemy.engine import Engine
+    from sqlalchemy.orm import Session
+    from music_api.job_models import Job
+    recovery_provider = {"armed":True,"readback":False,"startup":False,"delayed":False}
+    def cursor_transition(session):
+        for item in session.identity_map.values():
+            if not isinstance(item,Job):
+                continue
+            cursor = item.recovery_cursor or {}
+            if item.status in {"queued","running"} and not cursor.get("attempts",0):
+                recovery_provider["startup"] = True
+            target = cursor.get("attempts",0) >= 1 and item.status in {"queued","running"}
+            if cursor_fault == "accept-ack":
+                target = target and cursor.get("confirmed") is True
+            if cursor_fault == "exhausted-ack":
+                target = cursor.get("exhausted") is True and item.status == "failed"
+            selected_job = os.environ.get("MUSIC_API_FIXTURE_CURSOR_FAULT_JOB_ID")
+            if selected_job and item.id != selected_job:
+                target = False
+            if cursor_fault and recovery_provider["armed"] and target:
+                recovery_provider["armed"] = False
+                recovery_provider["readback"] = cursor_fault == "attempt-ack-readback"
+                Path(ready).with_suffix(".cursor-fault").write_text("Owned recovery cursor provider fault\n",encoding="utf-8")
+                raise RuntimeError("Owned recovery cursor provider acknowledgement fault")
+    def cursor_read(connection,cursor,statement,parameters,context,executemany):
+        if threading.current_thread().name != "application-jobs" or not statement.startswith("SELECT jobs."):
+            return
+        if recovery_provider["readback"]:
+            recovery_provider["readback"] = False
+            Path(ready).with_suffix(".cursor-readback-fault").write_text("Owned recovery cursor readback fault\n",encoding="utf-8")
+            raise RuntimeError("Owned recovery cursor independent readback fault")
+        if startup_delay and recovery_provider["startup"] and not recovery_provider["delayed"]:
+            recovery_provider["delayed"] = True
+            began = time.monotonic()
+            time.sleep(startup_delay)
+            Path(ready).with_suffix(".startup-delay").write_text(str(time.monotonic()-began),encoding="utf-8")
+    event.listen(Session,"before_commit" if cursor_fault == "before-attempt" else "after_commit",cursor_transition)
+    event.listen(Engine,"before_cursor_execute",cursor_read)
 owned = socket.socket()
 owned.bind(("127.0.0.1",0))
 Path(ready).write_text(json.dumps({"port":owned.getsockname()[1],"pid":os.getpid()}),encoding="utf-8")
