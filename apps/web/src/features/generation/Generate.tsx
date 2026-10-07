@@ -48,14 +48,15 @@ export function Generate({ projectId, search }: { projectId: string; search: Gen
   const t = useMessages(generationMessages);
   const navigate = useNavigate();
   const cache = useQueryClient();
-  const job = useQuery({ ...jobOptions(projectId, search.jobId ?? ''), enabled: Boolean(search.jobId) });
+  // JobState owns the Monitor. This observer only reads its authoritative cache.
+  const job = useQuery({ ...jobOptions(projectId, search.jobId ?? ''), enabled: Boolean(search.jobId), refetchInterval: false });
   const candidates = useQuery(candidatesOptions(projectId));
   const versions = useQuery(versionsOptions(projectId));
   const completedCandidateId = job.data?.status === 'completed' ? job.data.result?.candidate_id : undefined;
   useEffect(() => { if (completedCandidateId) void cache.invalidateQueries({ queryKey: candidateKeys.list(projectId), exact: true }); }, [cache, projectId, completedCandidateId]);
   const selected = search.candidateId ?? completedCandidateId ?? (search.jobId ? undefined : candidates.data?.at(-1)?.id);
   function submitted(jobId: string) { void navigate({ to: '/projects/$projectId/generate', params: { projectId }, search: { jobId } }); }
-  return <div className="workspace-grid generation-grid"><div>{search.jobId && job.isPending ? <Loading /> : search.jobId && job.isError ? <ErrorNotice error={job.error} onRetry={() => void job.refetch()} /> : <GenerateForm projectId={projectId} initial={restoredInputs(job.data?.inputs)} onSubmit={submitted} />}</div><div className="generation-results">
+  return <div className="workspace-grid generation-grid"><div>{search.jobId && job.isPending ? <Loading /> : search.jobId && job.isError && !job.data ? <ErrorNotice error={job.error} onRetry={() => void job.refetch()} /> : <GenerateForm projectId={projectId} initial={restoredInputs(job.data?.inputs)} onSubmit={submitted} />}</div><div className="generation-results">
     {search.jobId ? <section className="surface"><h2>{t.job}</h2><JobState projectId={projectId} jobId={search.jobId} onRetry={retried => submitted(retried.id)} /></section> : null}
     {selected ? <Candidate projectId={projectId} candidateId={selected} /> : <section className="surface soft"><div className="empty"><h2>{t.empty}</h2><p>{t.emptyBody}</p></div></section>}
     <section className="surface"><div className="section-heading"><h2>{t.candidates}</h2><button type="button" onClick={() => void candidates.refetch()}>{t.reload}</button></div>

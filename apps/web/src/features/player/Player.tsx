@@ -13,6 +13,11 @@ function clock(seconds: number) {
   const total = Math.max(0, Math.floor(seconds));
   return `${Math.floor(total / 60)}:${String(total % 60).padStart(2, '0')}`;
 }
+function waveColors() {
+  const style = getComputedStyle(document.documentElement);
+  const accent = style.getPropertyValue('--accent').trim();
+  return { waveColor: style.getPropertyValue('--muted').trim(), progressColor: accent, cursorColor: accent };
+}
 
 export function Player() {
   const selection = useSyncExternalStore(subscribePlayerSelection, playerSelection);
@@ -45,7 +50,7 @@ export function Player() {
       if (disposed || !container.current || !media.current) return;
       const regionPlugin = plugin.default.create();
       regions.current = regionPlugin;
-      instance = library.default.create({ container: container.current, media: media.current, height: 52, normalize: true, waveColor: '#9baca0', progressColor: '#365e54', cursorColor: '#365e54', plugins: [regionPlugin] });
+      instance = library.default.create({ container: container.current, media: media.current, height: 52, normalize: true, ...waveColors(), plugins: [regionPlugin] });
       instance.on('play', () => setPlaying(true));
       instance.on('pause', () => setPlaying(false));
       instance.on('error', () => { setFailed(true); setReady(false); });
@@ -62,7 +67,7 @@ export function Player() {
         if (!(length > 0)) { setReady(false); return; }
         setDuration(length); setReady(true); setFailed(false);
         regionPlugin.clearRegions();
-        regionPlugin.addRegion({ id: 'listening', start: 0, end: Math.min(10, length), color: '#87ad9833', drag: true, resize: true, minLength: Math.min(0.1, length) });
+        regionPlugin.addRegion({ id: 'listening', start: 0, end: Math.min(10, length), color: 'color-mix(in srgb, var(--accent) 20%, transparent)', drag: true, resize: true, minLength: Math.min(0.1, length) });
         setStart('0'); setEnd(String(Math.min(10, length))); setRegionInvalid(false);
       });
       regionPlugin.on('region-updated', region => { setStart(region.start.toFixed(2)); setEnd(region.end.toFixed(2)); });
@@ -85,7 +90,7 @@ export function Player() {
   }, [wave, content.data, projectId, assetId]);
 
   useEffect(() => {
-    wave?.setOptions({ waveColor: theme === 'dark' ? '#718a78' : '#9baca0', progressColor: theme === 'dark' ? '#a7cebb' : '#365e54', cursorColor: theme === 'dark' ? '#a7cebb' : '#365e54' });
+    wave?.setOptions(waveColors());
   }, [wave, theme]);
 
   async function play(regionOnly = false) {
