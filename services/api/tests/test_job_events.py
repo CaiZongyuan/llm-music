@@ -20,6 +20,8 @@ from music_api.fake_runtime import FakeInferenceRuntime
 from music_api.job_models import Job
 from music_api.main import create_app
 from music_api.runtime_types import RuntimeStatus
+from music_api.schemas import JobRead
+from music_api.event_schemas import JobEventRead
 from test_transcription import reference_audio
 from cancellation_peer import cancellation_peer
 from test_cancel_retry import wait_running
@@ -199,6 +201,22 @@ def test_only_reliable_bounded_whole_job_progress_reaches_http_and_ws(tmp_path: 
 
 def test_ws_cancel_intent_ack_loss_exposes_recovery_then_the_same_confirmed_target(tmp_path: Path, monkeypatch) -> None:
     armed = {"value": False, "fired": False}
+    loss_seen, allow_loss = threading.Event(), threading.Event()
+
+    def hold_source_loss(jobs):
+        subscribe = jobs.subscription_factory
+        def controlled_subscribe(handle,operation,on_status):
+            def observed(value):
+                if value.code == "native_event_source_lost":
+                    loss_seen.set()
+                    assert allow_loss.wait(timeout=5),"Owned source-loss gate was not released"
+                on_status(value)
+            close = subscribe(handle,operation,observed)
+            def release_and_close():
+                allow_loss.set()
+                close()
+            return release_and_close
+        jobs.subscription_factory = controlled_subscribe
 
     def lose_intent_ack(session: Session) -> None:
         if armed["value"] and any(isinstance(item, Job) and item.cancel_requested for item in session.identity_map.values()):
@@ -207,13 +225,27 @@ def test_ws_cancel_intent_ack_loss_exposes_recovery_then_the_same_confirmed_targ
 
     with cancellation_peer(tmp_path, monkeypatch) as (url, receipt, registry):
         settings = Settings(data_dir=tmp_path / "application", runtime_mode="comfyui", runtime_url=url, runtime_evidence_path=receipt)
-        with TestClient(create_app(settings, registry=registry)) as client, httpx.Client(base_url=url, trust_env=False) as peer:
+        with TestClient(create_app(settings, registry=registry,configure_jobs=hold_source_loss)) as client, httpx.Client(base_url=url, trust_env=False) as peer, ExitStack() as cleanup:
+            cleanup.callback(allow_loss.set)
+            def assert_two_time_observation(intent,current):
+                expected_keys=set(JobRead.model_fields)
+                assert intent.keys()==current.keys()==expected_keys
+                JobRead.model_validate(intent)
+                JobRead.model_validate(current)
+                assert intent["phase"]=="preparing" and current["phase"] is None
+                assert intent["progress"] is None and current["progress"] is None
+                for value in (intent,current):
+                    assert value["status"]=="running" and value["cancel_requested"] is True and value["recovery_required"] is True
+                    assert value["result"] is None and value["error"] is None
+                assert {key:value for key,value in intent.items() if key not in {"phase","updated_at"}} == {key:value for key,value in current.items() if key not in {"phase","updated_at"}}
+                assert datetime.fromisoformat(intent["updated_at"])<=datetime.fromisoformat(current["updated_at"])
             project = client.post("/projects", json={"name": "Morning song"}).json()
             base = "/projects/" + project["id"]
             reference = client.post(base + "/assets", files={"file": ("reference.wav", reference_audio())}).json()
             submitted = client.post(base + "/transcriptions", json={"reference_asset_id": reference["id"]}).json()
             address = base + "/jobs/" + submitted["id"]
             original = wait_running(client, address)
+            assert loss_seen.wait(timeout=5),"The actual native source-loss event did not reach its owned gate"
             with client.websocket_connect(address + "/events") as websocket:
                 assert websocket.receive_json()["job"]["status"] == "running"
                 event.listen(Session, "after_commit", lose_intent_ack)
@@ -224,12 +256,33 @@ def test_ws_cancel_intent_ack_loss_exposes_recovery_then_the_same_confirmed_targ
                     event.remove(Session, "after_commit", lose_intent_ack)
                 assert unconfirmed.status_code == 503 and armed["fired"]
                 assert unconfirmed.json()["error"]["resource_id"] == submitted["id"]
-                intent = websocket.receive_json()["job"]
-                current = client.get(address).json()
-                assert intent.keys() == current.keys()
-                assert {key:value for key,value in intent.items() if key != "updated_at"} == {key:value for key,value in current.items() if key != "updated_at"}
-                assert datetime.fromisoformat(intent["updated_at"]) <= datetime.fromisoformat(current["updated_at"])
-                assert intent["status"] == "running" and intent["cancel_requested"] is True and intent["recovery_required"] is True
+                intent_frame = websocket.receive_json()
+                assert intent_frame.keys()==set(JobEventRead.model_fields)
+                JobEventRead.model_validate(intent_frame)
+                assert intent_frame["type"]=="job.updated" and intent_frame["sequence"]>=0
+                intent = intent_frame["job"]
+                immutable=("id","project_id","operation","inputs","provenance","created_at")
+                assert {key:intent[key] for key in immutable}=={key:original[key] for key in immutable}
+                allow_loss.set()
+                deadline=time.monotonic()+5
+                while True:
+                    current = client.get(address).json()
+                    if current["phase"] is None:
+                        break
+                    assert time.monotonic()<deadline,current
+                    threading.Event().wait(.01)
+                assert_two_time_observation(intent,current)
+                # The allowed phase transition must not hide changed ownership or intent.
+                wrong_fields=({"id":"00000000-0000-4000-8000-000000000001"},{"project_id":"00000000-0000-4000-8000-000000000002"},
+                              {"cancel_requested":False},{"recovery_required":False},{"provenance":{"foreign":True}},
+                              {"inputs":{"foreign":True}},{"result":{"unexpected":"result"}},{"progress":.25},{"phase":"transcribing"})
+                for wrong in wrong_fields:
+                    with pytest.raises(AssertionError):
+                        assert_two_time_observation(intent,{**current,**wrong})
+                missing_key=dict(current)
+                del missing_key["operation"]
+                with pytest.raises(AssertionError):
+                    assert_two_time_observation(intent,missing_key)
                 assert peer.get("/facts").json()["target_states"]["native-1"] == "running"
                 assert client.post(address + "/cancel").status_code in {200, 202}
                 while True:
@@ -245,5 +298,7 @@ def test_ws_cancel_intent_ack_loss_exposes_recovery_then_the_same_confirmed_targ
                 assert websocket.receive_json()["job"] == cancelled
             assert peer.get("/facts").json()["foreign_state"] == "running"
             assert peer.get("/accepted").json()["count"] == 1
+            (tmp_path/"two-time-observation.json").write_text(json.dumps({"intent_ws":intent,"later_http":current,"terminal":cancelled,
+                "native_facts":peer.get("/facts").json(),"native_accepted":1,"wrong_core_controls_rejected":len(wrong_fields)+1}),encoding="utf-8")
             assert client.get(base + "/assets/" + reference["id"] + "/content").content == reference_audio()
             peer.post("/control", json={"action": "finish_survivor"}).raise_for_status()
