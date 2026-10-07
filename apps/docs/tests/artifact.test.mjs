@@ -1,13 +1,14 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtemp, mkdir, writeFile, rm } from 'node:fs/promises';
+import { mkdtemp, mkdir, writeFile, rm, realpath } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { checkArtifact } from '../scripts/check-build.mjs';
 
 test('built artifact rejects missing anchors/assets, wrong base/control language, and unregistered pages', async t => {
   const root = await mkdtemp(join(tmpdir(), 'music-docs-build-'));
-  t.after(() => rm(root, { recursive: true, force: true }));
+  const ownedRoot = await realpath(root);
+  t.after(async () => { assert.equal(await realpath(root), ownedRoot); await rm(ownedRoot, { recursive: true, force: true }); });
   const dist = join(root, 'dist');
   await mkdir(join(dist, 'en/overview'), { recursive: true });
   await mkdir(join(dist, 'zh-cn/overview'), { recursive: true });

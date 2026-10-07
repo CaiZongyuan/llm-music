@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtemp, mkdir, writeFile, readFile, rm } from 'node:fs/promises';
+import { mkdtemp, mkdir, writeFile, readFile, rm, realpath } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -10,7 +10,8 @@ const examples = fileURLToPath(new URL('../../../runtime/comfyui/examples/', imp
 const quote = value => `'${value.replaceAll("'", "''")}'`;
 async function runExample(t, name, status) {
   const directory = await mkdtemp(join(tmpdir(), 'music-docs-example-'));
-  t.after(() => rm(directory, { recursive: true, force: true }));
+  const ownedDirectory = await realpath(directory);
+  t.after(async () => { assert.equal(await realpath(directory), ownedDirectory); await rm(ownedDirectory, { recursive: true, force: true }); });
   await mkdir(join(directory, 'data'));
   await writeFile(join(directory, 'data/runtime-readiness.json'), 'ORIGINAL');
   const harness = join(directory, 'run.ps1');

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtemp, mkdir, writeFile, rm, symlink } from 'node:fs/promises';
+import { mkdtemp, mkdir, writeFile, rm, symlink, realpath } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { loadPages, validateManifest } from '../scripts/content.mjs';
@@ -8,6 +8,7 @@ import { loadPages, validateManifest } from '../scripts/content.mjs';
 const version = { revision: '1234567890abcdef1234567890abcdef12345678', workingCopy: false };
 async function fixture(t) {
   const directory = await mkdtemp(join(tmpdir(), 'music-docs-content-'));
+  const ownedDirectory = await realpath(directory);
   const root = join(directory, 'repo');
   await mkdir(join(root, 'docs/learn'), { recursive: true });
   await mkdir(join(root, 'examples'));
@@ -18,7 +19,7 @@ async function fixture(t) {
     chapters: ['overview', 'result'].map(id => ({ id, type: 'tutorial', group: 'start', path: id, titles: { 'zh-cn': id, en: id }, labels: { 'zh-cn': id, en: id }, sources: { 'zh-cn': `docs/learn/${id}.md`, en: `docs/learn/${id}.en.md` } })),
   };
   for (const id of ['overview', 'result']) for (const suffix of ['', '.en']) await writeFile(join(root, `docs/learn/${id}${suffix}.md`), `A result a reader can verify.\n\n## Read the result {#result}\n\n[Continue](./result.md#result)\n\n<<< ../../examples/first.py\n`);
-  t.after(() => rm(directory, { recursive: true, force: true }));
+  t.after(async () => { assert.equal(await realpath(directory), ownedDirectory); await rm(ownedDirectory, { recursive: true, force: true }); });
   return { directory, root, manifest };
 }
 
@@ -54,6 +55,7 @@ test('a repository directory alias preserves internal routes and repository-rela
   const { directory, root, manifest } = await fixture(t);
   const alias = join(directory, 'checkout-alias');
   await symlink(root, alias, process.platform === 'win32' ? 'junction' : 'dir');
+  assert.equal(await realpath(alias), await realpath(root));
   const result = await loadPages(alias, manifest, version);
   const english = result.pages.find(page => page.id === 'overview' && page.locale === 'en');
   assert.match(english.markdown, /\[Continue\]\(\/llm-music\/en\/result\/#result\)/);
