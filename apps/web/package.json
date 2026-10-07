@@ -12,8 +12,10 @@
     "@llm-music/api-client": "workspace:*",
     "@tanstack/react-query": "5.104.1",
     "@tanstack/react-router": "1.170.41",
+    "abcjs": "6.7.1",
     "react": "19.3.0",
-    "react-dom": "19.3.0"
+    "react-dom": "19.3.0",
+    "wavesurfer.js": "7.12.1"
   },
   "devDependencies": {
     "@tanstack/router-plugin": "1.168.42",
