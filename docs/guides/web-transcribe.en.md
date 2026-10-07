@@ -2,7 +2,7 @@
 
 Keep original reference audio in one Project, transcribe it into a read-only score, then download ABC and MIDI. Inspect the melody and rhythm before choosing the next creative step. Transcription does not recognize lyrics or promise automatically accurate notation.
 
-## Choose reference audio
+## Choose reference audio {#reference}
 
 1. Create or open a music project. Open “Reference transcription”.
 2. Choose a local WAV, then choose “Add to project assets”. Selecting alone does not upload it. The application rejects invalid WAV files.
@@ -10,7 +10,7 @@ Keep original reference audio in one Project, transcribe it into a read-only sco
 
 The upload budget is64 MiB/600 seconds; it does not establish inference support for longer audio. Start with a clear melody that is easy to listen to repeatedly. Switching language and light/dark mode preserves the current file selection and Project identity.
 
-## Start transcription and inspect its job
+## Start transcription and inspect its job {#transcribe}
 
 1. Check “Transcription readiness”. If the service, models or capabilities are unavailable, restore the environment, then choose “Check readiness again”. Your original asset remains in the Project.
 2. Choose “Start transcription”. The page keeps the original reference identity for this job, and the URL saves its Job identity. Submission is never retried automatically.
@@ -22,7 +22,7 @@ After an interrupted connection or unconfirmed submission, read the job list fir
 
 CPU FakeRuntime displays a fixture-pipeline notice. Its valid score files verify application interaction, rather than real transcription quality.
 
-## Inspect and exchange notation
+## Inspect and exchange notation {#score}
 
 abcjs draws notation from the saved ABC. “ABC music notation” retains the original text. The page shows the Score identity, producer Job and original reference audio. Check pitch, note lengths and measures, then listen to the original reference to judge whether the result matches what you hear. Listening uses the single Player at the bottom.
 
@@ -32,7 +32,7 @@ If a file cannot be read, the saved score remains. Restore storage, then choose 
 
 Scores are currently read-only. Text editing, MIDI playback and generation from a score belong to a later phase. Open the downloaded file in a tool supporting Standard MIDI File to inspect it further.
 
-## Local verification
+## Local verification {#verification}
 
 See the [Web workspace guide](web-workspace.en.md#launch) to prepare and launch the independent CPU application environment. The transcription tests exercise real Chromium, the generated client, FastAPI, isolated SQLite/files and valid FakeRuntime output:
 

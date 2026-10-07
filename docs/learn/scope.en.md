@@ -11,7 +11,7 @@ Start with implemented short-fragment workflows. Later capabilities have their o
 
 ## Coming with later product stages {#later}
 
-<p>The product Web Workbench waits for the P1 gate and begins in P2. Integrated playback comparison, score editing, GenerateFromScore, and Cover are not delivered. Current short examples do not establish long-song support, arbitrary audio profiles, or transcription accuracy for arbitrary music.</p><p>This site reads static documentation and plays an existing MP3, isolated from business writes.</p>
+<p>The formal Web provides Project assets, Job monitoring, Reference Audio transcription, read-only scores, generation, persistent playback and explicit Version saving. The interface supports Chinese/English and light/dark modes. Score editing, GenerateFromScore, Cover and integrated A/B comparison are not delivered. Current short examples do not establish long-song support, arbitrary audio profiles, or transcription accuracy for arbitrary music.</p><p>This site reads static documentation and plays an existing MP3, isolated from business writes. Create music in the running local Web.</p>
 
 ## Finish one small piece first {#next}
 

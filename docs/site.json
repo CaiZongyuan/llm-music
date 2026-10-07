@@ -497,6 +497,36 @@
       "sectionIds": ["create", "audio", "preferences", "recover", "launch"]
     },
     {
+      "id": "guide-web-jobs",
+      "type": "guide",
+      "group": "help",
+      "path": "web-jobs",
+      "titles": { "zh-cn": "跟踪创作任务，取消并继续", "en": "Track creative jobs, cancel and continue" },
+      "labels": { "zh-cn": "任务与恢复", "en": "Jobs and recovery" },
+      "sources": { "zh-cn": "docs/guides/web-jobs.md", "en": "docs/guides/web-jobs.en.md" },
+      "sectionIds": ["progress", "cancel", "retry", "recover", "verification"]
+    },
+    {
+      "id": "web-transcribe-guide",
+      "type": "guide",
+      "group": "start",
+      "path": "web-transcribe",
+      "titles": { "zh-cn": "从参考音乐找到可以检查的旋律", "en": "Find a melody you can inspect in reference music" },
+      "labels": { "zh-cn": "在 Web 转谱与下载", "en": "Transcribe and download in the Web" },
+      "sources": { "zh-cn": "docs/guides/web-transcribe.md", "en": "docs/guides/web-transcribe.en.md" },
+      "sectionIds": ["reference", "transcribe", "score", "verification"]
+    },
+    {
+      "id": "web-generation-guide",
+      "type": "guide",
+      "group": "start",
+      "path": "web-generation",
+      "titles": { "zh-cn": "在工作区生成、试听并留下版本", "en": "Generate, listen and keep a version in the workspace" },
+      "labels": { "zh-cn": "在 Web 生成与试听", "en": "Generate and listen in the Web" },
+      "sources": { "zh-cn": "docs/guides/web-generation.md", "en": "docs/guides/web-generation.en.md" },
+      "sectionIds": ["generate", "listen", "save", "recover"]
+    },
+    {
       "id": "documentation-guide",
       "type": "guide",
       "group": "technical",

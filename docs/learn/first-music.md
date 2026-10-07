@@ -28,9 +28,9 @@ English, gentle folk pop, warm clear voice, acoustic guitar and piano, light bas
 
 ## 3. 生成一次，保留这次任务 {#generate}
 
-<p>使用 seed <code>2026192201</code>，片段设置保持 <code>max_seconds=35</code>。把 Project 命名为 Morning song；后面的变体继续放在这个 Project 中。</p><p>通过下面现成的操作入口提交一次。记下 Project 与 Job id，等待这次任务完成。没有百分比时看阶段名称即可；暂时没变化不代表要重复提交。</p>
+<p>使用 seed <code>2026192201</code>，片段设置保持 <code>max_seconds=35</code>。把 Project 命名为 Morning song；后面的变体继续放在这个 Project 中。</p><p>打开正式 Web 的“音乐生成”，填入上面的风格、歌词与种子，选择“生成一段音乐”。按<a href="../guides/web-generation.md">工作区生成指南</a>检查任务、试听、看谱，再选择“保存为版本”。没有百分比时看阶段名称即可；暂时没变化不代表要重复提交。需要命令行操作时再展开下面的补充。</p>
 
-<details class="creator-supplement"><summary>当前操作入口：使用现成 CLI</summary>
+<details class="creator-supplement"><summary>补充操作入口：使用现成 CLI</summary>
 
 <p>在仓库根目录、已启动 API 的第二个终端执行。示例会创建所需下载目录并使用上面的受控歌词。命令会创建 Project、向已配置 Runtime 提交生成，并下载 <code>audio.flac</code> 与 <code>score.abc</code>；不会保存 Version。输出目录必须尚不存在。</p>
 

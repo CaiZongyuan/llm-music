@@ -5,12 +5,14 @@
 <p>如果已有由你或管理者维护的就绪本地环境，直接进入创作教程。首次使用则先准备 Runtime、模型与应用 API；需要 Git、uv 和受支持的 NVIDIA GPU。现有指南给出完整命令、锁定版本与恢复方法。</p><p>真实模式使用独立应用数据目录和新鲜 owner receipt。不要把 fake 的项目目录切换成真实模式；fake 只适合练习应用行为，不产生模型音乐。</p>
 
 - [环境、模型、Doctor 与 Runtime 启动](../guides/runtime-doctor.md)
+- [本地 Web 启动、项目与参考素材](../guides/web-workspace.md#launch)
 - [应用 API 启动与生成/保存操作](../guides/generate-save-api.md)
 - [真实 Runtime 诊断收据与刷新](../reference/runtime-evidence.md)
 
 ## 遇到问题时，先找对应任务 {#help}
 
 - [上传格式、文件预算与素材恢复](../guides/api-project-audio.md)
+- [Web 任务取消、明确重试与断线恢复](../guides/web-jobs.md)
 - [转谱输入范围与 ABC/MIDI 结果](../guides/api-transcription.md)
 - [取消、明确重试与错误处理](../guides/api-cancel-retry.md)
 - [实时阶段、断开后读取同一 Job](../guides/api-job-events.md)

@@ -6,7 +6,7 @@ Prepare 16 seconds of Reference Audio and get ABC and MIDI. Check the score agai
 
 ## 2. Upload to the Project, then transcribe once {#transcribe}
 
-<p>Continue in the Morning song Project and upload the file as Reference Audio. Record its Asset id, submit one Transcribe Job, and keep its Job id. When completed, you get a Score, ABC, and MIDI. The original Reference Audio stays unchanged.</p><p>Use existing local Swagger for the actual steps. Expand the instructions below; the documentation page uploads no files.</p>
+<p>Continue in the Morning song Project and upload the file as Reference Audio. Open “Reference transcription” in the formal Web, select the original file, check readiness, then choose “Start transcription”. When completed, inspect the score and download ABC/MIDI. The original Reference Audio stays unchanged. Follow the <a href="../guides/web-transcribe.en.md">workspace transcription guide</a> for complete steps. Expand the supplement below when you need API operations; the documentation page uploads no files.</p>
 
 <details class="creator-supplement"><summary>Current entrypoint: the complete local Swagger path</summary>
 
