@@ -80,6 +80,7 @@ export function sourceVersion(root) {
 }
 
 export async function loadPages(root, manifest, version = sourceVersion(root)) {
+  root = await realpath(root);
   validateManifest(manifest);
   const registeredSources = new Map(manifest.chapters.flatMap(chapter => Object.values(chapter.sources).map(source => [resolve(root, source), chapter])));
   const chapters = new Map(manifest.chapters.map(chapter => [chapter.id, chapter]));

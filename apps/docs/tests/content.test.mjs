@@ -50,6 +50,17 @@ test('missing language, duplicate publish path, invalid chain, and a cycle are r
   assert.throws(() => validateManifest(cycle), /cycle/);
 });
 
+test('a repository directory alias preserves internal routes and repository-relative source links', async t => {
+  const { directory, root, manifest } = await fixture(t);
+  const alias = join(directory, 'checkout-alias');
+  await symlink(root, alias, process.platform === 'win32' ? 'junction' : 'dir');
+  const result = await loadPages(alias, manifest, version);
+  const english = result.pages.find(page => page.id === 'overview' && page.locale === 'en');
+  assert.match(english.markdown, /\[Continue\]\(\/llm-music\/en\/result\/#result\)/);
+  assert.match(english.markdown, /blob\/1234567890abcdef1234567890abcdef12345678\/examples\/first\.py/);
+  assert.ok(result.sourcePaths.every(path => !path.startsWith('..')));
+});
+
 test('source include cannot cross a filesystem link outside the repository', async t => {
   const { directory, root, manifest } = await fixture(t);
   const outside = join(directory, 'external');
