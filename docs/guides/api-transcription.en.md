@@ -24,7 +24,7 @@ Invoke-RestMethod "$base/jobs/$($job.id)"
 
 Submission returns 202 and an application Job. Query that id until completed or explicitly failed. Completed `result` includes `score_id`, `abc_asset_id` and `midi_asset_id`. Read `GET /projects/{project_id}/scores/{score_id}` and download ABC/MIDI through existing Asset content routes. Lists and references enforce the same Project owner.
 
-Public states remain queued, running, completed, failed and cancelled. This issue proves success, failure and reading completed results after restart. Phase follows actual observations; progress is null without reliable evidence. Later issues deliver full cancellation, events and active-job restart reconciliation. Failures retain inputs and readable error/recovery. Native success alone does not prove imported files.
+Public states remain queued, running, completed, failed and cancelled. Phase follows actual observations; progress is null without reliable evidence. Current operations include [cancellation and explicit retry](api-cancel-retry.en.md), [Job events and HTTP recovery](api-job-events.en.md), and [original-Job reconciliation after API restart](job-recovery.en.md). Failures retain inputs and readable error/recovery. Native success alone does not prove imported files.
 
 ## Configure the real Runtime
 
@@ -43,11 +43,11 @@ The proven input scope is 16-second PCM16 stereo48k or mono24k. Upload's 64 MiB/
 
 ## Recover from failure and restart
 
-Persist Job/attempt before submission and write native POST once. A lost acknowledgement produces an explicit unconfirmed failure and `recovery_required`; accepted native work may still exist. Inspect the same application Job and owner logs before retrying. Do not automatically resubmit or claim definite non-execution. Full active-job reconciliation is outside this issue's restart guarantee.
+Persist Job/attempt before submission and write native POST once. A lost acknowledgement produces an explicit unconfirmed failure and `recovery_required`; accepted native work may still exist. Inspect the same application Job and owner logs before retrying. Do not automatically resubmit or claim definite non-execution. API startup verifies original work still queued/running without resubmitting inference. Unconfirmed original ownership or state enters bounded recovery; terminal Jobs retain their original state. See the [restart recovery guide](job-recovery.en.md) for steps and limits.
 
 Missing/corrupt ABC or MIDI cannot produce a successful Score or complete result. Validate every required role first, publish owned files exclusively, then associate Assets/Score/completed Job in one SQLite transaction. An error after commit preserves the same ids/files when a fresh read confirms completion. Unknown readback also retains files. Compensate only this attempt's files after acknowledged rollback and confirmed durable absence. No global GC is performed.
 
-Stop/reopen the API with the same mode and data-dir to read completed Job/Score/files by their original ids. Restart checks read those ids rather than creating new work. Supported 0001→0002 migration preserves uploaded content. Pydantic/OpenAPI remains the contract source. The [maintenance record](../verification/api-transcription.md) separates CPU and real verification.
+Stop/reopen the API with the same mode and data-dir to read completed Job/Score/files by their original ids. Restart checks read those ids rather than creating new work. Startup applies the current application migrations and preserves uploaded content. Back up the whole application data directory first; restore a compatible version or full backup for an unsupported schema. Pydantic/OpenAPI remains the contract source. The [maintenance record](../verification/api-transcription.md) separates CPU and real verification.
 
 ```powershell
 uv run --project services/api --no-sync python -m pytest services/api/tests -q

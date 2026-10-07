@@ -55,7 +55,7 @@ uv run --project services/api --no-sync python services/api/examples/generate_sa
 ## 失败恢复与真实 Runtime
 
 - `422 invalid_request`：修正空输入、seed 或超出范围的字段，再提交。
-- failed Job：读取其中的错误与 recovery_required，保留该 Job。缺输出、无效 Score、未完成的 FLAC 或无法确认的输出不会创建 Candidate/Version。修复原因后显式提交新的 Job；不会自动重复推理。
+- failed Job：读取其中的错误与 recovery_required，保留该 Job。缺输出、无效 Score、未完成的 FLAC 或无法确认的输出不会创建 Candidate/Version。先按[重启恢复指南](job-recovery.md)核对原工作；需要新 attempt 时，按[取消与明确重试](api-cancel-retry.md)确认安全终态并显式重试。不会自动重复推理。
 - `404 candidate_not_found` / `parent_version_not_found`：选择目标 Project 的 Candidate 或已保存 parent。跨 Project 引用不能保存。
 - `503 version_commit_unconfirmed`：先用错误中的 `resource_id` 查询 Version。重复保存已知 Version 时，即使确认回执和独立读回都失败，该 id 仍指向既有 Version。确认存在时读取其结果；不存在时恢复数据库访问，再重试相同 Candidate、名称和 parent。无法确认时应用保留原有 Asset 与快照。
 - `409 asset_unavailable` / `asset_path_invalid`：恢复原应用文件或备份中的映射；不能用 Runtime 路径替代应用 id。
@@ -66,4 +66,4 @@ uv run --project services/api --no-sync python services/api/examples/generate_sa
 
 <<< ../../services/api/examples/generate_save.py
 
-实际验证与限制见 [维护记录](../verification/generate-save-api.md)。在线文档站在后续阶段交付；当前直接阅读仓库文档。
+继续尝试[风格、歌词与 seed 玩法](../learn/variations.md)，或按需查阅[API 合同参考](../reference/api.md)与[应用配置参考](../reference/settings.md)。实际验证与限制见[维护记录](../verification/generate-save-api.md)；文档站与仓库正文使用同一来源。

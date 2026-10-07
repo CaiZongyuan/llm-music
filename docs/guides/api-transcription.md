@@ -24,7 +24,7 @@ Invoke-RestMethod "$base/jobs/$($job.id)"
 
 提交返回 202 与应用 Job。重复查询该 id，直到 completed 或明确失败。completed 的 `result` 包含 `score_id`、`abc_asset_id`、`midi_asset_id`。读取 `GET /projects/{project_id}/scores/{score_id}`，再经已有 Asset content 路由下载 ABC/MIDI。列表与所有引用均检查同 Project 归属。
 
-公开状态固定为 queued、running、completed、failed、cancelled；此票证明成功、失败和已完成结果重启读取。phase 仅按实际观察填写，progress 无可靠观测时为 null。完整取消、事件与活动任务重启对账由后续票据交付。失败保留输入与可读 error/recovery；不能把原生 success 当作文件已导入。
+公开状态固定为 queued、running、completed、failed、cancelled。phase 仅按实际观察填写，progress 无可靠观测时为 null。当前支持[取消与明确重试](api-cancel-retry.md)、[Job 事件与 HTTP 恢复](api-job-events.md)，以及[API 重启后的原 Job 对账](job-recovery.md)。失败保留输入与可读 error/recovery；不能把原生 success 当作文件已导入。
 
 ## 配置真实 Runtime
 
@@ -43,11 +43,11 @@ owner receipt 与 [CPU 来源核验](../reference/runtime-evidence.md) 使用同
 
 ## 失败恢复与重启
 
-提交前保存 Job/attempt；原生 POST 只发一次。确认回执丢失时，Job 以明确 unconfirmed 原因失败并标记 `recovery_required`，已接受工作可能仍存在。先查看这个应用 Job 和 owner 日志；不要自动再提交或把它描述为确定未执行。完整活动对账不是此票的重启保证。
+提交前保存 Job/attempt；原生 POST 只发一次。确认回执丢失时，Job 以明确 unconfirmed 原因失败并标记 `recovery_required`，已接受工作可能仍存在。先查看这个应用 Job 和 owner 日志；不要自动再提交或把它描述为确定未执行。API 启动会核验仍 queued/running 的原任务，不重新提交推理；无法确认原 ownership 或状态时进入有界恢复，已终态 Job 保留原终态。具体步骤和边界见[重启恢复指南](job-recovery.md)。
 
 缺失/损坏 ABC 或 MIDI 不产生成功 Score 或完整结果。所有必需角色先验证，再独占发布并在一个 SQLite 事务关联 Assets、Score 和 completed Job。提交后报错时，新连接确认已完成就保留同 id/文件；读回不确定时也保留文件。只有确认 rollback 且不存在持久行才补偿删除本次文件。没有全局 GC。
 
-停止并重开相同模式、相同 data-dir 的 API 后，已完成 Job、Score 和文件仍按原 id 可读。重启检查只读原 id，避免再运行创建示例。支持从已交付 0001 schema 升级至 0002，原上传内容不改变。Pydantic/OpenAPI 是当前合同来源；[维护记录](../verification/api-transcription.md) 分别说明 CPU 与真实验证范围。
+停止并重开相同模式、相同 data-dir 的 API 后，已完成 Job、Score 和文件仍按原 id 可读。重启检查只读原 id，避免再运行创建示例。启动会执行当前版本的应用迁移，保留原上传内容；先备份完整应用数据目录，遇到不支持的 schema 时恢复兼容版本或完整备份。Pydantic/OpenAPI 是当前合同来源；[维护记录](../verification/api-transcription.md) 分别说明 CPU 与真实验证范围。
 
 ```powershell
 uv run --project services/api --no-sync python -m pytest services/api/tests -q
