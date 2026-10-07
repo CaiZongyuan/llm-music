@@ -18,6 +18,10 @@ class Settings(BaseSettings):
     runtime_timeout_seconds: float = Field(default=10, gt=0, allow_inf_nan=False, description="Bounded native HTTP timeout.")
     runtime_evidence_path: Path | None = Field(default=None, description="Read-only owner receipt; reading it does not renew its source timestamps.")
     diagnostics_max_age_seconds: float = Field(default=300, gt=0, allow_inf_nan=False, description="Freshness policy for observed readiness and immutable owner evidence.")
+    recovery_confirmation_window_seconds: float = Field(default=300, gt=0, allow_inf_nan=False, description="Durable confirmation budget for uncertain original Runtime work; API restarts do not renew it.")
+    recovery_max_attempts: int = Field(default=30, gt=0, description="Persisted attempt limit when original Runtime work is unconfirmed.")
+    recovery_poll_interval_seconds: float = Field(default=1, gt=0, allow_inf_nan=False, description="Initial bounded recovery polling interval.")
+    recovery_max_poll_interval_seconds: float = Field(default=10, gt=0, allow_inf_nan=False, description="Maximum recovery polling interval.")
 
     @property
     def database_path(self) -> Path:

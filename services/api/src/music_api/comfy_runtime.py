@@ -1,12 +1,16 @@
 """Typed CPU HTTP adapter; all native detail remains inside this module."""
 
 from datetime import datetime, timezone
+from dataclasses import replace
+from datetime import timedelta
 import base64
 from copy import deepcopy
 import hashlib
 import json
 import math
 import logging
+import re
+import threading
 from pathlib import Path
 from typing import Callable, Literal, cast
 from urllib.error import HTTPError
@@ -19,7 +23,8 @@ from music_api.readiness import evaluate_readiness
 from music_api.runtime_evidence import read_runtime_evidence
 from music_api.runtime_types import (OPERATIONS, CapabilityObservation, Operation, RuntimeArtifact, RuntimeMode, RuntimeObservation,
                                      RuntimeRequest, RuntimeResult, RuntimeStatus, SubmissionReceipt)
-from music_api.workflow_registry import WorkflowRegistry
+from music_api.workflow_registry import WorkflowDefinition, WorkflowRegistry
+from music_api.runtime_proof import freeze, validate, workflow_from
 from music_api.runtime_errors import failure_detail
 
 
@@ -37,9 +42,24 @@ class ComfyUIRuntime:
         self.url = settings.runtime_url.rstrip("/")
         self.requests: dict[str, RuntimeRequest] = {}
         self.graphs: dict[str, dict[str, object]] = {}
+        self.workflows: dict[str, WorkflowDefinition] = {}
+        self._result_observers: dict[str, RuntimeRequest] = {}
+        self._terminal_history: dict[str, dict[str, object]] = {}
+        self._observation_generation: dict[str, int] = {}
+        self._snapshot_lock = threading.Lock()
 
-    def _read(self, path: str) -> object:
-        with urlopen(self.url + path, timeout=self.settings.runtime_timeout_seconds) as response:
+    def _invalidate_snapshot(self,handle: str) -> int:
+        """Caller holds the lock; generations never reset after close or consume."""
+        generation = self._observation_generation.get(handle,0)+1
+        self._observation_generation[handle] = generation
+        self._terminal_history.pop(handle,None)
+        return generation
+
+    def _read(self, path: str, deadline: datetime | None = None) -> object:
+        remaining = self.settings.runtime_timeout_seconds if deadline is None else (deadline-datetime.now(timezone.utc)).total_seconds()
+        if remaining <= 0:
+            raise TimeoutError("Original confirmation read budget exhausted")
+        with urlopen(self.url + path, timeout=min(self.settings.runtime_timeout_seconds,remaining)) as response:
             return json.loads(response.read(8 * 1024 * 1024))
 
     def _post(self, path: str, value: object) -> object:
@@ -63,20 +83,25 @@ class ComfyUIRuntime:
             raise ValueError("Native upload response is invalid")
         return cast(dict[str, object], result)
 
-    def _history(self, handle: str) -> dict[str, object] | None:
-        raw = self._read("/history/" + quote(handle, safe=""))
+    def _history(self, handle: str, deadline: datetime | None = None) -> dict[str, object] | None:
+        raw = self._read("/history/" + quote(handle, safe=""),deadline)
         if not isinstance(raw, dict):
             raise ValueError("Native history is not a JSON object")
         value = raw.get(handle)
         if value is None:
             return None
+        return self._owned_history(handle,value)
+
+    def _owned_history(self,handle: str,value: object) -> dict[str, object]:
         if not isinstance(value, dict):
             raise ValueError("Native history entry is invalid")
         request = self.requests.get(handle)
         prompt = value.get("prompt")
-        if request is not None and (not isinstance(prompt, list) or len(prompt) < 4 or prompt[1] != handle or not isinstance(prompt[3], dict) or prompt[3].get("client_id") != str(request.attempt_id)):
+        if request is None or handle not in self.graphs:
+            raise ValueError("Original native ownership is unavailable")
+        if not isinstance(prompt, list) or len(prompt) < 4 or prompt[1] != handle or not isinstance(prompt[3], dict) or prompt[3].get("client_id") != str(request.attempt_id):
             raise ValueError("Native history ownership does not match this attempt")
-        if handle in self.graphs and isinstance(prompt, list) and prompt[2] != self.graphs[handle]:
+        if prompt[2] != self.graphs[handle]:
             raise ValueError("Native executed graph differs from the saved request")
         return cast(dict[str, object], value)
 
@@ -123,22 +148,17 @@ class ComfyUIRuntime:
         return tuple(evaluate_readiness(value, self.registry.requirements(), self.registry.workflow(operation), now=datetime.now(timezone.utc),
                                         max_age_seconds=self.settings.diagnostics_max_age_seconds) for operation in OPERATIONS)
 
-    def submit(self, request: RuntimeRequest) -> SubmissionReceipt:
-        capability = next(item for item in self.capabilities() if item.operation == request.operation)
-        if not capability.ready:
-            return SubmissionReceipt("rejected", code=capability.reasons[0], message="Current Runtime readiness is unverified.")
+    def prepare(self, request: RuntimeRequest) -> dict[str, object]:
         workflow = self.registry.workflow(request.operation)
         graph = cast(dict[str, dict[str, object]], deepcopy(dict(workflow.graph)))
         mapping = cast(dict[str, dict[str, object]], workflow.manifest["input_mapping"])
+        upload: dict[str, object] | None = None
         if request.operation == "Transcribe":
             if request.reference_path is None:
-                return SubmissionReceipt("rejected", code="reference_audio_required", message="Original application Reference Audio is unavailable.")
-            try:
-                uploaded = self._upload(request.reference_path, "application/" + str(request.attempt_id))
-            except (OSError, ValueError):
-                return SubmissionReceipt("rejected", code="runtime_upload_failed", message="Reference transfer failed before inference submission.")
+                raise ValueError("Original application Reference Audio is unavailable")
+            upload = dict(name=request.reference_path.name,subfolder="application/"+str(request.attempt_id),type="input")
             binding = mapping["reference_audio"]
-            value = "/".join(filter(None, [str(uploaded.get("subfolder", "")), str(uploaded["name"])]))
+            value = str(upload["subfolder"]) + "/" + str(upload["name"])
             cast(dict[str, object], graph[str(binding["node"])]["inputs"])[str(binding["input"])] = value
         else:
             values = dict(request.inputs, max_seconds=35)
@@ -146,6 +166,25 @@ class ComfyUIRuntime:
                 cast(dict[str, object], graph[str(binding["node"])]["inputs"])[str(binding["input"])] = values[name]
             outputs = cast(dict[str, dict[str, object]], workflow.manifest["output_mapping"])
             cast(dict[str, object], graph[str(outputs["audio"]["node"])]["inputs"])["filename_prefix"] = "application/" + str(request.attempt_id) + "/audio"
+        return freeze(request,self.mode,self.url,workflow,graph,upload)
+
+    def submit(self, request: RuntimeRequest) -> SubmissionReceipt:
+        capability = next(item for item in self.capabilities() if item.operation == request.operation)
+        if not capability.ready:
+            return SubmissionReceipt("rejected", code=capability.reasons[0], message="Current Runtime readiness is unverified.")
+        prepared = validate(request,self.mode,self.url)
+        graph = cast(dict[str, object],prepared["graph"])
+        workflow = workflow_from(prepared)
+        if request.operation == "Transcribe":
+            upload = prepared["upload"]
+            if request.reference_path is None or not isinstance(upload,dict):
+                return SubmissionReceipt("rejected",code="reference_audio_required")
+            try:
+                actual = self._upload(request.reference_path,str(upload["subfolder"]))
+            except (OSError,ValueError):
+                return SubmissionReceipt("rejected",code="runtime_upload_failed",message="Reference transfer failed before inference submission.")
+            if any(actual.get(key) != upload[key] for key in ("name","subfolder","type")):
+                return SubmissionReceipt("rejected",code="runtime_upload_unverified",message="Reference upload differs from the frozen original binding.")
         try:
             reply = self._post("/prompt", dict(prompt=graph, client_id=str(request.attempt_id)))
         except HTTPError as error:
@@ -155,45 +194,68 @@ class ComfyUIRuntime:
         if not isinstance(reply, dict) or not isinstance(reply.get("prompt_id"), str) or not reply["prompt_id"] or reply.get("node_errors"):
             return SubmissionReceipt("unconfirmed", code="submission_unconfirmed", message="Native response has no reliable accepted identity.")
         handle = reply["prompt_id"]
-        self.requests[handle], self.graphs[handle] = request, cast(dict[str, object], graph)
+        with self._snapshot_lock:
+            self._invalidate_snapshot(handle)
+            self.requests[handle], self.graphs[handle],self.workflows[handle] = request,graph,workflow
         return SubmissionReceipt("accepted", handle)
 
     def status(self, handle: str) -> RuntimeStatus:
+        return self._status(handle)
+
+    def observe(self,handle: str,budget_seconds: float) -> RuntimeStatus:
+        return self._status(handle,datetime.now(timezone.utc)+timedelta(seconds=budget_seconds))
+
+    def _status(self,handle: str,deadline: datetime | None = None) -> RuntimeStatus:
+        with self._snapshot_lock:
+            generation = self._invalidate_snapshot(handle)
         if handle not in self.requests or handle not in self.graphs:
             return RuntimeStatus("unconfirmed", code="native_mapping_unverified", message="The original request graph mapping is unavailable.")
-        entry = self._history(handle)
+        entry = self._history(handle,deadline)
         if entry is not None:
-            status = entry.get("status")
-            if not isinstance(status, dict):
-                return RuntimeStatus("unconfirmed", code="runtime_history_invalid")
-            if status.get("status_str") == "success" and status.get("completed") is True:
-                return RuntimeStatus("completed")
-            if status.get("status_str") == "error":
-                messages = status.get("messages")
-                interrupted = isinstance(messages, list) and any(
-                    isinstance(event, list) and len(event) == 2 and event[0] == "execution_interrupted"
-                    and isinstance(event[1], dict) and event[1].get("prompt_id") == handle for event in messages)
-                if interrupted:
-                    normalized = self._read("/api/jobs/" + quote(handle, safe=""))
-                    if isinstance(normalized, dict) and normalized.get("id") == handle and normalized.get("status") == "cancelled":
-                        return RuntimeStatus("cancelled", code="cancelled", message="The owned Runtime Job was cancelled.")
-                payload = next((event[1] for event in messages if isinstance(event, list) and len(event) == 2
-                                and event[0] == "execution_error" and isinstance(event[1], dict)
-                                and event[1].get("prompt_id") == handle), {}) if isinstance(messages, list) else {}
-                log.error("Owned Runtime execution failed", extra={"event": "runtime_execution_error", "runtime_handle": handle,
-                          "native_error": {name: payload.get(name) for name in ("exception_type", "exception_message", "node_id", "node_type", "traceback")}})
-                kind, message = str(payload.get("exception_type", "")).casefold(), str(payload.get("exception_message", "")).casefold()
-                code = "runtime_out_of_memory" if "outofmemoryerror" in kind or "cuda" in message and "out of memory" in message else None
-                if code is None and ("modelnotfound" in kind or "filenotfounderror" in kind and ("model" in message or ".safetensors" in message)):
-                    code = "model_missing"
-                detail = failure_detail(self.requests[handle].operation, code)
-                return RuntimeStatus("failed", code=detail.code, message=detail.message)
-        raw = self._read("/queue")
-        if isinstance(raw, dict):
-            for key, state in (("queue_running", "running"), ("queue_pending", "queued")):
-                rows = raw.get(key)
-                if isinstance(rows, list) and any(isinstance(row, list) and len(row) > 1 and row[1] == handle for row in rows):
-                    return RuntimeStatus(cast(Literal["queued", "running"], state))
+            observed = self._history_status(handle,entry,deadline)
+            if observed is not None:
+                if observed.state == "completed":
+                    with self._snapshot_lock:
+                        if self._observation_generation.get(handle) == generation and self._result_observers.get(handle) is self.requests.get(handle):
+                            self._terminal_history[handle] = deepcopy(entry)
+                return observed
+        return self._queue_status(handle,self._read("/queue",deadline))
+
+    def _history_status(self,handle: str,entry: dict[str, object],deadline: datetime | None = None) -> RuntimeStatus | None:
+        status = entry.get("status")
+        if not isinstance(status, dict):
+            return RuntimeStatus("unconfirmed", code="runtime_history_invalid")
+        if status.get("status_str") == "success" and status.get("completed") is True:
+            return RuntimeStatus("completed")
+        if status.get("status_str") == "error":
+            messages = status.get("messages")
+            interrupted = isinstance(messages, list) and any(
+                isinstance(event, list) and len(event) == 2 and event[0] == "execution_interrupted"
+                and isinstance(event[1], dict) and event[1].get("prompt_id") == handle for event in messages)
+            if interrupted:
+                normalized = self._read("/api/jobs/" + quote(handle, safe=""),deadline)
+                if isinstance(normalized, dict) and normalized.get("id") == handle and normalized.get("status") == "cancelled":
+                    return RuntimeStatus("cancelled", code="cancelled", message="The owned Runtime Job was cancelled.")
+            payload = next((event[1] for event in messages if isinstance(event, list) and len(event) == 2
+                            and event[0] == "execution_error" and isinstance(event[1], dict)
+                            and event[1].get("prompt_id") == handle), {}) if isinstance(messages, list) else {}
+            log.error("Owned Runtime execution failed", extra={"event": "runtime_execution_error", "runtime_handle": handle,
+                      "native_error": {name: payload.get(name) for name in ("exception_type", "exception_message", "node_id", "node_type", "traceback")}})
+            kind, message = str(payload.get("exception_type", "")).casefold(), str(payload.get("exception_message", "")).casefold()
+            code = "runtime_out_of_memory" if "outofmemoryerror" in kind or "cuda" in message and "out of memory" in message else None
+            if code is None and ("modelnotfound" in kind or "filenotfounderror" in kind and ("model" in message or ".safetensors" in message)):
+                code = "model_missing"
+            detail = failure_detail(self.requests[handle].operation, code)
+            return RuntimeStatus("failed", code=detail.code, message=detail.message)
+        return None
+
+    def _queue_status(self,handle: str,raw: object) -> RuntimeStatus:
+        if isinstance(raw, dict) and all(isinstance(raw.get(key),list) for key in ("queue_running","queue_pending")):
+            targets = [(key,row) for key in ("queue_running","queue_pending") for row in raw[key] if isinstance(row,list) and len(row)>1 and row[1] == handle]
+            if len(targets) == 1:
+                key,row = targets[0]
+                if len(row)>=4 and row[2] == self.graphs[handle] and isinstance(row[3],dict) and row[3].get("client_id") == str(self.requests[handle].attempt_id):
+                    return RuntimeStatus("running" if key == "queue_running" else "queued")
         return RuntimeStatus("unconfirmed", code="native_status_unconfirmed")
 
     def subscribe(self, handle: str, operation: Operation, on_status: Callable[[RuntimeStatus], None]) -> Callable[[], None]:
@@ -202,8 +264,17 @@ class ComfyUIRuntime:
         request = self.requests[handle]
         if request.operation != operation:
             raise ValueError("Subscription operation differs from the saved native request")
-        return subscribe_native(self.url, handle, request, self.registry.workflow(operation), on_status,
-                                self.settings.runtime_timeout_seconds, lambda: self.status(handle))
+        close_native = subscribe_native(self.url, handle, request, self.workflows[handle], on_status,
+                                        self.settings.runtime_timeout_seconds, lambda: self.status(handle))
+        with self._snapshot_lock:
+            self._invalidate_snapshot(handle)
+            self._result_observers[handle] = request
+        def close() -> None:
+            with self._snapshot_lock:
+                self._invalidate_snapshot(handle)
+                self._result_observers.pop(handle,None)
+            close_native()
+        return close
 
     def cancel(self, handle: str) -> RuntimeStatus:
         request, graph = self.requests.get(handle), self.graphs.get(handle)
@@ -247,33 +318,68 @@ class ComfyUIRuntime:
         return self.status(handle)
 
     def recover(self, request: RuntimeRequest) -> SubmissionReceipt:
-        matches: list[str] = []
-        queue = self._read("/queue")
-        if isinstance(queue, dict):
-            for key in ("queue_running", "queue_pending"):
-                rows = queue.get(key)
-                if isinstance(rows, list):
-                    matches.extend(str(row[1]) for row in rows if isinstance(row, list) and len(row) > 3 and isinstance(row[3], dict) and row[3].get("client_id") == str(request.attempt_id))
-        history = self._read("/history")
-        if isinstance(history, dict):
-            for handle, entry in history.items():
-                prompt = entry.get("prompt") if isinstance(entry, dict) else None
-                if isinstance(prompt, list) and len(prompt) > 3 and isinstance(prompt[3], dict) and prompt[3].get("client_id") == str(request.attempt_id):
-                    matches.append(str(handle))
-        unique = list(dict.fromkeys(matches))
-        if len(unique) != 1:
-            return SubmissionReceipt("unconfirmed", code="submission_unconfirmed")
-        self.requests[unique[0]] = request
-        return SubmissionReceipt("accepted", unique[0])
+        with self._snapshot_lock:
+            for previous,original in list(self.requests.items()):
+                if previous == request.runtime_handle or original.attempt_id == request.attempt_id:
+                    self._invalidate_snapshot(previous)
+        try:
+            proof = validate(request,self.mode,self.url)
+            graph = cast(dict[str, object],proof["graph"])
+            workflow = workflow_from(proof)
+        except ValueError:
+            return SubmissionReceipt("unconfirmed",code="original_proof_unavailable")
+        matches: set[str] = set()
+        rejected = False
+
+        def inspect(row: object, handle: str | None = None) -> None:
+            nonlocal rejected
+            if not isinstance(row,list) or len(row) < 4 or not isinstance(row[1],str) or not isinstance(row[3],dict):
+                rejected = True
+                return
+            candidate = row[1]
+            client = row[3].get("client_id")
+            if client == str(request.attempt_id) or candidate == request.runtime_handle:
+                if client != str(request.attempt_id) or row[2] != graph or handle is not None and handle != candidate:
+                    rejected = True
+                elif request.runtime_handle is not None and request.runtime_handle != candidate:
+                    rejected = True
+                else:
+                    matches.add(candidate)
+
+        queue = self._read("/queue",request.confirmation_deadline)
+        if not isinstance(queue,dict) or any(not isinstance(queue.get(key),list) for key in ("queue_running","queue_pending")):
+            return SubmissionReceipt("unconfirmed",code="runtime_queue_unconfirmed")
+        for key in ("queue_running","queue_pending"):
+            for row in queue[key]:
+                inspect(row)
+        history = self._read("/history",request.confirmation_deadline)
+        if not isinstance(history,dict):
+            return SubmissionReceipt("unconfirmed",code="runtime_history_unconfirmed")
+        for handle,entry in history.items():
+            inspect(entry.get("prompt") if isinstance(entry,dict) else None,str(handle))
+        if rejected or len(matches) != 1:
+            return SubmissionReceipt("unconfirmed",code="original_ownership_unconfirmed")
+        owned = next(iter(matches))
+        with self._snapshot_lock:
+            self._invalidate_snapshot(owned)
+            self.requests[owned],self.graphs[owned],self.workflows[owned] = replace(request,confirmation_deadline=None),deepcopy(graph),workflow
+        entry = history.get(owned)
+        observed = self._history_status(owned,self._owned_history(owned,entry),request.confirmation_deadline) if entry is not None else None
+        return SubmissionReceipt("accepted",owned,status=observed or self._queue_status(owned,queue))
 
     def result(self, handle: str, operation: Operation) -> RuntimeResult:
-        entry = self._history(handle)
+        if handle not in self.requests or self.requests[handle].operation != operation or self.workflows[handle].operation != operation:
+            raise ValueError("Native result operation differs from its original binding")
+        with self._snapshot_lock:
+            snapshot = self._terminal_history.pop(handle,None)
+            self._invalidate_snapshot(handle)
+        entry = self._owned_history(handle,snapshot) if snapshot is not None else self._history(handle)
         if entry is None:
             raise ValueError("Native terminal result is unavailable")
         outputs = entry.get("outputs")
         if not isinstance(outputs, dict):
             raise ValueError("Native output map is unavailable")
-        workflow = self.registry.workflow(operation)
+        workflow = self.workflows[handle]
         mapping = cast(dict[str, dict[str, object]], workflow.manifest["output_mapping"])
         score_mapping = mapping["abc" if operation == "Transcribe" else "score"]
         score_output = outputs.get(str(score_mapping["node"]))
@@ -315,12 +421,22 @@ class ComfyUIRuntime:
             if not isinstance(descriptions, list) or len(descriptions) != 1 or not isinstance(descriptions[0], dict):
                 raise ValueError("Native Audio output is missing")
             descriptor = descriptions[0]
-            query = urlencode({key: descriptor.get(key, "output" if key == "type" else "") for key in ("filename", "subfolder", "type")})
+            node = self.graphs[handle][str(audio_mapping["node"])]
+            inputs = node.get("inputs") if isinstance(node,dict) else None
+            prefix = inputs.get("filename_prefix") if isinstance(inputs,dict) else None
+            filename,subfolder = descriptor.get("filename"),descriptor.get("subfolder")
+            if not isinstance(prefix,str) or not isinstance(filename,str) or not isinstance(subfolder,str):
+                raise ValueError("Native Audio output has no original file binding")
+            directory,_,basename = prefix.replace("\\","/").rpartition("/")
+            # Pinned SaveAudio: directory from filename_prefix, basename plus a
+            # five-digit (or longer) counter, FLAC. Native Windows uses backslashes.
+            if descriptor.get("type") != "output" or subfolder.replace("\\","/") != directory or re.fullmatch(re.escape(basename)+r"_\d{5,}\.flac",filename) is None:
+                raise ValueError("Native Audio descriptor differs from the original output binding")
+            query = urlencode({key: descriptor[key] for key in ("filename", "subfolder", "type")})
             with urlopen(self.url + "/view?" + query, timeout=self.settings.runtime_timeout_seconds) as response:
                 body = response.read(self.settings.max_upload_bytes + 1)
             if not body or len(body) > self.settings.max_upload_bytes:
                 raise ValueError("Native Audio output exceeds the configured import budget")
-            filename = str(descriptor["filename"])
             format: Literal["flac", "wav"] = "flac" if filename.lower().endswith(".flac") else "wav"
             artifacts.append(RuntimeArtifact("audio", body, format, "audio/flac" if format == "flac" else "audio/wav", filename))
         status = entry.get("status")

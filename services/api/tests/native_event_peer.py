@@ -55,8 +55,10 @@ async def events(ws: WebSocket):
 
 @app.post("/upload/image")
 async def upload(request: Request):
-    await request.body()
-    return {"name":"uploaded.wav","subfolder":"input","type":"input"}
+    form = await request.form()
+    incoming = form["image"]
+    await incoming.read()
+    return {"name":incoming.filename,"subfolder":str(form["subfolder"]),"type":"input"}
 
 @app.post("/prompt")
 async def submit(request: Request):
@@ -71,7 +73,9 @@ def history(handle,item):
     result = item["result"]
     abc = next(artifact.data.decode() for artifact in result.artifacts if artifact.role == "abc") if result else ABC.decode()
     outputs = {"4" if item["generate"] else "score":{"text":[abc]}}
-    if item["generate"]: outputs["3"] = {"audio":[{"filename":"fixture.flac","subfolder":"owned","type":"output"}]}
+    if item["generate"]:
+        prefix = os.path.normpath(item["graph"]["3"]["inputs"]["filename_prefix"])
+        outputs["3"] = {"audio":[{"filename":os.path.basename(prefix)+"_00001.flac","subfolder":os.path.dirname(prefix),"type":"output"}]}
     return {"prompt":[0,handle,item["graph"],{"client_id":item["client"]},[]],"outputs":outputs,
             "status":{"status_str":"success","completed":True,"messages":[]}}
 
@@ -88,9 +92,13 @@ def queue():
     return {"queue_running":[[0,handle,item["graph"],{"client_id":item["client"]},[]] for handle,item in native.items() if not item["complete"]],"queue_pending":[]}
 
 @app.get("/view")
-def view():
-    result = next(item["result"] for item in native.values() if item["result"] is not None)
-    return Response(next(artifact.data for artifact in result.artifacts if artifact.role == "audio"),media_type="audio/flac")
+def view(request: Request):
+    for handle,item in native.items():
+        if not item["generate"]: continue
+        descriptor = history(handle,item)["outputs"]["3"]["audio"][0]
+        if dict(request.query_params) == descriptor:
+            return Response(next(artifact.data for artifact in item["result"].artifacts if artifact.role == "audio"),media_type="audio/flac")
+    return Response(status_code=404)
 
 @app.post("/yue2/score/read")
 async def read_score(request: Request):
