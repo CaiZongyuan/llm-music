@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { projectsOptions } from '../features/projects/queries';
 import { useMessages, usePreferences } from '../features/preferences/Preferences';
 import { shellMessages } from './messages';
+import { Player } from '../features/player/Player';
 
 export function AppShell() {
   const t = useMessages(shellMessages);
@@ -22,5 +23,5 @@ export function AppShell() {
       <div className="preferences"><label className="language-label">{t.language}<select aria-label={t.language} value={locale} onChange={event => setLocale(event.target.value === 'en' ? 'en' : 'zh-CN')}><option value="zh-CN">中文</option><option value="en">English</option></select></label>
         <button type="button" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')} aria-label={theme === 'dark' ? t.light : t.dark}><span aria-hidden="true">{theme === 'dark' ? '☀' : '☾'}</span> {theme === 'dark' ? t.light : t.dark}</button>
       </div></header><main id="workspace" tabIndex={-1}><Outlet /></main></div>
-  </div><footer id="persistent-player" className="player-slot">{t.brand}<span>{t.local}</span></footer></>;
+  </div><Player /></>;
 }
