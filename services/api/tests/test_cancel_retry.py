@@ -57,3 +57,32 @@ def test_owned_running_cancel_is_terminal_only_with_native_evidence_and_successo
             assert client.get(base + "/assets/" + reference["id"] + "/content").content == original
             assert client.get(address).json() == cancelled
             assert client.post(base + "/jobs/" + complete["id"] + "/cancel").json() == complete
+
+
+def test_owned_pending_removal_preserves_foreign_running_without_requiring_interrupted_history(tmp_path: Path, monkeypatch) -> None:
+    with cancellation_peer(tmp_path, monkeypatch) as (url, receipt_path, registry):
+        configured = Settings(data_dir=tmp_path / "application", runtime_mode="comfyui", runtime_url=url, runtime_evidence_path=receipt_path)
+        with TestClient(create_app(configured, registry=registry)) as client, httpx.Client(base_url=url, trust_env=False) as peer:
+            peer.post("/control", json={"action": "scenario", "value": "queued"}).raise_for_status()
+            project = client.post("/projects", json={"name": "Morning song"}).json()
+            base = "/projects/" + project["id"]
+            original = reference_audio()
+            reference = client.post(base + "/assets", files={"file": ("reference.wav", original)}).json()
+            submitted = client.post(base + "/transcriptions", json={"reference_asset_id": reference["id"]}).json()
+            address = base + "/jobs/" + submitted["id"]
+            deadline = time.monotonic() + 5
+            while peer.get("/facts").json()["target_states"].get("native-1") != "queued":
+                assert time.monotonic() < deadline
+                time.sleep(0.01)
+            cancelled = client.post(address + "/cancel")
+            assert cancelled.status_code == 200, cancelled.text
+            assert cancelled.json()["status"] == "cancelled"
+            assert cancelled.json()["result"] is None
+            assert client.get(address).json() == cancelled.json()
+            assert client.post(address + "/cancel").json() == cancelled.json()
+            assert peer.get("/facts").json()["target_states"]["native-1"] == "removed_pending"
+            assert peer.get("/history/native-1").json() == {}
+            assert peer.get("/facts").json()["foreign_state"] == "running"
+            assert client.get(base + "/assets").json() == [reference]
+            assert client.get(base + "/assets/" + reference["id"] + "/content").content == original
+            peer.post("/control", json={"action": "finish_survivor"}).raise_for_status()

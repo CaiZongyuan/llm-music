@@ -11,6 +11,8 @@ from test_native_transcription import NATIVE_EXTENSION
 
 CANCELLATION_EXTENSION = '''
 live = {}
+removed = set()
+scenario = "running"
 current = None
 foreign_state = "queued"
 foreign_row = [1, "foreign-survivor", {}, {"client_id":"foreign-owner"}, []]
@@ -18,13 +20,14 @@ class CancellationHandler(NativeHandler):
     def do_GET(self):
         if self.path == "/queue":
             rows = [native[current]["prompt"]] if current in live else [foreign_row] if current == "foreign-survivor" else []
-            self.reply({"queue_running":rows, "queue_pending":[foreign_row] if foreign_state == "queued" else []})
+            pending = [native[key]["prompt"] for key,state in live.items() if state == "queued"]
+            self.reply({"queue_running":rows, "queue_pending":pending + ([foreign_row] if foreign_state == "queued" else [])})
         elif self.path == "/facts":
-            self.reply({"foreign_state":foreign_state, "target_states":{key:live.get(key, value["status"]["status_str"]) for key,value in native.items()}})
+            self.reply({"foreign_state":foreign_state, "target_states":{key:"removed_pending" if key in removed else live.get(key, value["status"]["status_str"]) for key,value in native.items()}})
         elif self.path.startswith("/history/"):
             handle = self.path.split("/")[-1]
-            self.reply({handle:native[handle]} if handle in native and handle not in live else {})
-        elif self.path == "/history": self.reply({key:value for key,value in native.items() if key not in live})
+            self.reply({handle:native[handle]} if handle in native and handle not in live and handle not in removed else {})
+        elif self.path == "/history": self.reply({key:value for key,value in native.items() if key not in live and key not in removed})
         elif self.path.startswith("/api/jobs/"):
             handle = self.path.split("/")[-1]
             entry = native.get(handle)
@@ -32,15 +35,23 @@ class CancellationHandler(NativeHandler):
             self.reply({"id":handle,"status":state})
         else: super().do_GET()
     def do_POST(self):
-        global current, foreign_state
+        global current, foreign_state, scenario
         if self.path == "/prompt":
             body = json.loads(self.rfile.read(int(self.headers["Content-Length"])))
             handle = "native-" + str(len(native) + 1)
             native[handle] = {"prompt":[0,handle,body["prompt"],{"client_id":body["client_id"]},[]],"outputs":{"score":{"text":[abc]}},"status":{"status_str":"success","completed":True,"messages":[]}}
             if len(native) == 1:
-                live[handle] = "running"
-                current = handle
+                live[handle] = "queued" if scenario == "queued" else "running"
+                current = "foreign-survivor" if scenario == "queued" else handle
+                if scenario == "queued": foreign_state = "running"
             self.reply({"prompt_id":handle})
+        elif self.path == "/queue":
+            body = json.loads(self.rfile.read(int(self.headers["Content-Length"])))
+            for handle in body.get("delete", []):
+                if live.get(handle) == "queued":
+                    del live[handle]
+                    removed.add(handle)
+            self.reply({})
         elif self.path.startswith("/api/jobs/") and self.path.endswith("/cancel"):
             self.rfile.read(int(self.headers["Content-Length"]))
             handle = self.path.split("/")[-2]
@@ -61,6 +72,7 @@ class CancellationHandler(NativeHandler):
             body = json.loads(self.rfile.read(int(self.headers["Content-Length"])))
             if body["action"] == "finish_survivor":
                 foreign_state, current = "completed", None
+            elif body["action"] == "scenario": scenario = body["value"]
             self.reply({"foreign_state":foreign_state})
         else: super().do_POST()
 '''

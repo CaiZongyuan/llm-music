@@ -40,7 +40,8 @@ class ComfyUIRuntime:
     def _post(self, path: str, value: object) -> object:
         request = Request(self.url + path, data=json.dumps(value).encode("utf-8"), headers={"Content-Type": "application/json"})
         with urlopen(request, timeout=self.settings.runtime_timeout_seconds) as response:
-            return json.loads(response.read(8 * 1024 * 1024))
+            body = response.read(8 * 1024 * 1024)
+            return json.loads(body) if body else {}
 
     def _upload(self, path: Path, subfolder: str) -> dict[str, object]:
         return self._upload_bytes(path.read_bytes(), path.name, subfolder)
@@ -188,6 +189,23 @@ class ComfyUIRuntime:
             return current
         raw = self._read("/queue")
         running = raw.get("queue_running") if isinstance(raw, dict) else None
+        pending = raw.get("queue_pending") if isinstance(raw, dict) else None
+        if not isinstance(running, list) or len(running) > 1 or not isinstance(pending, list):
+            return RuntimeStatus("unconfirmed", code="cancellation_ownership_unverified", message="The Runtime queue cannot establish target ownership.")
+        targets = [row for row in running + pending if isinstance(row, list) and len(row) >= 4 and row[1] == handle]
+        if len(targets) != 1 or targets[0][2] != graph or not isinstance(targets[0][3], dict) or targets[0][3].get("client_id") != str(request.attempt_id):
+            return RuntimeStatus("unconfirmed", code="cancellation_ownership_unverified", message="The Runtime target differs from the saved cancellation mapping.")
+        if targets[0] in pending:
+            self._post("/queue", {"delete": [handle]})
+            after = self._read("/queue")
+            if not isinstance(after, dict) or not isinstance(after.get("queue_running"), list) or not isinstance(after.get("queue_pending"), list):
+                return RuntimeStatus("unconfirmed", code="cancellation_unconfirmed", message="Pending deletion could not be observed.")
+            remaining = after["queue_running"] + after["queue_pending"]
+            if self._history(handle) is not None or any(isinstance(row, list) and len(row) > 1 and row[1] == handle for row in remaining):
+                return self.status(handle)
+            # Queued removal has a distinct absence proof, with no invented
+            # running-interruption history or claim that execution never began.
+            return RuntimeStatus("cancelled", code="cancelled", message="The owned pending Runtime target was removed.")
         if not isinstance(running, list) or len(running) != 1:
             return RuntimeStatus("unconfirmed", code="cancellation_unconfirmed", message="No exclusively owned running target was confirmed.")
         row = running[0]
