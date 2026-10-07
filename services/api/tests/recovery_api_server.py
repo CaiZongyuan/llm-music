@@ -37,6 +37,13 @@ event.listen(Session,"after_commit",lambda session:commit_phase(session,"after_c
 def trace_changes(jobs):
     publish = jobs.on_change
     def notify(value):
+        if value.status == "completed" and os.environ.get("MUSIC_API_FIXTURE_HOLD_COMPLETED_NOTIFICATION") == "1":
+            phase({"phase":"notification_held","job_id":str(value.id),"status":value.status})
+            Path(ready).with_suffix(".notification-held").write_text(str(value.id),encoding="utf-8")
+            release = Path(ready).with_suffix(".release-notification")
+            stop = Path(ready).with_suffix(".stop")
+            while not release.exists() and not stop.exists():
+                threading.Event().wait(.01)
         if value.status in {"completed","failed","cancelled"}:
             phase({"phase":"notification","job_id":str(value.id),"status":value.status})
         if publish is not None:
