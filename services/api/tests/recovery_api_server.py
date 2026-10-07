@@ -49,14 +49,14 @@ if cursor_fault or startup_delay:
     from sqlalchemy.engine import Engine
     from sqlalchemy.orm import Session
     from music_api.job_models import Job
-    recovery_provider = {"armed":True,"readback":False,"startup":False,"delayed":False}
+    recovery_provider = {"armed":True,"readback":False,"delayed":False}
     def cursor_transition(session):
         for item in session.identity_map.values():
             if not isinstance(item,Job):
                 continue
             cursor = item.recovery_cursor or {}
-            if item.status in {"queued","running"} and not cursor.get("attempts",0):
-                recovery_provider["startup"] = True
+            if startup_delay and recovery_provider["delayed"] and cursor and cursor.get("attempts") == 0:
+                Path(ready).with_suffix(".admission-cursor.json").write_text(json.dumps(cursor),encoding="utf-8")
             target = cursor.get("attempts",0) >= 1 and item.status in {"queued","running"}
             if cursor_fault == "accept-ack":
                 target = target and cursor.get("confirmed") is True
@@ -77,11 +77,16 @@ if cursor_fault or startup_delay:
             recovery_provider["readback"] = False
             Path(ready).with_suffix(".cursor-readback-fault").write_text("Owned recovery cursor readback fault\n",encoding="utf-8")
             raise RuntimeError("Owned recovery cursor independent readback fault")
-        if startup_delay and recovery_provider["startup"] and not recovery_provider["delayed"]:
+        # Admission selects ORM rows without get-by-id aliases, before cursor
+        # creation. MainThread/after_commit timing does not select this phase.
+        if startup_delay and not recovery_provider["delayed"] and statement.startswith("SELECT jobs.id,"):
             recovery_provider["delayed"] = True
+            from datetime import datetime,timezone
+            before = connection.exec_driver_sql("SELECT recovery_cursor FROM jobs").fetchall()
+            began_at = datetime.now(timezone.utc).isoformat()
             began = time.monotonic()
             time.sleep(startup_delay)
-            Path(ready).with_suffix(".startup-delay").write_text(str(time.monotonic()-began),encoding="utf-8")
+            Path(ready).with_suffix(".startup-delay.json").write_text(json.dumps({"phase":"initial_worker_admission_metadata_read","cursor_before":[row[0] for row in before],"began_at":began_at,"finished_at":datetime.now(timezone.utc).isoformat(),"seconds":time.monotonic()-began}),encoding="utf-8")
     event.listen(Session,"before_commit" if cursor_fault == "before-attempt" else "after_commit",cursor_transition)
     event.listen(Engine,"before_cursor_execute",cursor_read)
 owned = socket.socket()

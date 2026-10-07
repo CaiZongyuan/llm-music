@@ -528,7 +528,10 @@ def test_recovered_result_provider_failures_cannot_duplicate_or_downgrade_owned_
             (data/"assets"/project["id"]).write_bytes(b"Owned path obstruction")
         peer.post("/fixture/control",json={"action":"complete"}).raise_for_status()
         provider_fault = "commit-readback" if fault == "commit-readback-after-startup-delay" else fault
-        options = {} if fault == "storage" else {"MUSIC_API_FIXTURE_IMPORT_FAULT":provider_fault}
+        # This workload measures result-provider faults, not recovery capacity.
+        options = {"MUSIC_API_RECOVERY_CONFIRMATION_WINDOW_SECONDS":"300"}
+        if fault != "storage":
+            options["MUSIC_API_FIXTURE_IMPORT_FAULT"] = provider_fault
         if fault == "commit-readback-after-startup-delay":
             options["MUSIC_API_FIXTURE_STARTUP_READ_DELAY"] = "0.55"
         with owned_api(data,url,receipt,registry.root,tmp_path,options) as reopened:
@@ -547,7 +550,8 @@ def test_recovered_result_provider_failures_cannot_duplicate_or_downgrade_owned_
             if provider_fault == "commit-readback":
                 assert list(tmp_path.glob("*.readback-fault")),"Independent confirmation read fault must have executed"
             if fault == "commit-readback-after-startup-delay":
-                assert any(float(path.read_text(encoding="utf-8"))>0.4 for path in tmp_path.glob("*.startup-delay")),"Metadata delay must exceed the unchanged confirmation window"
+                markers = [json.loads(path.read_text(encoding="utf-8")) for path in tmp_path.glob("*.startup-delay.json")]
+                assert len(markers) == 1 and markers[0]["phase"] == "initial_worker_admission_metadata_read"
             downloads = {asset["id"]:reopened.get(base+"/assets/"+asset["id"]+"/content").content for asset in assets}
         with owned_api(data,url,receipt,registry.root,tmp_path) as again:
             assert again.get(route).json() == value
@@ -598,3 +602,35 @@ def test_cursor_ack_and_independent_readback_loss_reconciles_same_original_then_
             peer.post("/fixture/control",json={"action":"complete"}).raise_for_status()
             assert terminal(recovered,base+"/jobs/"+following["id"])["status"] == "completed"
             assert recovered.get(route).json() == complete
+
+
+def test_first_worker_admission_starts_cursor_after_delayed_metadata_read(tmp_path: Path,monkeypatch):
+    from datetime import datetime
+    with recovery_peer(tmp_path,monkeypatch) as (url,receipt,registry),httpx.Client(base_url=url,trust_env=False) as peer:
+        data = tmp_path/"application"
+        with owned_api(data,url,receipt,registry.root,tmp_path) as first:
+            project = first.post("/projects",json={"name":"Independent admission timing"}).json()
+            base = "/projects/"+project["id"]
+            submitted = first.post(base+"/jobs/generate",json={"style":"gentle folk pop","lyrics":"Morning gathers on the window","seed":202625003}).json()
+            route = base+"/jobs/"+submitted["id"]
+            deadline = time.monotonic()+5
+            while first.get(route).json()["status"] != "running":
+                assert time.monotonic()<deadline
+                time.sleep(0.02)
+        # The peer remains running; this oracle ends at admission, before import.
+        with owned_api(data,url,receipt,registry.root,tmp_path,{"MUSIC_API_FIXTURE_STARTUP_READ_DELAY":"0.55"}) as reopened:
+            deadline = time.monotonic()+5
+            while not list(tmp_path.glob("*.admission-cursor.json")):
+                assert time.monotonic()<deadline
+                time.sleep(0.02)
+            markers = [json.loads(path.read_text(encoding="utf-8")) for path in tmp_path.glob("*.startup-delay.json")]
+            cursors = [json.loads(path.read_text(encoding="utf-8")) for path in tmp_path.glob("*.admission-cursor.json")]
+            assert len(markers) == len(cursors) == 1
+            marker,cursor = markers[0],cursors[0]
+            assert marker["phase"] == "initial_worker_admission_metadata_read" and marker["cursor_before"] == [None]
+            assert marker["seconds"]>0.4
+            assert datetime.fromisoformat(cursor["started_at"])>=datetime.fromisoformat(marker["finished_at"])
+            assert (datetime.fromisoformat(cursor["deadline"])-datetime.fromisoformat(cursor["started_at"])).total_seconds() == 0.4
+            assert cursor["attempts"] == 0
+            assert reopened.get(route).json()["inputs"] == submitted["inputs"]
+            assert peer.get("/fixture/state").json()["accepted"] == 1
