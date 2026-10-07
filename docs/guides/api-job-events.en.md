@@ -26,7 +26,7 @@ Complete source:
 
 ## Use the event contract
 
-Connect `WS /projects/{project_id}/jobs/{job_id}/events`. Each JSON contains `type="job.updated"`, a live `sequence`, and `job`. The Job shares the Pydantic JobRead returned by `GET /projects/{project_id}/jobs/{job_id}`: application ids, five states, domain phase, progress, results and recovery errors. Runtime prompt/node ids and raw captions stay out of messages. Wrong Project or Job references deny the WebSocket with close code 4404.
+Connect `WS /projects/{project_id}/jobs/{job_id}/events`. Each JSON contains `type="job.updated"`, a live `sequence`, and `job`. The Job shares the Pydantic JobRead returned by `GET /projects/{project_id}/jobs/{job_id}`: application ids, five states, domain phase, progress, results and recovery errors. Runtime prompt/node ids and raw captions stay out of messages. A wrong Project or missing Job reference rejects the connection handshake with HTTP 403; querying the same HTTP Job address returns 404. Check the Project and Job ids before reconnecting.
 
 `cancel_requested` and `recovery_required` also come from the same durable Job. A queued/running cancellation intent still needs confirmation. After a lost intent-commit acknowledgement, events can report the persisted intent and recovery flag. Read the same Job, then explicitly recover through the [cancel/retry guide](api-cancel-retry.en.md). Only confirmed cancellation sends a cancelled terminal snapshot.
 

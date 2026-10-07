@@ -26,7 +26,7 @@ uv run --project services/api --no-sync python services/api/examples/watch_job.p
 
 ## 使用事件合同
 
-连接 `WS /projects/{project_id}/jobs/{job_id}/events`。每条 JSON 包含 `type="job.updated"`、当前直播序号 `sequence` 和 `job`。`job` 与 `GET /projects/{project_id}/jobs/{job_id}` 共用 Pydantic JobRead：应用 id、五态、领域 phase、progress、结果与恢复错误。Runtime prompt/node id 与原始 caption 不进入消息。错误 Project 或 Job 引用拒绝 WebSocket，close code 为 4404。
+连接 `WS /projects/{project_id}/jobs/{job_id}/events`。每条 JSON 包含 `type="job.updated"`、当前直播序号 `sequence` 和 `job`。`job` 与 `GET /projects/{project_id}/jobs/{job_id}` 共用 Pydantic JobRead：应用 id、五态、领域 phase、progress、结果与恢复错误。Runtime prompt/node id 与原始 caption 不进入消息。错误 Project 或不存在的 Job 引用以 HTTP 403 拒绝连接握手；查询同一 HTTP Job 地址会返回 404。检查 Project 和 Job id 后再连接。
 
 `cancel_requested` 和 `recovery_required` 也来自同一持久 Job。queued/running 的取消意图需要确认，不能显示为已取消。取消意图提交回执丢失时，事件仍能报告持久意图与恢复标志；先查询同一 Job，再按 [取消与重试指南](api-cancel-retry.md) 明确恢复。只有确认取消后才发送 cancelled 终态。
 
