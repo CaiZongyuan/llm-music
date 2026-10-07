@@ -161,6 +161,14 @@ class ComfyUIRuntime:
             if status.get("status_str") == "success" and status.get("completed") is True:
                 return RuntimeStatus("completed")
             if status.get("status_str") == "error":
+                messages = status.get("messages")
+                interrupted = isinstance(messages, list) and any(
+                    isinstance(event, list) and len(event) == 2 and event[0] == "execution_interrupted"
+                    and isinstance(event[1], dict) and event[1].get("prompt_id") == handle for event in messages)
+                if interrupted:
+                    normalized = self._read("/api/jobs/" + quote(handle, safe=""))
+                    if isinstance(normalized, dict) and normalized.get("id") == handle and normalized.get("status") == "cancelled":
+                        return RuntimeStatus("cancelled", code="cancelled", message="The owned Runtime Job was cancelled.")
                 return RuntimeStatus("failed", code="runtime_execution_failed", message="Native execution failed; inspect the retained attempt evidence.")
         raw = self._read("/queue")
         if isinstance(raw, dict):
@@ -170,6 +178,27 @@ class ComfyUIRuntime:
                     operation = self.requests[handle].operation if handle in self.requests else None
                     return RuntimeStatus(cast(Literal["queued", "running"], state), "transcribing" if state == "running" and operation == "Transcribe" else None)
         return RuntimeStatus("unconfirmed", code="native_status_unconfirmed")
+
+    def cancel(self, handle: str) -> RuntimeStatus:
+        request, graph = self.requests.get(handle), self.graphs.get(handle)
+        if request is None or graph is None:
+            return RuntimeStatus("unconfirmed", code="cancellation_ownership_unverified", message="The cancellation target ownership is unverified.")
+        current = self.status(handle)
+        if current.state in {"completed", "failed", "cancelled"}:
+            return current
+        raw = self._read("/queue")
+        running = raw.get("queue_running") if isinstance(raw, dict) else None
+        if not isinstance(running, list) or len(running) != 1:
+            return RuntimeStatus("unconfirmed", code="cancellation_unconfirmed", message="No exclusively owned running target was confirmed.")
+        row = running[0]
+        if not isinstance(row, list) or len(row) < 4 or row[1] != handle or row[2] != graph or not isinstance(row[3], dict) or row[3].get("client_id") != str(request.attempt_id):
+            return RuntimeStatus("unconfirmed", code="cancellation_ownership_unverified", message="The current Runtime Job differs from the saved cancellation mapping.")
+        reply = self._post("/api/jobs/" + quote(handle, safe="") + "/cancel", {})
+        if not isinstance(reply, dict) or type(reply.get("cancelled")) is not bool:
+            return RuntimeStatus("unconfirmed", code="cancellation_unconfirmed", message="Cancellation dispatch could not be confirmed.")
+        # Pinned target-aware endpoint guards the queue mutex itself. Dispatch is
+        # never terminal proof: history and the normalized target remain authoritative.
+        return self.status(handle)
 
     def recover(self, request: RuntimeRequest) -> SubmissionReceipt:
         matches: list[str] = []

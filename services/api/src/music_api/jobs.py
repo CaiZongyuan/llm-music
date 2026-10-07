@@ -10,6 +10,7 @@ from typing import Callable, cast
 from uuid import UUID, uuid4
 
 from sqlalchemy.dialects.sqlite import insert
+from sqlalchemy import select
 
 from music_api.config import Settings
 from music_api.database import Asset, Database, utc_now
@@ -18,7 +19,7 @@ from music_api.job_models import Job, Namespace
 from music_api.result_import import ImportMaterial, ResultRegistrar
 from music_api.result_import import import_result
 from music_api.midi_validation import note_count
-from music_api.runtime_types import InferenceRuntime, JobState, Operation, RuntimeArtifact, RuntimeRequest, RuntimeResult
+from music_api.runtime_types import InferenceRuntime, JobState, Operation, RuntimeArtifact, RuntimeRequest, RuntimeResult, RuntimeStatus
 from music_api.schemas import JobRead
 from music_api.storage import Storage
 from music_api.workflow_registry import WorkflowRegistry
@@ -66,6 +67,44 @@ class JobService:
         self.thread = threading.Thread(target=self._run, daemon=True, name="application-jobs")
         self.registrars: dict[Operation, ResultRegistrar] = {}
         self.validators: dict[Operation, ResultValidator] = {"Transcribe": validate_transcription}
+        self.transition_lock = threading.RLock()
+        self.on_change: Callable[[JobRead], None] | None = None
+
+    def notify(self, identifier: str) -> None:
+        """Observers receive committed public state and cannot change Job outcomes."""
+        if self.on_change is None:
+            return
+        try:
+            with self.database.sessions() as session:
+                job = session.get(Job, identifier)
+                if job is not None:
+                    self.on_change(job_read(job))
+        except Exception:
+            log.exception("Job observer unavailable", extra={"event": "job_observer_failed", "job_id": identifier})
+
+    def cancel(self, project_id: UUID, identifier: UUID) -> Job:
+        with self.transition_lock, self.database.sessions() as session:
+            job = session.scalar(select(Job).where(Job.id == str(identifier), Job.project_id == str(project_id)))
+            if job is None:
+                raise DomainError(404, "job_not_found", "Job does not exist in this Project.", "Query its owning Project.")
+            if job.status in {"completed", "failed", "cancelled"}:
+                return job
+            if job.submission_state == "pending":
+                observed = RuntimeStatus("cancelled")
+            elif job.runtime_handle is not None:
+                observed = self.runtime.cancel(job.runtime_handle)
+            else:
+                raise DomainError(409, "cancellation_unconfirmed", "The native target identity is unavailable.", "Retain this Job's attempt mapping and inspect its Runtime outcome before retrying.")
+            if observed.state == "cancelled":
+                job.status, job.phase, job.progress = "cancelled", None, None
+                job.error = dict(code="cancelled", message="This Job was cancelled.", recovery="Explicitly create a new Job if you want to repeat the operation.")
+                job.updated_at = utc_now()
+                session.commit()
+            elif observed.state == "unconfirmed":
+                raise DomainError(409, observed.code or "cancellation_unconfirmed", observed.message or "Cancellation is unconfirmed.",
+                                  "Retain this Job and inspect the Runtime before any new attempt.")
+        self.notify(job.id)
+        return job
 
     def register_result(self, operation: Operation, registrar: ResultRegistrar, validator: ResultValidator | None = None) -> None:
         self.registrars[operation] = registrar
@@ -108,6 +147,7 @@ class JobService:
             session.add(job)
             session.commit()
         self.pending.put(job.id)
+        self.notify(job.id)
         return job
 
     def _run(self) -> None:
@@ -120,9 +160,9 @@ class JobService:
                 self._execute(identifier)
             except Exception as error:
                 log.exception("Application Job failed", extra={"event": "job_failed", "job_id": identifier})
-                with self.database.sessions() as session:
+                with self.transition_lock, self.database.sessions() as session:
                     job = session.get(Job, identifier)
-                    if job is not None and job.status != "completed":
+                    if job is not None and job.status not in {"completed", "failed", "cancelled"}:
                         job.status = "failed"
                         job.phase, job.progress = None, None
                         job.updated_at = utc_now()
@@ -130,14 +170,15 @@ class JobService:
                                          message=error.detail.message if isinstance(error, DomainError) else "Runtime work could not be confirmed.",
                                          recovery=error.detail.recovery if isinstance(error, DomainError) else "Inspect this Job's retained attempt before retrying.")
                         session.commit()
+                self.notify(identifier)
             finally:
                 self.pending.task_done()
 
-    def _execute(self, identifier: str) -> None:
+    def _begin(self, identifier: str) -> tuple[Operation, str] | None:
         with self.database.sessions() as session:
             job = session.get(Job, identifier)
-            if job is None or job.status == "completed":
-                return
+            if job is None or job.status in {"completed", "failed", "cancelled"}:
+                return None
             operation = cast(Operation, job.operation)
             reference_path = None
             if operation == "Transcribe":
@@ -156,24 +197,49 @@ class JobService:
             job.runtime_handle = receipt.handle
             job.updated_at = utc_now()
             session.commit()
+        self.notify(identifier)
         if receipt.outcome != "accepted" or receipt.handle is None:
             raise DomainError(503, receipt.code or "submission_unconfirmed", receipt.message or "Native submission acknowledgement is unconfirmed; accepted work may exist.", "Inspect the saved attempt/correlation before explicitly retrying.")
+        return operation, receipt.handle
+
+    def _execute(self, identifier: str) -> None:
+        with self.transition_lock:
+            started = self._begin(identifier)
+        if started is None:
+            return
+        operation, handle = started
         deadline = time.monotonic() + 1800
         while not self.stop_event.is_set():
-            observed = self.runtime.status(receipt.handle)
-            with self.database.sessions() as session:
+            observed = self.runtime.status(handle)
+            with self.transition_lock, self.database.sessions() as session:
                 job = session.get(Job, identifier)
                 assert job is not None
+                if job.status in {"completed", "failed", "cancelled"}:
+                    return
                 if observed.state in {"queued", "running"}:
                     job.status, job.phase, job.progress = observed.state, observed.phase, observed.progress
                     job.updated_at = utc_now()
                     session.commit()
+            self.notify(identifier)
             if observed.state == "completed":
-                result = self.runtime.result(receipt.handle, operation)
+                result = self.runtime.result(handle, operation)
                 materials = self.validators[operation](result)
-                import_result(self.database, self.storage, identifier, materials, result, self.registrars.get(operation))
+                with self.transition_lock:
+                    import_result(self.database, self.storage, identifier, materials, result, self.registrars.get(operation))
+                self.notify(identifier)
                 return
             if observed.state in {"failed", "cancelled"}:
+                if observed.state == "cancelled":
+                    with self.transition_lock, self.database.sessions() as session:
+                        job = session.get(Job, identifier)
+                        assert job is not None
+                        if job.status not in {"completed", "failed", "cancelled"}:
+                            job.status, job.phase, job.progress = "cancelled", None, None
+                            job.error = dict(code="cancelled", message="This Job was cancelled.", recovery="Explicitly create a new Job to repeat the operation.")
+                            job.updated_at = utc_now()
+                            session.commit()
+                    self.notify(identifier)
+                    return
                 raise DomainError(503, observed.code or "runtime_unavailable", observed.message or "Native work did not complete successfully.", "Retain the Job inputs and native attempt mapping.")
             if time.monotonic() >= deadline:
                 raise DomainError(503, "runtime_unavailable", "Native work was not confirmed within the execution window.", "Inspect the saved attempt before retrying.")
