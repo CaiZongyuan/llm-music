@@ -2,6 +2,8 @@
 
 from pathlib import Path
 from contextlib import closing
+from alembic.config import Config
+from alembic.script import ScriptDirectory
 import hashlib
 import builtins
 import io
@@ -219,7 +221,9 @@ def test_initial_migration_is_wal_and_restart_preserves_existing_rows(tmp_path: 
         project = client.post("/projects", json={"name": "Morning song"}).json()
     with closing(sqlite3.connect(tmp_path / "app.sqlite")) as database, database:
         assert database.execute("PRAGMA journal_mode").fetchone()[0] == "wal"
-        assert database.execute("SELECT version_num FROM alembic_version").fetchone()[0] == "0001_project_audio"
+        migration = Config()
+        migration.set_main_option("script_location", str(Path(__file__).parents[1] / "src/music_api/migrations"))
+        assert database.execute("SELECT version_num FROM alembic_version").fetchone()[0] == ScriptDirectory.from_config(migration).get_current_head()
     with TestClient(create_app(configured)) as client:
         assert client.get("/projects/" + project["id"]).json() == project
 
@@ -231,7 +235,8 @@ def test_openapi_describes_only_the_implemented_domain_contract(tmp_path: Path) 
         assert schema["components"]["schemas"]["AssetRead"]["properties"]["id"]["format"] == "uuid"
         assert "storage_key" not in schema["components"]["schemas"]["AssetRead"]["properties"]
         assert "ErrorResponse" in schema["components"]["schemas"]
-        assert not any("jobs" in path or "versions" in path for path in schema["paths"])
+        assert "/projects/{project_id}/jobs/{job_id}" in schema["paths"]
+        assert not any("versions" in path for path in schema["paths"])
 
 
 def test_unknown_commit_readback_retains_the_blob_until_recovery(tmp_path: Path) -> None:
