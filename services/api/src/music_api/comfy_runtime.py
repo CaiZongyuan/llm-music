@@ -8,7 +8,7 @@ import json
 import math
 import logging
 from pathlib import Path
-from typing import Literal, cast
+from typing import Callable, Literal, cast
 from urllib.error import HTTPError
 from urllib.parse import quote, urlencode, urlsplit
 from urllib.request import Request, urlopen
@@ -193,9 +193,17 @@ class ComfyUIRuntime:
             for key, state in (("queue_running", "running"), ("queue_pending", "queued")):
                 rows = raw.get(key)
                 if isinstance(rows, list) and any(isinstance(row, list) and len(row) > 1 and row[1] == handle for row in rows):
-                    operation = self.requests[handle].operation if handle in self.requests else None
-                    return RuntimeStatus(cast(Literal["queued", "running"], state), "transcribing" if state == "running" and operation == "Transcribe" else None)
+                    return RuntimeStatus(cast(Literal["queued", "running"], state))
         return RuntimeStatus("unconfirmed", code="native_status_unconfirmed")
+
+    def subscribe(self, handle: str, operation: Operation, on_status: Callable[[RuntimeStatus], None]) -> Callable[[], None]:
+        from music_api.native_events import subscribe_native
+
+        request = self.requests[handle]
+        if request.operation != operation:
+            raise ValueError("Subscription operation differs from the saved native request")
+        return subscribe_native(self.url, handle, request, self.registry.workflow(operation), on_status,
+                                self.settings.runtime_timeout_seconds, lambda: self.status(handle))
 
     def cancel(self, handle: str) -> RuntimeStatus:
         request, graph = self.requests.get(handle), self.graphs.get(handle)
