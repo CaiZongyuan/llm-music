@@ -92,6 +92,7 @@ def test_unknown_schema_startup_failure_preserves_existing_project(tmp_path: Pat
     with server(data_dir, tmp_path / "good-server.log") as client:
         project = client.post("/projects", json={"name": "Morning song"}).json()
     with closing(sqlite3.connect(data_dir / "app.sqlite")) as database, database:
+        supported_revision = database.execute("SELECT version_num FROM alembic_version").fetchone()[0]
         database.execute("UPDATE alembic_version SET version_num='unsupported_revision'")
     result = subprocess.run([sys.executable, "-m", "music_api", "migrate", "--data-dir", str(data_dir)],
                             capture_output=True, text=True, encoding="utf-8", timeout=15)
@@ -99,7 +100,7 @@ def test_unknown_schema_startup_failure_preserves_existing_project(tmp_path: Pat
     assert "unsupported_revision" in result.stderr
     with closing(sqlite3.connect(data_dir / "app.sqlite")) as database, database:
         assert database.execute("SELECT name FROM projects WHERE id=?", (project["id"],)).fetchone()[0] == "Morning song"
-        database.execute("UPDATE alembic_version SET version_num='0001_project_audio'")
+        database.execute("UPDATE alembic_version SET version_num=?", (supported_revision,))
     with server(data_dir, tmp_path / "restored-server.log") as client:
         assert client.get("/projects/" + project["id"]).json() == project
 
