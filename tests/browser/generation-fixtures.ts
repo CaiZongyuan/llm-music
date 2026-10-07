@@ -27,9 +27,15 @@ export async function inputs(page: Page, locale: keyof typeof labels, suffix = '
   await page.getByRole('textbox', { name: t.seed, exact: true }).fill('2026192201');
 }
 export async function completedCandidate(page: Page, locale: keyof typeof labels) {
+  const candidate = page.locator('[data-candidate-id]');
+  const previous = await candidate.count() ? await candidate.getAttribute('data-candidate-id') : null;
   await page.getByRole('button', { name: labels[locale].submit }).click();
-  await expect(page.locator('[data-candidate-id]')).toBeVisible();
-  const id = await page.locator('[data-candidate-id]').getAttribute('data-candidate-id');
+  await expect.poll(async () => {
+    const id = await candidate.count() ? await candidate.getAttribute('data-candidate-id') : null;
+    return Boolean(id && id !== previous);
+  }).toBe(true);
+  await expect(candidate).toBeVisible();
+  const id = await candidate.getAttribute('data-candidate-id');
   if (!id) throw new Error('No Candidate identity');
   return id;
 }
