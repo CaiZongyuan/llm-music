@@ -15,7 +15,9 @@ export function RuntimeReadFailure({ error, onRetry }: { error: unknown; onRetry
 export function useObservationClock() {
   const [now, setNow] = useState(Date.now);
   useEffect(() => { const timer = setInterval(() => setNow(Date.now()), 1000); return () => clearInterval(timer); }, []);
-  return now;
+  // A response can be newer than the last timer tick. Use render time while the
+  // timer only requests updates for observations that expire without new data.
+  return Math.max(now, Date.now());
 }
 export function freshness(source: Source, now: number): Source['freshness'] {
   if (source.freshness !== 'fresh') return source.freshness;
