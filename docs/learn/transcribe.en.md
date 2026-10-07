@@ -4,6 +4,8 @@ Submit original short music to SheetSage2. Get parseable ABC and readable MIDI t
 
 <p>First <a href="./doctor.en.md">save the Doctor receipt and launch Runtime</a>. Run from a second terminal at the repository root. The current GPU resource owner must run this command with an empty Runtime queue.</p>
 
+Use exactly the same port as Doctor, receipt saving, and launch. All four complete examples default to 8188. If you selected 8189, run `& ./runtime/comfyui/examples/transcribe.ps1 -Port 8189`. The script passes that port as the transcription CLI's `--base-url` and does not fall back to the default address.
+
 ## Run the first transcription {#run}
 
 Use this complete example in your own prepared environment.

@@ -4,6 +4,8 @@
 
 <p>先<a href="./doctor.md">保存 Doctor receipt 并启动 Runtime</a>。在仓库根目录的第二个终端执行以下命令。由当前 GPU resource owner 运行，且 Runtime 队列须为空。</p>
 
+使用与 Doctor、保存 receipt 和启动完全相同的端口。四个完整示例默认 8188；若之前选定 8189，请执行 `& ./runtime/comfyui/examples/transcribe.ps1 -Port 8189`。脚本会把该端口转换为转谱 CLI 的 `--base-url`，不会返回默认地址。
+
 ## 运行第一次转谱 {#run}
 
 在自己的就绪环境中使用以下完整示例。

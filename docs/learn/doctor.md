@@ -10,7 +10,7 @@
 
 <<< ../../runtime/comfyui/examples/start.ps1
 
-<p>服务仅监听 <code>http://127.0.0.1:8188</code>，不会自动打开 Canvas。保持此终端运行；用 Ctrl+C 停止。</p><p>Doctor 检查空闲端口。服务启动后，转谱工具复用保存的真实成功 receipt，不在占用端口上重新制造就绪结果。</p>
+<p>默认服务仅监听 <code>http://127.0.0.1:8188</code>，不会自动打开 Canvas。选择其他端口时，仍只监听本机。保持此终端运行；用 Ctrl+C 停止。</p><p>Doctor 检查空闲端口。服务启动后，转谱工具复用保存的真实成功 receipt，不在占用端口上重新制造就绪结果。</p>
 
 ## 检查边界 {#checks}
 
@@ -18,6 +18,8 @@
 
 ## 遇到失败时 {#recovery}
 
-<table><thead><tr><th scope="col">检查结果</th><th scope="col">恢复动作</th></tr></thead><tbody><tr><td>模型 missing / downloading</td><td>执行 download-models；保留的 .part 会续传。</td></tr><tr><td>SHA256 或文件大小不符</td><td>保留或移走损坏文件，再重新下载；命令不自动覆盖 invalid 文件。</td></tr><tr><td>端口被占用</td><td>确认占用者。停止自己的服务，或为 Doctor 与 start 选择同一个空闲 --port。</td></tr><tr><td>probe 超时或非零退出</td><td>读取 last_stage、stdout_tail、stderr_tail，解决对应阶段后重试。</td></tr></tbody></table>
+<table><thead><tr><th scope="col">检查结果</th><th scope="col">恢复动作</th></tr></thead><tbody><tr><td>模型 missing / downloading</td><td>执行 download-models；保留的 .part 会续传。</td></tr><tr><td>SHA256 或文件大小不符</td><td>保留或移走损坏文件，再重新下载；命令不自动覆盖 invalid 文件。</td></tr><tr><td>端口被占用</td><td>确认占用者。保留其他 owner 的服务；为检查、保存 receipt、启动和转谱选择同一个空闲 -Port。</td></tr><tr><td>probe 超时或非零退出</td><td>读取 last_stage、stdout_tail、stderr_tail，解决对应阶段后重试。</td></tr></tbody></table>
+
+四个完整示例都接受 `-Port`，范围为 1–65535，默认 8188。若选定空闲的 8189，在仓库根目录依次执行 `& ./runtime/comfyui/examples/doctor.ps1 -Port 8189`、`& ./runtime/comfyui/examples/save-readiness.ps1 -Port 8189` 和 `& ./runtime/comfyui/examples/start.ps1 -Port 8189`。保持启动终端运行，在第二个终端执行 `& ./runtime/comfyui/examples/transcribe.ps1 -Port 8189`。转谱会连接 `http://127.0.0.1:8189`；省略任一步的参数会使用默认 8188。
 
 <p><a href="./quickstart.md">返回环境准备</a>，或在成功启动后<a href="./transcribe.md">执行第一次转谱</a>。</p>

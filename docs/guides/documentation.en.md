@@ -35,6 +35,8 @@ pnpm --filter @llm-music/docs preview
 
 `docs:check` validates the manifest, sources, language pairs, sections, navigation, and code includes. It exercises independent failure cases and PowerShell examples with an isolated fake provider, then checks Astro types. `docs:build` regenerates and builds the static site. It checks final pages, internal links, anchors, assets, search registrations, and the `/llm-music/` deployment base. The check retains Starlight's generic 404 canonical/alternate metadata convention; actual navigation and assets on that page are still checked.
 
+The four complete Runtime connection examples accept the same `-Port`, defaulting to 8188. After choosing free port 8189, pass `-Port 8189` to Doctor, receipt saving, launch, and transcription in the second terminal. Transcription uses `--base-url http://127.0.0.1:8189`. Isolated checks execute these controlled scripts in sequence and confirm that transcription reads the saved receipt. Invalid ports are rejected before invoking uv. The paired Doctor and transcription chapters give the recovery steps.
+
 A complete build after commit shows the actual Git commit and body source. Referenced files are checked against that commit. When relevant source edits are uncommitted, pages explicitly say “working copy”; that artifact does not mean the version is published. GitHub Actions checks the exact head and retains the static artifact.
 
 Missing translations, duplicate paths, nonreciprocal navigation, missing sources, or references outside the repository fail generation. Existing generated pages are not replaced when source checks fail. Repair the owning source and retry. For broken built anchors or assets, repair the body, configuration, or component and rerun `docs:build`.

@@ -35,6 +35,8 @@ pnpm --filter @llm-music/docs preview
 
 `docs:check` 校验清单、来源、语言配对、小节、导航、代码引用，运行独立失败场景与 PowerShell 示例的隔离 fake 恢复检查，再运行 Astro 类型检查。`docs:build` 重新生成并构建静态站，检查最终页面、内部链接、锚点、资源、搜索登记与 `/llm-music/` 部署 base。构建检查保留 Starlight 通用 404 页的 canonical/alternate 元数据惯例；其真实导航和资源仍检查。
 
+Runtime 的四个完整连接示例统一接受 `-Port`，默认 8188。选定空闲的 8189 后，Doctor、保存检查结果、启动与第二个终端的转谱都传 `-Port 8189`；转谱会使用 `--base-url http://127.0.0.1:8189`。隔离检查按顺序执行相同受控脚本，确认转谱读取前一步保存的 receipt；无效端口在调用 uv 前被拒绝。具体恢复步骤见双语 Doctor 与转谱章节。
+
 提交后的完整构建显示实际 Git commit 与正文来源，并核对所引用文件确实存在于该 commit。相关源码尚未提交时，页面明确标记“工作副本”；这类产物不表示该版本已发布。GitHub Actions 在准确 head 上运行相同检查并保留静态产物。
 
 缺失翻译、重复 path、非对应的前后章、缺失源码或越界引用会让生成失败。旧页面不会在来源检查失败时被替换。修复 owning source 后重试。静态产物若有失效锚点或资源，修复正文、配置或组件，重新执行 `docs:build`。
