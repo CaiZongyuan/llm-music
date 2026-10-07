@@ -4,6 +4,7 @@ from contextlib import contextmanager
 import json
 from pathlib import Path
 import socket
+import shutil
 import subprocess
 import sys
 import time
@@ -207,4 +208,70 @@ def test_invalid_native_owner_model_receipt_refuses_foreign_listener(tmp_path):
         assert foreign.poll() is None
     finally:
         stop_fixture(foreign)
+    assert_no_listeners(chosen)
+
+
+def test_same_base_wrong_environment_origin_is_refused_and_correct_origin_remains_live(tmp_path):
+    # A standard-library CPU peer gives both processes the same entrypoint/source.
+    # Public source/model binding is independently checked by the existing collector;
+    # this oracle targets the previously ambiguous additional environment fact.
+    peer = tmp_path / "same_peer.py"
+    peer.write_text("""import json,os,pathlib,sys
+from http.server import BaseHTTPRequestHandler,HTTPServer
+pathlib.Path(sys.argv[2]).write_text(json.dumps(dict(pid=os.getpid(),prefix=sys.prefix,base=sys._base_executable)))
+class Handler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        self.send_response(200); self.end_headers(); self.wfile.write(b'CPU origin fixture')
+HTTPServer(('127.0.0.1',int(sys.argv[1])),Handler).serve_forever()
+""", encoding="utf-8")
+    foreign_project = tmp_path / "other-project"
+    foreign_project.mkdir()
+    (foreign_project / "pyproject.toml").write_text('[project]\nname="origin-fixture"\nversion="0.1.0"\nrequires-python=">=3.12,<3.13"\n', encoding="utf-8")
+    uv = shutil.which("uv")
+    assert uv
+    for subcommand, flags in [("lock", ["--offline"]), ("sync", ["--frozen", "--offline"])]:
+        prepared = subprocess.run([uv, subcommand, "--project", str(foreign_project), "--python", sys._base_executable, *flags],
+                                  capture_output=True, text=True, timeout=20)
+        assert prepared.returncode == 0, prepared.stderr
+    api_project = ROOT / "services/api"
+    expected_executable = api_project / ".venv" / ("Scripts/python.exe" if sys.platform == "win32" else "bin/python")
+    foreign_executable = foreign_project / ".venv" / ("Scripts/python.exe" if sys.platform == "win32" else "bin/python")
+    chosen = ports()
+    peers = []
+    try:
+        for name, executable, port in [("expected", expected_executable, chosen[0]), ("foreign", foreign_executable, chosen[1])]:
+            facts = tmp_path / f"{name}.json"
+            process = subprocess.Popen([str(executable), str(peer), str(port), str(facts)], cwd=tmp_path,
+                                       stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            peers.append(process)
+            deadline = time.monotonic() + 10
+            while not facts.exists() and time.monotonic() < deadline:
+                assert process.poll() is None
+                time.sleep(0.1)
+            assert facts.exists()
+        expected = json.loads((tmp_path / "expected.json").read_text())
+        foreign = json.loads((tmp_path / "foreign.json").read_text())
+        assert expected["prefix"] != foreign["prefix"]
+        assert Path(psutil.Process(expected["pid"]).exe()).resolve() == Path(psutil.Process(foreign["pid"]).exe()).resolve()
+        assert psutil.Process(expected["pid"]).cmdline()[1] == psutil.Process(foreign["pid"]).cmdline()[1] == str(peer)
+        verified = subprocess.run([sys.executable, str(SCRIPT), "--inspect-runtime-origin", str(expected["pid"]), "--runtime-project", str(api_project)],
+                                  cwd=ROOT, capture_output=True, text=True, timeout=20)
+        live = psutil.Process(expected["pid"])
+        parent = live.parent()
+        debug = [{"pid": p.pid, "argv": p.cmdline(), "cwd": p.cwd(), "exe": p.exe()} for p in [live, parent] if p is not None]
+        assert verified.returncode == 0, verified.stderr + json.dumps(debug)
+        binding = json.loads(verified.stdout)
+        assert binding["verified"] and binding["listener"]["pid"] == expected["pid"]
+        assert Path(binding["launch_environment"]).resolve() == Path(expected["prefix"]).resolve()
+        assert binding["lock_sha256"]
+        refused = subprocess.run([sys.executable, str(SCRIPT), "--inspect-runtime-origin", str(foreign["pid"]), "--runtime-project", str(api_project)],
+                                 cwd=ROOT, capture_output=True, text=True, timeout=20)
+        assert refused.returncode == 1 and "origin" in refused.stderr and ("differs" in refused.stderr or "unproved" in refused.stderr)
+        # These checks do not take ownership; both external listeners survive.
+        for port in chosen[:2]:
+            with urlopen(f"http://127.0.0.1:{port}", timeout=3) as response:
+                assert response.read() == b"CPU origin fixture"
+    finally:
+        for process in reversed(peers):
+            stop_fixture(process)
     assert_no_listeners(chosen)

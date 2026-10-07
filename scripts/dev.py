@@ -20,6 +20,7 @@ import webbrowser
 import psutil
 
 from dev_process import identity, listeners, matching, stop_requested, write_json
+from dev_origin import interpreter_origin
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -275,20 +276,18 @@ class Launcher:
             matches = Path(actual).resolve() == Path(value).resolve() if option.endswith("-directory") else actual == value
             if not matches:
                 raise LaunchError(f"Native listener {option} differs from requested settings. Use matching owner settings; no reused process was changed.")
-        runtime_environment = environment(args.runtime_project.resolve())
+        environment(args.runtime_project.resolve())
         for filename in ["pyproject.toml", "uv.lock", "runtime.json", "models.json"]:
             if (args.runtime_project / filename).read_bytes() != (ROOT / "runtime/comfyui" / filename).read_bytes():
                 raise LaunchError(f"Runtime project {filename} differs from this repository's pinned environment; no reused process was changed.")
         check_environment(args.runtime_project)
-        probe = subprocess.run([command("uv"), "run", "--project", str(args.runtime_project), "--frozen", "--no-sync", "python", "-c",
-                                "import json,sys; print(json.dumps(dict(prefix=sys.prefix,base=sys._base_executable)))"],
-                               capture_output=True, text=True, timeout=10, check=True)
-        interpreter = json.loads(probe.stdout)
-        # Windows venv redirectors expose the base executable to psutil.
-        if Path(interpreter["prefix"]).resolve() != runtime_environment or Path(interpreter["base"]).resolve() != receipt.process.executable.resolve():
-            raise LaunchError("Native listener Python base differs from the configured independent uv environment; no reused process was changed.")
+        binding = interpreter_origin(receipt.process.pid, args.runtime_project)
         if record is None:
-            self.receipt["services"].append(dict(identity=dict(service="runtime", port=args.runtime_port, runtime_root=str(receipt.runtime_root), models_root=str(receipt.models_root)), process=identity(receipt.process.pid), owned=False, evidence=str(args.runtime_evidence)))
+            self.receipt["services"].append(dict(identity=dict(service="runtime", port=args.runtime_port, runtime_root=str(receipt.runtime_root), models_root=str(receipt.models_root)), process=identity(receipt.process.pid), owned=False, evidence=str(args.runtime_evidence), environment_binding=binding))
+        else:
+            for service in self.receipt["services"]:
+                if service["process"]["pid"] == receipt.process.pid:
+                    service["environment_binding"] = binding
 
     def run(self) -> int:
         self.folder.mkdir(parents=True)
@@ -368,6 +367,8 @@ class Launcher:
 
 
 def main() -> int:
+    sys.stdout.reconfigure(encoding="utf-8")
+    sys.stderr.reconfigure(encoding="utf-8")
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--mode", choices=["fake", "comfyui"], default="fake")
     parser.add_argument("--api-port", type=int, default=8000)
@@ -383,7 +384,16 @@ def main() -> int:
     parser.add_argument("--timeout", type=float, default=180)
     parser.add_argument("--open", action="store_true", help="Open the browser after health checks pass")
     parser.add_argument("--stop-session", type=Path, help="Request a matching live launcher to stop its own children")
+    parser.add_argument("--inspect-runtime-origin", type=int, metavar="PID", help="Read-only launch environment provenance; does not check models or Runtime readiness")
     args = parser.parse_args([item for item in sys.argv[1:] if item != "--"])
+    if args.inspect_runtime_origin is not None:
+        try:
+            check_environment(args.runtime_project)
+            print(json.dumps(interpreter_origin(args.inspect_runtime_origin, args.runtime_project), indent=2))
+            return 0
+        except (LaunchError, OSError, ValueError, psutil.Error, subprocess.SubprocessError) as error:
+            print(f"Runtime origin refused: {error}", file=sys.stderr)
+            return 1
     if args.stop_session:
         try:
             path = args.stop_session.resolve()
