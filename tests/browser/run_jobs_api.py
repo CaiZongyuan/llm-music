@@ -102,6 +102,11 @@ def main() -> None:
         runtime.observations[identity] = RuntimeStatus(value.state, value.phase, value.progress, value.code)
         return {"scope": "CPU FakeRuntime control only; no model inference"}
 
+    @app.get("/__fixtures/observations/{identity}")
+    def observation(identity: str) -> dict[str, str | None]:
+        value = runtime.observations.get(identity)
+        return {'state': None if value is None else value.state}
+
     @app.post("/__fixtures/readiness")
     def readiness(value: Readiness) -> dict[str, str]:
         runtime.readiness = value.state

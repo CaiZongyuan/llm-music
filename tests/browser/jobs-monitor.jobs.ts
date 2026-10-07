@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { createMusicClient, type JobRead } from '@llm-music/api-client';
-import { test, expect, type APIRequestContext, type WebSocketRoute } from '@playwright/test';
+import { expect, type APIRequestContext, type WebSocketRoute } from '@playwright/test';
+import { test } from './jobs-fixture.js';
 
 function received<T>(result: { data?: T; response: Response }): T {
   expect(result.response.ok).toBe(true);
