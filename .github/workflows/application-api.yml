@@ -49,5 +49,6 @@ jobs:
         with:
           name: api-cpu-failure-${{ github.run_id }}-${{ github.run_attempt }}
           path: ${{ runner.temp }}/application-api-cpu-evidence/
+          include-hidden-files: true
           if-no-files-found: ignore
           retention-days: 7

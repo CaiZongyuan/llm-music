@@ -64,8 +64,14 @@ def terminal(client, route, timeout=4):
         if value["status"] in {"completed","failed","cancelled"}:
             return value
         if time.monotonic() >= deadline:
-            output = timeout_packet(owned_observations[client],route,value)
-            raise AssertionError(f"Recovery observation expired; last HTTP {value}; evidence {output}")
+            expired = AssertionError(f"Recovery observation expired; last HTTP {value}")
+            try:
+                output = timeout_packet(owned_observations[client],route,value)
+            except Exception as error:
+                expired.add_note(f"Diagnostic collection failed: {type(error).__name__}: {error}")
+                raise expired from error
+            expired.add_note(f"Recovery evidence: {output}")
+            raise expired
         time.sleep(0.02)
 
 @pytest.mark.parametrize("wrong_graph",[True,False],ids=["stored-handle-wrong-graph","exact-original-graph"])

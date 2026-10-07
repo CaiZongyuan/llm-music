@@ -10,7 +10,8 @@ from recovery_peer import recovery_peer
 from test_restart_recovery import owned_api, terminal
 
 
-def test_expired_observation_retains_actual_http_cursor_io_and_phase(tmp_path: Path,monkeypatch):
+@pytest.mark.parametrize("corrupt_diagnostic",[False,True],ids=["complete-packet","collector-io-failure"])
+def test_expired_observation_retains_actual_http_cursor_io_and_phase(tmp_path: Path,monkeypatch,corrupt_diagnostic):
     with recovery_peer(tmp_path,monkeypatch) as (url,receipt,registry),httpx.Client(base_url=url,trust_env=False) as peer:
         data=tmp_path/"application"
         with owned_api(data,url,receipt,registry.root,tmp_path) as first:
@@ -27,13 +28,20 @@ def test_expired_observation_retains_actual_http_cursor_io_and_phase(tmp_path: P
             while reopened.get(route).json()["recovery_required"]:
                 assert time.monotonic()<deadline
                 time.sleep(.02)
-            with pytest.raises(AssertionError,match="Recovery observation expired"):
+            if corrupt_diagnostic:
+                (tmp_path/"corrupt-diagnostic.jsonl").write_bytes(b"\xff")
+            with pytest.raises(AssertionError,match="Recovery observation expired") as expired:
                 terminal(reopened,route,0)
-            packet=json.loads((tmp_path/("timeout-"+job["id"]+".json")).read_bytes())
-            assert packet["last_http"]["id"]==job["id"] and packet["last_http"]["status"]=="running"
-            assert packet["durable_job"]["recovery_cursor"]["confirmed"] is True
-            assert packet["durable_job"]["runtime_proof"]
-            assert any("native-reads" in row["source"] and row["records"] for row in packet["io"])
+            assert job["id"] in str(expired.value) and "last HTTP" in str(expired.value)
+            if corrupt_diagnostic:
+                assert isinstance(expired.value.__cause__,UnicodeDecodeError)
+                assert any("Diagnostic collection failed" in note for note in expired.value.__notes__)
+            else:
+                packet=json.loads((tmp_path/("timeout-"+job["id"]+".json")).read_bytes())
+                assert packet["last_http"]["id"]==job["id"] and packet["last_http"]["status"]=="running"
+                assert packet["durable_job"]["recovery_cursor"]["confirmed"] is True
+                assert packet["durable_job"]["runtime_proof"]
+                assert any("native-reads" in row["source"] and row["records"] for row in packet["io"])
             peer.post("/fixture/control",json={"action":"complete"}).raise_for_status()
             assert terminal(reopened,route,10)["status"]=="completed"
             phases=[json.loads(line) for p in tmp_path.glob("*.import-phases.jsonl") for line in p.read_text().splitlines()]
