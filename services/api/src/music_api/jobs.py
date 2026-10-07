@@ -2,6 +2,7 @@
 
 from datetime import datetime, timezone
 import logging
+import hashlib
 from queue import Empty, Queue
 import threading
 import time
@@ -11,7 +12,7 @@ from uuid import UUID, uuid4
 from sqlalchemy.dialects.sqlite import insert
 
 from music_api.config import Settings
-from music_api.database import Database, utc_now
+from music_api.database import Asset, Database, utc_now
 from music_api.errors import DomainError
 from music_api.job_models import Job, Namespace
 from music_api.result_import import ImportMaterial, ResultRegistrar
@@ -138,7 +139,15 @@ class JobService:
             if job is None or job.status == "completed":
                 return
             operation = cast(Operation, job.operation)
-            request = RuntimeRequest(UUID(job.attempt_id), operation, dict(job.inputs))
+            reference_path = None
+            if operation == "Transcribe":
+                reference = session.get(Asset, str(job.inputs["reference_asset_id"]))
+                if reference is None or reference.project_id != job.project_id:
+                    raise DomainError(409, "reference_audio_unavailable", "Job Reference Audio is unavailable.", "Restore the original Project Asset.")
+                reference_path = self.storage.readable(reference.storage_key, reference.size_bytes)
+                if hashlib.sha256(reference_path.read_bytes()).hexdigest() != job.inputs["reference_sha256"]:
+                    raise DomainError(409, "reference_audio_unavailable", "Reference Audio changed after the Job input snapshot.", "Restore its original bytes before any new inference.")
+            request = RuntimeRequest(UUID(job.attempt_id), operation, dict(job.inputs), reference_path)
         receipt = self.runtime.submit(request)
         with self.database.sessions() as session:
             job = session.get(Job, identifier)
