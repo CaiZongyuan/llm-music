@@ -581,6 +581,10 @@ def test_cursor_ack_and_independent_readback_loss_reconciles_same_original_then_
             peer.post("/fixture/edit",json={"action":"wrong_graph"}).raise_for_status()
         peer.post("/fixture/control",json={"action":"complete"}).raise_for_status()
         options = {"MUSIC_API_FIXTURE_CURSOR_FAULT":fault,"MUSIC_API_FIXTURE_CURSOR_FAULT_JOB_ID":submitted["id"]}
+        if not foreign:
+            # This workload verifies provider recovery, not subsecond host capacity.
+            # The unsent sibling still exhausts the unchanged three-attempt limit.
+            options["MUSIC_API_RECOVERY_CONFIRMATION_WINDOW_SECONDS"] = "300"
         with owned_api(data,url,receipt,registry.root,tmp_path,options) as recovered:
             complete = terminal(recovered,route)
             assert complete["status"] == ("failed" if foreign else "completed"),complete
