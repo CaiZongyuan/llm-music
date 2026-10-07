@@ -1,0 +1,7 @@
+{
+  "page.previousLink": "Previous chapter",
+  "page.nextLink": "Next chapter",
+  "expressiveCode.copyButtonTooltip": "Copy to clipboard",
+  "expressiveCode.copyButtonCopied": "Copied!",
+  "expressiveCode.terminalWindowFallbackTitle": "Terminal window"
+}

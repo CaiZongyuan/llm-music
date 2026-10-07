@@ -1,0 +1,158 @@
+{
+  "schemaVersion": 1,
+  "site": "https://caizongyuan.github.io",
+  "base": "/llm-music/",
+  "repository": "https://github.com/CaiZongyuan/llm-music",
+  "title": {
+    "zh-cn": "音乐工作台",
+    "en": "Music Workbench"
+  },
+  "defaultLocale": "zh-cn",
+  "locales": {
+    "zh-cn": {
+      "label": "简体中文",
+      "lang": "zh-CN"
+    },
+    "en": {
+      "label": "English",
+      "lang": "en"
+    }
+  },
+  "groups": [
+    {
+      "id": "start",
+      "titles": {
+        "zh-cn": "开始使用",
+        "en": "Get started"
+      }
+    },
+    {
+      "id": "runtime",
+      "titles": {
+        "zh-cn": "Runtime 指南",
+        "en": "Runtime guides"
+      }
+    },
+    {
+      "id": "concepts",
+      "titles": {
+        "zh-cn": "理解系统",
+        "en": "Understand the system"
+      }
+    }
+  ],
+  "chapters": [
+    {
+      "id": "overview",
+      "type": "overview",
+      "group": "start",
+      "path": "overview",
+      "titles": {
+        "zh-cn": "先获得第一份可验证的乐谱。",
+        "en": "Start with a score you can verify."
+      },
+      "labels": {
+        "zh-cn": "概览",
+        "en": "Overview"
+      },
+      "sources": {
+        "zh-cn": "docs/learn/overview.md",
+        "en": "docs/learn/overview.en.md"
+      }
+    },
+    {
+      "id": "quickstart",
+      "type": "tutorial",
+      "group": "start",
+      "path": "quickstart",
+      "titles": {
+        "zh-cn": "准备本地 Runtime",
+        "en": "Prepare the local Runtime"
+      },
+      "labels": {
+        "zh-cn": "快速开始",
+        "en": "Quick start"
+      },
+      "sources": {
+        "zh-cn": "docs/learn/quickstart.md",
+        "en": "docs/learn/quickstart.en.md"
+      },
+      "next": "doctor"
+    },
+    {
+      "id": "doctor",
+      "type": "guide",
+      "group": "runtime",
+      "path": "doctor",
+      "titles": {
+        "zh-cn": "检查并启动 Runtime",
+        "en": "Check and launch Runtime"
+      },
+      "labels": {
+        "zh-cn": "Doctor 与启动",
+        "en": "Doctor and launch"
+      },
+      "sources": {
+        "zh-cn": "docs/learn/doctor.md",
+        "en": "docs/learn/doctor.en.md"
+      },
+      "previous": "quickstart",
+      "next": "transcribe"
+    },
+    {
+      "id": "transcribe",
+      "type": "tutorial",
+      "group": "runtime",
+      "path": "transcribe",
+      "titles": {
+        "zh-cn": "转谱并导出 ABC 与 MIDI",
+        "en": "Transcribe and export ABC and MIDI"
+      },
+      "labels": {
+        "zh-cn": "第一条转谱结果",
+        "en": "First transcription result"
+      },
+      "sources": {
+        "zh-cn": "docs/learn/transcribe.md",
+        "en": "docs/learn/transcribe.en.md"
+      },
+      "previous": "doctor"
+    },
+    {
+      "id": "architecture",
+      "type": "concept",
+      "group": "concepts",
+      "path": "architecture",
+      "titles": {
+        "zh-cn": "理解应用与 Runtime 的边界",
+        "en": "Understand the application and Runtime boundary"
+      },
+      "labels": {
+        "zh-cn": "架构与领域",
+        "en": "Architecture and domain"
+      },
+      "sources": {
+        "zh-cn": "docs/learn/architecture.md",
+        "en": "docs/learn/architecture.en.md"
+      }
+    },
+    {
+      "id": "scope",
+      "type": "overview",
+      "group": "concepts",
+      "path": "scope",
+      "titles": {
+        "zh-cn": "当前能力与后续阶段",
+        "en": "Current capabilities and later stages"
+      },
+      "labels": {
+        "zh-cn": "当前范围",
+        "en": "Current scope"
+      },
+      "sources": {
+        "zh-cn": "docs/learn/scope.md",
+        "en": "docs/learn/scope.en.md"
+      }
+    }
+  ]
+}

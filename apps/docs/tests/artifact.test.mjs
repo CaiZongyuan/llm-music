@@ -1,0 +1,35 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { mkdtemp, mkdir, writeFile, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { checkArtifact } from '../scripts/check-build.mjs';
+
+test('built artifact rejects missing anchors/assets, wrong base/control language, and unregistered pages', async t => {
+  const root = await mkdtemp(join(tmpdir(), 'music-docs-build-'));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const dist = join(root, 'dist');
+  await mkdir(join(dist, 'en/overview'), { recursive: true });
+  await mkdir(join(dist, 'zh-cn/overview'), { recursive: true });
+  const manifest = { schemaVersion: 1, site: 'https://example.github.io', base: '/llm-music/', repository: 'https://github.com/example/music', defaultLocale: 'zh-cn', title: { 'zh-cn': '音乐', en: 'Music' }, locales: { 'zh-cn': { label: '中文', lang: 'zh-CN' }, en: { label: 'English', lang: 'en' } }, groups: [{ id: 'start', titles: { 'zh-cn': '开始', en: 'Start' } }], chapters: [{ id: 'overview', type: 'overview', group: 'start', path: 'overview', titles: { 'zh-cn': '开始', en: 'Start' }, labels: { 'zh-cn': '开始', en: 'Start' }, sources: { 'zh-cn': 'docs/overview.md', en: 'docs/overview.en.md' } }] };
+  const sources = { revision: '1234567890abcdef1234567890abcdef12345678', workingCopy: true, files: [], pages: ['zh-cn', 'en'].map(locale => ({ id: 'overview', locale, url: `/llm-music/${locale}/overview/`, source: manifest.chapters[0].sources[locale], headings: ['result'] })) };
+  const html = (page, link) => `<meta name="music-source-commit" content="${sources.revision}"><meta name="music-source-path" content="${page.source}"><meta name="music-source-workspace" content="true"><h2 id="result">Result</h2><a href="${link}">Continue</a>`;
+  await writeFile(join(dist, 'search-index.json'), JSON.stringify(sources.pages));
+  for (const page of sources.pages) await writeFile(join(dist, `${page.locale}/overview/index.html`), html(page, '#result'));
+  assert.equal((await checkArtifact({ root, manifest, sources, dist })).registeredPages, 2);
+  const target = join(dist, 'en/overview/index.html');
+  await writeFile(target, html(sources.pages[1], '#missing'));
+  await assert.rejects(checkArtifact({ root, manifest, sources, dist }), /Missing built anchor/);
+  await writeFile(target, html(sources.pages[1], '/llm-music/missing.css'));
+  await assert.rejects(checkArtifact({ root, manifest, sources, dist }), /Missing built link or asset/);
+  await writeFile(target, html(sources.pages[1], '/en/overview/'));
+  await assert.rejects(checkArtifact({ root, manifest, sources, dist }), /bypasses deployment base/);
+  await writeFile(target, html(sources.pages[1], '#result'));
+  await mkdir(join(root, 'apps/docs/src/content/i18n'), { recursive: true });
+  await writeFile(join(root, 'apps/docs/src/content/i18n/en.json'), JSON.stringify({ 'expressiveCode.copyButtonTooltip': 'Copy to clipboard', 'expressiveCode.copyButtonCopied': 'Copied!' }));
+  await writeFile(target, html(sources.pages[1], '#result') + '<button data-code="echo sample" title="复制到剪贴板" data-copied="复制成功！">Copy</button>');
+  await assert.rejects(checkArtifact({ root, manifest, sources, dist }), /wrong locale/);
+  await writeFile(target, html(sources.pages[1], '#result'));
+  await writeFile(join(dist, 'private.html'), '<p>Process record</p>');
+  await assert.rejects(checkArtifact({ root, manifest, sources, dist }), /Unregistered page/);
+});
