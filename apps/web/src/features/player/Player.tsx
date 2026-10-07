@@ -26,6 +26,7 @@ export function Player() {
   const container = useRef<HTMLDivElement>(null);
   const media = useRef<HTMLAudioElement>(null);
   const regions = useRef<RegionsPlugin | null>(null);
+  const loadQueue = useRef(Promise.resolve());
   const bounded = useRef(false);
   const [wave, setWave] = useState<WaveSurfer | null>(null);
   const [ready, setReady] = useState(false);
@@ -63,13 +64,6 @@ export function Player() {
           instance?.setTime(region.end);
         }
       });
-      instance.on('ready', length => {
-        if (!(length > 0)) { setReady(false); return; }
-        setDuration(length); setReady(true); setFailed(false);
-        regionPlugin.clearRegions();
-        regionPlugin.addRegion({ id: 'listening', start: 0, end: Math.min(10, length), color: 'color-mix(in srgb, var(--accent) 20%, transparent)', drag: true, resize: true, minLength: Math.min(0.1, length) });
-        setStart('0'); setEnd(String(Math.min(10, length))); setRegionInvalid(false);
-      });
       regionPlugin.on('region-updated', region => { setStart(region.start.toFixed(2)); setEnd(region.end.toFixed(2)); });
       setWave(instance);
     }).catch(() => setFailed(true));
@@ -78,16 +72,30 @@ export function Player() {
 
   useEffect(() => {
     bounded.current = false;
-    wave?.empty(); setReady(false); setFailed(false); setPlaying(false); setTime(0); setDuration(0);
+    wave?.pause(); setReady(false); setFailed(false); setPlaying(false); setTime(0); setDuration(0);
     regions.current?.clearRegions();
   }, [wave, projectId, assetId]);
 
   useEffect(() => {
-    if (!wave || !content.data || !selection) return;
+    if (!wave || !content.data || !asset.data || !selection) return;
     let disposed = false;
-    void wave.loadBlob(content.data).catch(() => { if (!disposed) { setFailed(true); setReady(false); } });
+    const length = asset.data.duration_seconds;
+    // WaveSurfer decoding cannot be aborted. Serialize loads and publish only the
+    // latest selection so an earlier decode cannot replace its waveform/regions.
+    loadQueue.current = loadQueue.current.then(async () => {
+      if (disposed) return;
+      try {
+        if (!length || !Number.isFinite(length)) throw new Error('Audio duration is unavailable');
+        await wave.loadBlob(content.data, undefined, length);
+        if (disposed) return;
+        setDuration(length); setReady(true); setFailed(false);
+        regions.current?.clearRegions();
+        regions.current?.addRegion({ id: 'listening', start: 0, end: Math.min(10, length), color: 'color-mix(in srgb, var(--accent) 20%, transparent)', drag: true, resize: true, minLength: Math.min(0.1, length) });
+        setStart('0'); setEnd(String(Math.min(10, length))); setRegionInvalid(false);
+      } catch { if (!disposed) { setFailed(true); setReady(false); } }
+    });
     return () => { disposed = true; };
-  }, [wave, content.data, projectId, assetId]);
+  }, [wave, content.data, asset.data, projectId, assetId]);
 
   useEffect(() => {
     wave?.setOptions(waveColors());
@@ -111,7 +119,7 @@ export function Player() {
     <audio ref={media} hidden preload="metadata" />
     <div className="player-title"><strong>{selection?.label ?? t.empty}</strong><small>{selection ? asset.data?.kind === 'reference_audio' ? t.source : t.player : t.emptyHelp}</small></div>
     <div className="player-main"><button type="button" disabled={!selection || !ready || failed} onClick={() => playing ? wave?.pause() : void play()} aria-label={playing ? t.pause : t.play}>{playing ? 'Ⅱ' : '▶'}</button>
-      <div className="wave-container" ref={container} /><output aria-label={t.clock}>{clock(time)} / {clock(duration)}</output>
+      <div className="wave-container" style={{ visibility: ready ? 'visible' : 'hidden' }} ref={container} /><output aria-label={t.clock}>{clock(time)} / {clock(duration)}</output>
       <label className="seek-label"><span className="visually-hidden">{t.seek}</span><input type="range" aria-label={t.seek} min={0} max={duration || 0} step={0.1} value={time} disabled={!selection || !ready} onChange={event => { bounded.current = false; wave?.setTime(Number(event.target.value)); }} /></label>
     </div>
     {selection ? <>{failed || content.isError || asset.isError ? <div className="player-error" role="alert">{t.failed}<button type="button" onClick={() => { setFailed(false); void content.refetch(); void asset.refetch(); }}>{t.retry}</button></div> : !ready ? <small role="status">{t.loading}</small> : null}
