@@ -4,6 +4,7 @@ from datetime import datetime, timezone
 from copy import deepcopy
 import logging
 import hashlib
+import math
 from queue import Empty, Queue
 import threading
 import time
@@ -28,6 +29,15 @@ from music_api.workflow_registry import WorkflowRegistry
 
 log = logging.getLogger("music_api")
 ResultValidator = Callable[[RuntimeResult], tuple[ImportMaterial, ...]]
+SubscriptionFactory = Callable[[str, Operation, Callable[[RuntimeStatus], None]], Callable[[], None]]
+OPERATION_PHASES: dict[Operation, tuple[str, ...]] = {
+    "Transcribe": ("loading_model", "transcribing"),
+    "Generate": ("loading_model", "planning_score", "generating_semantic", "synthesizing", "decoding_audio"),
+}
+
+
+def measured_progress(value: float | None) -> float | None:
+    return float(value) if value is not None and not isinstance(value, bool) and math.isfinite(value) and 0 <= value <= 1 else None
 
 
 def validate_score(result: RuntimeResult) -> RuntimeArtifact:
@@ -70,6 +80,7 @@ class JobService:
         self.validators: dict[Operation, ResultValidator] = {"Transcribe": validate_transcription}
         self.transition_lock = threading.RLock()
         self.on_change: Callable[[JobRead], None] | None = None
+        self.subscription_factory: SubscriptionFactory | None = None
 
     def notify(self, identifier: str) -> None:
         """Observers receive committed public state and cannot change Job outcomes."""
@@ -262,6 +273,23 @@ class JobService:
         if started is None:
             return
         operation, handle = started
+        observations: Queue[RuntimeStatus] = Queue()
+        close_observer = None
+        try:
+            if self.subscription_factory is not None:
+                try:
+                    close_observer = self.subscription_factory(handle, operation, observations.put)
+                except Exception:
+                    log.exception("Runtime observation subscription unavailable", extra={"event": "job_subscription_failed", "job_id": identifier})
+            self._observe(identifier, operation, handle, observations)
+        finally:
+            if close_observer is not None:
+                try:
+                    close_observer()
+                except Exception:
+                    log.exception("Runtime observation stop acknowledgement unavailable", extra={"event": "job_subscription_stop_failed", "job_id": identifier})
+
+    def _observe(self, identifier: str, operation: Operation, handle: str, observations: Queue[RuntimeStatus]) -> None:
         deadline = time.monotonic() + 1800
         while not self.stop_event.is_set():
             observed = self.runtime.status(handle)
@@ -271,7 +299,20 @@ class JobService:
                 if job.status in {"completed", "failed", "cancelled"}:
                     return
                 if observed.state in {"queued", "running"}:
-                    job.status, job.phase, job.progress = observed.state, observed.phase, observed.progress
+                    job.status = observed.state
+                    if observed.phase is not None:
+                        self._project_phase(job, operation, observed)
+                    else:
+                        job.progress = measured_progress(observed.progress)
+                    while True:
+                        try:
+                            event = observations.get_nowait()
+                        except Empty:
+                            break
+                        if event.code == "native_event_source_lost":
+                            job.phase, job.progress = None, None
+                        elif event.state == "running" and job.status == "running":
+                            self._project_phase(job, operation, event)
                     job.updated_at = utc_now()
                     session.commit()
             self.notify(identifier)
@@ -307,6 +348,17 @@ class JobService:
             if time.monotonic() >= deadline:
                 raise DomainError(503, "runtime_unavailable", "Native work was not confirmed within the execution window.", "Inspect the saved attempt before retrying.")
             self.stop_event.wait(0.01)
+
+    def _project_phase(self, job: Job, operation: Operation, observed: RuntimeStatus) -> None:
+        if job.status in {"completed", "failed", "cancelled"} or job.phase == "saving":
+            return
+        phases = OPERATION_PHASES[operation]
+        if observed.phase is None:
+            job.progress = measured_progress(observed.progress)
+        elif observed.phase in phases:
+            previous = phases.index(job.phase) if job.phase in phases else -1
+            if phases.index(observed.phase) >= previous:
+                job.phase, job.progress = observed.phase, measured_progress(observed.progress)
 
 
 def job_read(job: Job) -> JobRead:
