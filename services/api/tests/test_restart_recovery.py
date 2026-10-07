@@ -12,6 +12,12 @@ from uuid import uuid4
 import httpx
 import pytest
 from recovery_peer import recovery_peer
+from recovery_diagnostics import timeout_packet
+
+# Semantic completion capacity; uncertainty-policy tests keep explicit short bounds.
+ORDINARY_RECOVERY = {"MUSIC_API_RECOVERY_CONFIRMATION_WINDOW_SECONDS":"300"}
+ORDINARY_OBSERVATION_SECONDS = 10
+owned_observations = {}
 
 @contextmanager
 def owned_api(data: Path, url: str, receipt: Path, registry: Path, log_root: Path, recovery_options=None, abrupt=False):
@@ -37,7 +43,11 @@ def owned_api(data: Path, url: str, receipt: Path, registry: Path, log_root: Pat
                         pass
                     assert child.poll() is None and time.monotonic() < deadline
                     time.sleep(0.02)
-                yield client
+                owned_observations[client] = (data,log_root,ready)
+                try:
+                    yield client
+                finally:
+                    owned_observations.pop(client,None)
         finally:
             if child.poll() is None:
                 if abrupt:
@@ -47,13 +57,21 @@ def owned_api(data: Path, url: str, receipt: Path, registry: Path, log_root: Pat
                 child.wait(timeout=10)
             assert abrupt or child.returncode == 0
 
-def terminal(client, route):
-    deadline = time.monotonic() + 4
+def terminal(client, route, timeout=4):
+    deadline = time.monotonic() + timeout
     while True:
         value = client.get(route).json()
         if value["status"] in {"completed","failed","cancelled"}:
             return value
-        assert time.monotonic() < deadline, value
+        if time.monotonic() >= deadline:
+            expired = AssertionError(f"Recovery observation expired; last HTTP {value}")
+            try:
+                output = timeout_packet(owned_observations[client],route,value)
+            except Exception as error:
+                expired.add_note(f"Diagnostic collection failed: {type(error).__name__}: {error}")
+                raise expired from error
+            expired.add_note(f"Recovery evidence: {output}")
+            raise expired
         time.sleep(0.02)
 
 @pytest.mark.parametrize("wrong_graph",[True,False],ids=["stored-handle-wrong-graph","exact-original-graph"])
@@ -88,9 +106,9 @@ def test_restart_retains_original_handle_but_requires_exact_graph_and_imports_on
         original_audio = audio_response.content
         (tmp_path / "native-original.flac").write_bytes(original_audio)
         observations["native_audio"] = {"size_bytes":len(original_audio),"sha256":hashlib.sha256(original_audio).hexdigest(),"header":original_audio[:4].decode("ascii")}
-        with owned_api(data,url,receipt,registry.root,tmp_path) as restarted:
+        with owned_api(data,url,receipt,registry.root,tmp_path,{} if wrong_graph else ORDINARY_RECOVERY) as restarted:
             try:
-                recovered = terminal(restarted,route)
+                recovered = terminal(restarted,route,4 if wrong_graph else ORDINARY_OBSERVATION_SECONDS)
             finally:
                 observations["after_restart"] = restarted.get(route).json()
                 observations["native_after_restart"] = peer.get("/fixture/state").json()
@@ -248,8 +266,8 @@ def test_expired_new_submission_receipt_does_not_erase_original_accepted_recover
         facts["checked_at"] = (datetime.now(timezone.utc)-timedelta(seconds=600)).isoformat()
         receipt.write_text(json.dumps(facts),encoding="utf-8")
         peer.post("/fixture/control",json={"action":"complete"}).raise_for_status()
-        with owned_api(data,url,receipt,registry.root,tmp_path) as recovered:
-            complete = terminal(recovered,route)
+        with owned_api(data,url,receipt,registry.root,tmp_path,ORDINARY_RECOVERY) as recovered:
+            complete = terminal(recovered,route,ORDINARY_OBSERVATION_SECONDS)
             assert complete["status"] == "completed",complete
             assert peer.get("/fixture/state").json()["accepted"] == 1
             new = recovered.post(base+"/jobs/generate",json={"style":"gentle folk pop","lyrics":"New intent","seed":202625031})
@@ -272,8 +290,8 @@ def test_original_failure_or_cancellation_is_recovered_without_import_or_second_
                 time.sleep(0.02)
             original = first.get(route).json()
         peer.post("/fixture/edit",json={"action":outcome}).raise_for_status()
-        with owned_api(data,url,receipt,registry.root,tmp_path) as recovered:
-            value = terminal(recovered,route)
+        with owned_api(data,url,receipt,registry.root,tmp_path,ORDINARY_RECOVERY) as recovered:
+            value = terminal(recovered,route,ORDINARY_OBSERVATION_SECONDS)
             assert value["status"] == outcome,value
             assert value["inputs"] == original["inputs"] and value["provenance"] == original["provenance"]
             assert value["error"]["code"] == ("generation_failed" if outcome == "failed" else "cancelled")
@@ -299,8 +317,8 @@ def test_transcribe_restarts_with_frozen_upload_and_original_reference_without_r
             uploads = peer.get("/fixture/state").json()["uploads"]
             assert len(uploads) == 1 and uploads[0]["sha256"] == hashlib.sha256(original).hexdigest()
         peer.post("/fixture/control",json={"action":"complete"}).raise_for_status()
-        with owned_api(data,url,receipt,registry.root,tmp_path) as recovered:
-            complete = terminal(recovered,route)
+        with owned_api(data,url,receipt,registry.root,tmp_path,ORDINARY_RECOVERY) as recovered:
+            complete = terminal(recovered,route,ORDINARY_OBSERVATION_SECONDS)
             assert complete["status"] == "completed",complete
             score = recovered.get(base+"/scores/"+complete["result"]["score_id"]).json()
             assert score["source_reference_asset_id"] == reference["id"]
@@ -380,9 +398,9 @@ def test_identified_persistent_fake_and_real_sqlite_recover_across_actual_api_pr
         next(iter(state["requests"].values()))["inputs"]["reference_sha256"] = "0"*64
     fixture_state.write_text(json.dumps(state),encoding="utf-8")
     # Success checks ownership/output persistence, not subsecond host capacity.
-    options = {} if wrong_inputs else {"MUSIC_API_RECOVERY_CONFIRMATION_WINDOW_SECONDS":"300"}
+    options = {} if wrong_inputs else ORDINARY_RECOVERY
     with owned_api(data,"fake",fixture_state,registry,tmp_path,options) as recovered:
-        complete = terminal(recovered,route)
+        complete = terminal(recovered,route,4 if wrong_inputs else ORDINARY_OBSERVATION_SECONDS)
         if wrong_inputs:
             assert complete["status"] == "failed" and complete["result"] is None,complete
             assert len(recovered.get(base+"/assets").json()) == 1
@@ -411,8 +429,8 @@ def test_recovered_history_cannot_import_a_descriptor_outside_the_original_audio
                 time.sleep(0.02)
         peer.post("/fixture/edit",json={"action":"foreign_descriptor"}).raise_for_status()
         peer.post("/fixture/control",json={"action":"complete"}).raise_for_status()
-        with owned_api(data,url,receipt,registry.root,tmp_path) as recovered:
-            value = terminal(recovered,route)
+        with owned_api(data,url,receipt,registry.root,tmp_path,ORDINARY_RECOVERY) as recovered:
+            value = terminal(recovered,route,ORDINARY_OBSERVATION_SECONDS)
             assert value["status"] == "failed" and value["result"] is None,value
             assert recovered.get(base+"/assets").json() == []
             assert recovered.get(base+"/candidates").json() == []
@@ -529,13 +547,13 @@ def test_recovered_result_provider_failures_cannot_duplicate_or_downgrade_owned_
         peer.post("/fixture/control",json={"action":"complete"}).raise_for_status()
         provider_fault = "commit-readback" if fault == "commit-readback-after-startup-delay" else fault
         # This workload measures result-provider faults, not recovery capacity.
-        options = {"MUSIC_API_RECOVERY_CONFIRMATION_WINDOW_SECONDS":"300"}
+        options = dict(ORDINARY_RECOVERY)
         if fault != "storage":
             options["MUSIC_API_FIXTURE_IMPORT_FAULT"] = provider_fault
         if fault == "commit-readback-after-startup-delay":
             options["MUSIC_API_FIXTURE_STARTUP_READ_DELAY"] = "0.55"
         with owned_api(data,url,receipt,registry.root,tmp_path,options) as reopened:
-            value = terminal(reopened,route)
+            value = terminal(reopened,route,ORDINARY_OBSERVATION_SECONDS)
             assets = reopened.get(base+"/assets").json()
             if fault in {"storage","before-commit"}:
                 assert value["status"] == "failed" and value["result"] is None,value
@@ -584,9 +602,9 @@ def test_cursor_ack_and_independent_readback_loss_reconciles_same_original_then_
         if not foreign:
             # This workload verifies provider recovery, not subsecond host capacity.
             # The unsent sibling still exhausts the unchanged three-attempt limit.
-            options["MUSIC_API_RECOVERY_CONFIRMATION_WINDOW_SECONDS"] = "300"
+            options.update(ORDINARY_RECOVERY)
         with owned_api(data,url,receipt,registry.root,tmp_path,options) as recovered:
-            complete = terminal(recovered,route)
+            complete = terminal(recovered,route,4 if foreign else ORDINARY_OBSERVATION_SECONDS)
             assert complete["status"] == ("failed" if foreign else "completed"),complete
             if foreign:
                 assert complete["error"]["code"] == "runtime_unavailable" and complete["result"] is None
@@ -604,7 +622,7 @@ def test_cursor_ack_and_independent_readback_loss_reconciles_same_original_then_
                 assert time.monotonic()<deadline
                 time.sleep(0.02)
             peer.post("/fixture/control",json={"action":"complete"}).raise_for_status()
-            assert terminal(recovered,base+"/jobs/"+following["id"])["status"] == "completed"
+            assert terminal(recovered,base+"/jobs/"+following["id"],ORDINARY_OBSERVATION_SECONDS)["status"] == "completed"
             assert recovered.get(route).json() == complete
 
 

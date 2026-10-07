@@ -6,6 +6,9 @@ import socket
 import sys
 import threading
 import time
+from datetime import datetime,timezone
+from sqlalchemy import event
+from sqlalchemy.orm import Session
 
 if os.environ.get("MUSIC_API_FIXTURE_SOURCE_PATH"):
     sys.path.insert(0,os.environ["MUSIC_API_FIXTURE_SOURCE_PATH"])
@@ -14,14 +17,37 @@ import uvicorn
 from music_api.config import Settings
 from music_api.main import create_app
 from music_api.workflow_registry import WorkflowRegistry
+from music_api.job_models import Job
 
 data, url, receipt, registry, ready = sys.argv[1:]
 selected_registry = WorkflowRegistry(Path(registry))
+def phase(value):
+    value = {"at":datetime.now(timezone.utc).isoformat(),"clock":time.monotonic(),**value}
+    with Path(ready).with_suffix(".import-phases.jsonl").open("a",encoding="utf-8") as output:
+        output.write(json.dumps(value)+"\n")
+
+def commit_phase(session,kind):
+    for item in session.identity_map.values():
+        if isinstance(item,Job) and item.status == "completed":
+            phase({"phase":kind,"job_id":item.id,"status":item.status,"result":item.result_refs})
+
+event.listen(Session,"before_commit",lambda session:commit_phase(session,"before_commit"))
+event.listen(Session,"after_commit",lambda session:commit_phase(session,"after_commit"))
+
+def trace_changes(jobs):
+    publish = jobs.on_change
+    def notify(value):
+        if value.status in {"completed","failed","cancelled"}:
+            phase({"phase":"notification","job_id":str(value.id),"status":value.status})
+        if publish is not None:
+            publish(value)
+    jobs.on_change = notify
+
 if url == "fake":
     from persistent_fake_runtime import PersistentFake
-    app = create_app(Settings(data_dir=Path(data),runtime_mode="fake"),runtime=PersistentFake(Path(receipt),selected_registry),registry=selected_registry)
+    app = create_app(Settings(data_dir=Path(data),runtime_mode="fake"),runtime=PersistentFake(Path(receipt),selected_registry),registry=selected_registry,configure_jobs=trace_changes)
 else:
-    app = create_app(Settings(data_dir=Path(data),runtime_mode="comfyui",runtime_url=url,runtime_evidence_path=Path(receipt)),registry=selected_registry)
+    app = create_app(Settings(data_dir=Path(data),runtime_mode="comfyui",runtime_url=url,runtime_evidence_path=Path(receipt)),registry=selected_registry,configure_jobs=trace_changes)
 fault = os.environ.get("MUSIC_API_FIXTURE_IMPORT_FAULT")
 if fault:
     from sqlalchemy import event
