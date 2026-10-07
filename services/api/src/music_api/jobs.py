@@ -109,16 +109,23 @@ class JobService:
                 raise DomainError(404, "job_not_found", "Job does not exist in this Project.", "Query its owning Project.")
             if job.status in {"completed", "failed", "cancelled"}:
                 return job
-            previously_requested = job.cancel_requested
-            if not previously_requested:
+            if not job.cancel_requested:
                 job.cancel_requested = True
                 job.updated_at = utc_now()
-                session.commit()
+                try:
+                    session.commit()
+                except Exception as error:
+                    log.exception("Cancellation intent acknowledgement unconfirmed", extra={"event": "job_cancel_intent_unconfirmed", "job_id": str(identifier)})
+                    self.notify(str(identifier))
+                    raise DomainError(503, "cancellation_unconfirmed", "The cancellation intent could not be confirmed.",
+                                      "Query this Job and explicitly repeat cancellation if still needed; intent alone is not dispatch proof.", identifier) from error
             if job.submission_state == "pending":
                 observed = RuntimeStatus("cancelled")
             elif job.runtime_handle is not None:
                 try:
-                    observed = self.runtime.status(job.runtime_handle) if previously_requested else self.runtime.cancel(job.runtime_handle)
+                    # Every explicit request uses the same guarded target operation.
+                    # A persisted intent cannot establish that native dispatch occurred.
+                    observed = self.runtime.cancel(job.runtime_handle)
                 except Exception as error:
                     log.exception("Runtime cancellation outcome unconfirmed", extra={"event": "job_cancellation_unconfirmed", "job_id": job.id,
                                   "runtime_handle": job.runtime_handle})
@@ -168,7 +175,7 @@ class JobService:
                                       "Retain the current Job and wait for its confirmed outcome.", identifier)
                 operation = cast(Operation, job.operation)
                 inputs = deepcopy(job.inputs)
-                safe = job.status == "cancelled" or job.submission_state == "rejected"
+                safe = job.status == "cancelled" and job.submission_state in {"pending", "accepted"} or job.submission_state == "rejected"
                 if not safe:
                     try:
                         handle = job.runtime_handle
@@ -388,6 +395,7 @@ class JobService:
 def job_read(job: Job) -> JobRead:
     return JobRead(id=UUID(job.id), project_id=UUID(job.project_id), operation=cast(Operation, job.operation), status=cast(JobState, job.status),
                    phase=job.phase, progress=job.progress, inputs=job.inputs, provenance=job.provenance, error=job.error, result=job.result_refs,
-                   recovery_required=job.submission_state in {"unconfirmed", "submitting"} or job.error is not None and job.error.get("code") in {"runtime_unavailable", "cancellation_unconfirmed", "cancellation_ownership_unverified"},
+                   recovery_required=job.submission_state in {"unconfirmed", "submitting"} or job.cancel_requested and job.status in {"queued", "running"}
+                   or job.error is not None and job.error.get("code") in {"runtime_unavailable", "cancellation_unconfirmed", "cancellation_ownership_unverified"},
                    cancel_requested=job.cancel_requested,
                    created_at=datetime.fromisoformat(job.created_at), updated_at=datetime.fromisoformat(job.updated_at))

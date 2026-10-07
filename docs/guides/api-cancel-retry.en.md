@@ -30,6 +30,8 @@ This calls `POST /projects/{project_id}/jobs/{job_id}/cancel` without a request 
 
 `cancel_requested=true` records an application request, not a cancelled outcome. Confirmed cancellation sets status to cancelled, error.code to cancelled, and leaves result empty. A running dispatch acknowledgement is not terminal proof; queued removal has separate confirmation. If execution finishes before cancellation, the application still validates/imports the complete result and reports completed. Cancellation during saving does not fabricate cancelled. Repeating a terminal cancellation preserves its original result.
 
+After a lost cancellation-intent commit acknowledgement, read the same Job. A queued/running Job with cancel_requested=true still needs outcome confirmation and reports recovery_required=true. Intent does not prove Runtime dispatch. An explicit repeated cancel again checks ownership and safely targets the same native request; it never becomes a global interrupt.
+
 Cancellation targets only a Job in the same Project. An application-pending Job can be cancelled before dispatch. The application refuses destructive actions when the Runtime mapping, client or graph differs. Original Reference Audio, other work, Candidates and saved Versions remain available.
 
 ## Explicitly create one new retry Job
@@ -57,6 +59,8 @@ A retry creates new work and has no automatic client-intent deduplication key. A
 | `transcription_failed` / `generation_failed` | Retain original inputs and the failed Job; inspect development logs before explicitly creating another attempt. |
 
 Current cancellation/retry uses the running API's known mappings. An uncertain request without its verifiable original graph still refuses retry. Active Job reconciliation across restart is delivered in a later lifecycle issue. Completed history/files remain readable after restart. Developer exception details stay in structured logs; public errors give domain causes and recovery actions.
+
+Pre-upgrade pending records have no durable dispatch-start evidence and may already have been accepted. Upgrade to 0004 conservatively marks them unconfirmed with recovery instructions. It does not fabricate cancelled or create an unverified retry. Existing failed errors, inputs and provenance are retained.
 
 The complete runnable example comes from version-controlled source:
 

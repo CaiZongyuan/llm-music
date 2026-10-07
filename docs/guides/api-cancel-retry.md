@@ -30,6 +30,8 @@ uv run --project services/api --no-sync python services/api/examples/cancel_retr
 
 `cancel_requested=true` 表示应用已记录取消请求，不代表已取消。只有确认结果后，status 才为 cancelled；error.code 为 cancelled，result 为空。running 的分发确认不是终态证据。queued 移除有独立确认方式。任务在取消前完成时，应用仍验证、导入并返回 completed 和完整结果；saving 期间不会假称 cancelled。重复取消终态保持原结果。
 
+取消意图提交的回执丢失时，先查询同一 Job。queued/running 且 `cancel_requested=true` 仍需要结果确认，`recovery_required=true`。意图不证明请求已发到 Runtime；明确重复 cancel 会再次执行同一目标的归属保护与安全取消。不会改为全局中断。
+
 取消只作用同 Project 的目标。应用尚未分发的任务可以直接取消；目标 Runtime mapping、client 和 graph 不一致时，应用拒绝破坏性操作。原 Reference Audio、其他任务、Candidate 和已保存 Version 不受取消影响。
 
 ## 明确创建新的重试 Job
@@ -57,6 +59,8 @@ uv run --project services/api --no-sync python services/api/examples/cancel_retr
 | `transcription_failed` / `generation_failed` | 保留原输入和失败 Job，检查开发日志后明确创建新 attempt。 |
 
 当前取消与重试使用运行中 API 的已知映射。不确定请求缺少可核验的原 graph 时，重试仍拒绝；跨重启的 active Job 对账在后续生命周期票据交付。已完成历史和文件可以重启读取。开发异常细节留在结构化日志，公开错误给出领域原因和动作。
+
+升级前的 pending 记录缺少持久分发开始证据，可能已被 Runtime 接受。升级到 0004 时，应用保守标为未确认并给出恢复原因；不会当作尚未分发而伪称 cancelled，也不会创建未经确认的新重试。既有 failed 记录的错误、输入和 provenance 保留。
 
 完整运行示例来自受版本控制的源码：
 
