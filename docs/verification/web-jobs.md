@@ -19,7 +19,7 @@ The retained `e2029719eab0e02d2e198f48fdd0f9e21ff360d6` preview already confirme
 | Manual browser comparison | An independent `agent-browser` session created the Chinese fixture Project/notes through the real Web UI.1440×960 English/dark and Chinese/light screenshots retain the Project text, failure/active/queued cards and usable actions. Actual queued cancellation through the UI confirmed cancelled. Owned evidence is under `.scratch/p2-development/33-jobs/`. |
 | Docs | Local `pnpm docs:check` passed15 tests and Astro reported0 errors/warnings. The new paired Job guide is delivered; Root registers `guide-web-jobs` with the shared chapter/CI/navigation integration and validates its generated publication paths. This author check does not claim the new chapter was already published. |
 
-Final controlled/standard logs, failure traces, screenshots, persisted snapshots and owned stop receipts remain in `.scratch/p2-development/33-jobs/` and this worktree's `tests/browser/.artifacts/`. Every automated run uses a new direct-child owned directory, isolated application SQLite/media and two loopback ports. Both API and Web acknowledge graceful stop. There is no recording or native/GPU request.
+Final controlled/standard logs, failure traces, screenshots, persisted snapshots and owned stop receipts remain in `.scratch/p2-development/33-jobs/` and this worktree's `tests/browser/.artifacts/`. Every automated run uses a new direct-child owned directory, isolated application SQLite/media and two loopback ports. Both API and Web acknowledge graceful stop in the final passing runs. There is no recording or native/GPU request.
 
 ## Repairs, simplification and retained limits
 
