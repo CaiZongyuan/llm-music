@@ -4,7 +4,7 @@
 - 复用确认：[#28 布局与交互](28-documentation-preview.md)、[#65 创作教程方向](65-creator-documentation-preview.md)。创作与多样化玩法继续是主入口。
 - 来源基线：`15de0d9e424efaf06e5b75ffc67f57ef32421561`，已集成 P1 的 Pydantic/OpenAPI/client 与重启恢复。
 - 可复现补充：[documentation-reference-v1](../previews/documentation-reference-v1/README.md)。
-- 状态：**补充预览已交付，正式清单更新等待 Root 确认既有授权或记录新的用户确认。** 不是新的产品 Web，也不是 Pages 发布。
+- 状态：**补充预览已交付；Root 已核对并按已有用户授权继续正式登记。** 复用已确认的结构、创作方向与交互，不编造新的用户回答。不是新的产品 Web，也不是 Pages 发布。
 
 ## 可见范围
 
@@ -22,4 +22,6 @@ Root 独立发现 API 的右侧/移动目录把 `{project_id}` 显示为 `${proj
 
 证据在 Root `.scratch/p2-development/29-reference/`：CPU 合同/来源检查、浏览器原始动作与 receipt、截图与预览产物检查。首个浏览器 harness 在 JavaScript 模板字符串中把 `${REPOSITORY}` 当作变量，未发出对应浏览器动作；修正验证器的字符串拼接后通过，原失败保留。最初通过 PowerShell 管道传递补充清单时中文标题被编码成问号，正式 Unicode 来源修正并重新构建；既有正文和预览未改变。
 
-这里只记录实际本地预览。用户确认、最终 candidate、正式清单对照与 Pages 发布状态由各实际结果追加。
+Root 随后独立核对 API/Settings 的真实 DOM、默认值、同章节英语切换、创作六个主要入口与英文复制控件，并保留截图。用户已确认 #29 的验收范围、#28 文档结构与 #65 创作方向；新增内容沿用同一已确认体验，Root 认定预览交付与授权已满足，继续正式登记十二个次级入口。没有再次征求或虚构新的用户回答。
+
+正式登记与预览使用同一补充清单，原创作正文与旧预览不变。最终 candidate、正式清单对照与 Pages 发布状态由实际结果记录；本票不将本地构建报告为上线。
