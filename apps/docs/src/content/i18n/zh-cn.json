@@ -1,0 +1,7 @@
+{
+  "page.previousLink": "上一章",
+  "page.nextLink": "下一章",
+  "expressiveCode.copyButtonTooltip": "复制到剪贴板",
+  "expressiveCode.copyButtonCopied": "复制成功！",
+  "expressiveCode.terminalWindowFallbackTitle": "终端窗口"
+}

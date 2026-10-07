@@ -1,0 +1,127 @@
+---
+import { Icon } from '@astrojs/starlight/components';
+const english = Astro.locals.starlightRoute.locale === 'en';
+const labels = english
+  ? { title: 'Search docs', input: 'Search keywords', placeholder: 'Search Runtime, models, MIDI…', close: 'Close search', loading: 'Loading search content', failed: 'Search content is unavailable', failureHint: 'The current page is still readable. Retry to continue.', retry: 'Retry', empty: 'No matching documents', emptyHint: 'Try Runtime, models, or MIDI.', clear: 'Clear search', start: 'Start with these documents' }
+  : { title: '搜索文档', input: '搜索关键词', placeholder: '搜索 Runtime、模型、MIDI…', close: '关闭搜索', loading: '正在加载搜索内容', failed: '搜索内容暂时不可用', failureHint: '当前页面仍可阅读。重试后继续搜索。', retry: '重试', empty: '没有找到对应文档', emptyHint: '试试 Runtime、模型或 MIDI。', clear: '清空搜索', start: '从这些文档开始' };
+---
+<music-doc-search data-locale={Astro.locals.starlightRoute.locale} data-index={`${import.meta.env.BASE_URL}search-index.json`} data-labels={JSON.stringify(labels)}>
+  <button class="search-open" aria-label={labels.title} aria-keyshortcuts="Control+K"><Icon name="magnifier" /><span>{labels.title}</span><kbd>Ctrl K</kbd></button>
+  <dialog aria-label={labels.title}>
+    <div class="search-heading"><strong>{labels.title}</strong><button class="search-close" aria-label={labels.close}>Esc</button></div>
+    <label class="sr-only" for="music-doc-search-input">{labels.input}</label>
+    <input id="music-doc-search-input" type="search" placeholder={labels.placeholder} autocomplete="off" />
+    <div class="search-results" aria-live="polite"></div>
+  </dialog>
+</music-doc-search>
+<script>
+  type SearchEntry = { locale: string; id: string; url: string; title: string; summary: string; text: string };
+  class MusicDocSearch extends HTMLElement {
+    connectedCallback() {
+      const labels: Record<string, string> = JSON.parse(this.dataset.labels || '{}');
+      const dialog = this.querySelector('dialog')!;
+      const input = this.querySelector('input')!;
+      const results = this.querySelector<HTMLDivElement>('.search-results')!;
+      let index: SearchEntry[] | undefined;
+      let state: 'loading' | 'ready' | 'failed' = 'loading';
+      let requestNumber = 0;
+      const element = <K extends keyof HTMLElementTagNameMap>(tag: K, text: string) => {
+        const node = document.createElement(tag);
+        node.textContent = text;
+        return node;
+      };
+      const render = () => {
+        results.replaceChildren();
+        if (state !== 'ready') {
+          const message = element('div', '');
+          message.className = 'search-state';
+          message.append(element('strong', labels[state === 'loading' ? 'loading' : 'failed']));
+          if (state === 'failed') {
+            message.append(element('p', labels.failureHint));
+            const retry = element('button', labels.retry);
+            retry.addEventListener('click', () => { void load(); });
+            message.append(retry);
+          } else message.setAttribute('aria-busy', 'true');
+          results.append(message);
+          return;
+        }
+        const query = input.value.trim().toLocaleLowerCase(this.dataset.locale);
+        const matches = (index || []).filter(entry => entry.locale === this.dataset.locale && (!query ? ['quickstart', 'doctor', 'transcribe'].includes(entry.id) : `${entry.title} ${entry.text}`.toLocaleLowerCase(this.dataset.locale).includes(query)));
+        if (!matches.length) {
+          const message = element('div', '');
+          message.className = 'search-state';
+          message.append(element('strong', labels.empty), element('p', labels.emptyHint));
+          const clear = element('button', labels.clear);
+          clear.addEventListener('click', () => { input.value = ''; render(); input.focus(); });
+          message.append(clear);
+          results.append(message);
+          return;
+        }
+        if (!query) results.append(element('p', labels.start));
+        for (const entry of matches) {
+          const link = element('a', '');
+          link.className = 'search-result';
+          link.href = entry.url;
+          link.append(element('strong', entry.title), element('span', entry.summary));
+          link.addEventListener('click', () => dialog.close());
+          results.append(link);
+        }
+      };
+      const load = async () => {
+        const request = ++requestNumber;
+        state = 'loading'; render();
+        try {
+          const response = await fetch(`${this.dataset.index}?attempt=${request}`);
+          if (!response.ok) throw new Error('Search index request failed');
+          const data: unknown = await response.json();
+          if (!Array.isArray(data) || !data.every(entry => entry && ['locale', 'id', 'url', 'title', 'summary', 'text'].every(key => typeof entry[key] === 'string') && entry.url.startsWith(import.meta.env.BASE_URL))) throw new Error('Search index is invalid');
+          if (request !== requestNumber) return;
+          index = data; state = 'ready';
+        } catch { if (request !== requestNumber) return; state = 'failed'; }
+        render();
+      };
+      const open = () => {
+        if (!dialog.open) dialog.showModal();
+        if (!index && state !== 'failed') void load(); else render();
+        input.focus();
+      };
+      this.querySelector('.search-open')!.addEventListener('click', open);
+      this.querySelector('.search-close')!.addEventListener('click', () => dialog.close());
+      input.addEventListener('input', render);
+      input.addEventListener('keydown', event => { if (event.key === 'Enter') results.querySelector('a')?.click(); });
+      document.addEventListener('keydown', event => {
+        if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') { event.preventDefault(); if (dialog.open) dialog.close(); else open(); }
+      });
+      dialog.addEventListener('click', event => {
+        if (event.target !== dialog) return;
+        const box = dialog.getBoundingClientRect();
+        if (event.clientX < box.left || event.clientX > box.right || event.clientY < box.top || event.clientY > box.bottom) dialog.close();
+      });
+    }
+  }
+  customElements.define('music-doc-search', MusicDocSearch);
+</script>
+<style>
+  music-doc-search { display: block; }
+  button { cursor: pointer; font: inherit; }
+  .search-open { display: flex; align-items: center; gap: .7rem; width: 100%; max-width: 22rem; padding: .55rem .8rem; color: var(--sl-color-gray-2); border: 1px solid var(--sl-color-gray-5); border-radius: .5rem; background: var(--sl-color-gray-6); font-size: .85rem; }
+  kbd { margin-left: auto; padding: 0 .3rem; border: 1px solid var(--sl-color-gray-5); border-radius: .2rem; font: .7rem/1.6 var(--sl-font); }
+  dialog { margin: 6rem auto auto; width: min(40rem, calc(100% - 2rem)); max-height: calc(100% - 8rem); padding: 0; color: var(--sl-color-text); background: var(--sl-color-bg); border: 1px solid var(--sl-color-gray-5); border-radius: .7rem; box-shadow: var(--sl-shadow-lg); }
+  dialog::backdrop { background: #17192160; backdrop-filter: blur(3px); }
+  .search-heading { display: flex; align-items: center; justify-content: space-between; padding: 1rem 1.2rem .6rem; font-size: .9rem; }
+  .search-close { padding: .1rem .4rem; border: 1px solid var(--sl-color-gray-5); border-radius: .3rem; color: var(--sl-color-gray-2); background: var(--sl-color-gray-6); font-size: .65rem; }
+  input { display: block; width: calc(100% - 2.4rem); margin: .2rem 1.2rem 1rem; padding: .65rem .8rem; border: 1px solid var(--sl-color-gray-5); border-radius: .4rem; background: var(--sl-color-gray-6); color: var(--sl-color-text); font: inherit; font-size: .9rem; }
+  .search-results { min-height: 9rem; max-height: 25rem; overflow-y: auto; padding: 0 .8rem 1rem; }
+  .search-results > p { margin: 0; padding: .5rem; color: var(--sl-color-gray-3); font-size: .8rem; }
+  :global(.search-result) { display: block; border-radius: .4rem; color: var(--sl-color-text); padding: .7rem; text-decoration: none; }
+  :global(.search-result:hover) { background: var(--sl-color-accent-low); }
+  :global(.search-result strong) { display: block; font-size: .9rem; }
+  :global(.search-result span) { color: var(--sl-color-gray-3); font-size: .8rem; }
+  :global(.search-state) { padding: 1.3rem; text-align: center; font-size: .85rem; }
+  :global(.search-state[aria-busy])::before { content: ''; display: block; width: 1rem; height: 1rem; margin: 0 auto .7rem; border: 2px solid var(--sl-color-gray-5); border-top-color: var(--sl-color-text-accent); border-radius: 50%; animation: spin 1s linear infinite; }
+  :global(.search-state p) { color: var(--sl-color-gray-3); }
+  :global(.search-state button) { padding: .3rem .7rem; border: 1px solid var(--sl-color-gray-5); border-radius: .3rem; color: var(--sl-color-text); background: var(--sl-color-gray-6); }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @media (prefers-reduced-motion: reduce) { :global(.search-state[aria-busy])::before { animation: none; } }
+  @media (max-width: 50rem) { .search-open { border: 0; background: transparent; padding: .4rem; } .search-open span, kbd { display: none; } }
+</style>

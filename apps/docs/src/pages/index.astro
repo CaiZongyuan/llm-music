@@ -1,0 +1,6 @@
+---
+import site from '../../.generated/site.mjs';
+const home = site.chapters.find(chapter => chapter.id === 'overview');
+if (!home) throw new Error('The overview landing page must be registered.');
+return Astro.redirect(`${site.base}${site.defaultLocale}/${home.path}/`);
+---

@@ -1,0 +1,9 @@
+---
+import site from '../../../.generated/site.mjs';
+export function getStaticPaths() {
+  const home = site.chapters.find(chapter => chapter.id === 'overview');
+  if (!home) throw new Error('The overview landing page must be registered.');
+  return Object.keys(site.locales).map(locale => ({ params: { locale }, props: { target: `${site.base}${locale}/${home.path}/` } }));
+}
+return Astro.redirect(Astro.props.target);
+---

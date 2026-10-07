@@ -6,6 +6,9 @@
     "test:browser": "pnpm --filter @llm-music/browser-tests test",
     "test:browser:ui": "pnpm --filter @llm-music/browser-tests test:ui",
     "test:browser:install": "pnpm --filter @llm-music/browser-tests exec playwright install chromium",
-    "test:browser:check": "pnpm --filter @llm-music/browser-tests check"
+    "test:browser:check": "pnpm --filter @llm-music/browser-tests check",
+    "docs:dev": "node apps/docs/scripts/generate.mjs && pnpm --filter @llm-music/docs dev",
+    "docs:check": "node apps/docs/scripts/generate.mjs && node --test apps/docs/tests/*.test.mjs && pnpm --filter @llm-music/docs check",
+    "docs:build": "node apps/docs/scripts/generate.mjs && pnpm --filter @llm-music/docs build && node apps/docs/scripts/check-build.mjs"
   }
 }
