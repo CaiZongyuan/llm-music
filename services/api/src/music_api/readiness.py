@@ -21,6 +21,10 @@ def evaluate_readiness(observation: RuntimeObservation, requirements: RuntimeReq
     if observation.registered_nodes is None or not set(workflow.required_nodes).issubset(observation.registered_nodes):
         reasons.append("capability_missing")
     if observation.mode == "comfyui":
+        if stale(observation.system_stats_observed_at, now, max_age_seconds):
+            reasons.append("runtime_system_facts_stale")
+        if stale(observation.registered_nodes_observed_at, now, max_age_seconds):
+            reasons.append("runtime_node_facts_stale")
         stats = observation.system_stats
         system = stats.get("system") if stats is not None else None
         if not isinstance(system, Mapping):
