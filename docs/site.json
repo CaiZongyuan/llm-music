@@ -22,22 +22,29 @@
     {
       "id": "start",
       "titles": {
-        "zh-cn": "开始使用",
-        "en": "Get started"
+        "zh-cn": "开始创作",
+        "en": "Start creating"
       }
     },
     {
-      "id": "runtime",
+      "id": "play",
       "titles": {
-        "zh-cn": "Runtime 指南",
-        "en": "Runtime guides"
+        "zh-cn": "探索玩法",
+        "en": "Explore ideas"
       }
     },
     {
-      "id": "concepts",
+      "id": "help",
       "titles": {
-        "zh-cn": "理解系统",
-        "en": "Understand the system"
+        "zh-cn": "帮助与参考",
+        "en": "Help and reference"
+      }
+    },
+    {
+      "id": "technical",
+      "titles": {
+        "zh-cn": "环境与开发资料",
+        "en": "Technical resources"
       }
     }
   ],
@@ -48,12 +55,12 @@
       "group": "start",
       "path": "overview",
       "titles": {
-        "zh-cn": "先获得第一份可验证的乐谱。",
-        "en": "Start with a score you can verify."
+        "zh-cn": "把一个音乐想法，变成可试听的片段。",
+        "en": "Turn a musical idea into something you can hear."
       },
       "labels": {
-        "zh-cn": "概览",
-        "en": "Overview"
+        "zh-cn": "从这里开始",
+        "en": "Start here"
       },
       "sources": {
         "zh-cn": "docs/learn/overview.md",
@@ -61,9 +68,101 @@
       }
     },
     {
-      "id": "quickstart",
+      "id": "first-music",
       "type": "tutorial",
       "group": "start",
+      "path": "first-music",
+      "titles": {
+        "zh-cn": "做出第一段 35 秒音乐",
+        "en": "Make your first 35 seconds of music"
+      },
+      "labels": {
+        "zh-cn": "第一段音乐",
+        "en": "Your first music"
+      },
+      "sources": {
+        "zh-cn": "docs/learn/first-music.md",
+        "en": "docs/learn/first-music.en.md"
+      },
+      "next": "variations"
+    },
+    {
+      "id": "reference",
+      "type": "tutorial",
+      "group": "start",
+      "path": "reference",
+      "titles": {
+        "zh-cn": "从一段参考音频，找出旋律线索",
+        "en": "Find melodic clues in Reference Audio"
+      },
+      "labels": {
+        "zh-cn": "参考音频转谱",
+        "en": "Transcribe Reference Audio"
+      },
+      "sources": {
+        "zh-cn": "docs/learn/reference.md",
+        "en": "docs/learn/reference.en.md"
+      }
+    },
+    {
+      "id": "variations",
+      "type": "tutorial",
+      "group": "play",
+      "path": "variations",
+      "titles": {
+        "zh-cn": "同一个想法，尝试几种味道",
+        "en": "One idea, several moods"
+      },
+      "labels": {
+        "zh-cn": "风格、歌词与 seed 玩法",
+        "en": "Style, lyrics, and seed ideas"
+      },
+      "sources": {
+        "zh-cn": "docs/learn/variations.md",
+        "en": "docs/learn/variations.en.md"
+      },
+      "previous": "first-music"
+    },
+    {
+      "id": "resources",
+      "type": "guide",
+      "group": "help",
+      "path": "resources",
+      "titles": {
+        "zh-cn": "需要准备、参数或排障时，从这里找",
+        "en": "Find preparation, parameters, and help here"
+      },
+      "labels": {
+        "zh-cn": "准备与排障",
+        "en": "Preparation and help"
+      },
+      "sources": {
+        "zh-cn": "docs/learn/resources.md",
+        "en": "docs/learn/resources.en.md"
+      }
+    },
+    {
+      "id": "scope",
+      "type": "overview",
+      "group": "help",
+      "path": "scope",
+      "titles": {
+        "zh-cn": "今天可以做什么",
+        "en": "What you can do today"
+      },
+      "labels": {
+        "zh-cn": "当前能力与限制",
+        "en": "Capabilities and limits"
+      },
+      "sources": {
+        "zh-cn": "docs/learn/scope.md",
+        "en": "docs/learn/scope.en.md"
+      }
+    },
+    {
+      "id": "quickstart",
+      "type": "tutorial",
+      "group": "technical",
       "path": "quickstart",
       "titles": {
         "zh-cn": "准备本地 Runtime",
@@ -82,7 +181,7 @@
     {
       "id": "doctor",
       "type": "guide",
-      "group": "runtime",
+      "group": "technical",
       "path": "doctor",
       "titles": {
         "zh-cn": "检查并启动 Runtime",
@@ -102,7 +201,7 @@
     {
       "id": "transcribe",
       "type": "tutorial",
-      "group": "runtime",
+      "group": "technical",
       "path": "transcribe",
       "titles": {
         "zh-cn": "转谱并导出 ABC 与 MIDI",
@@ -121,7 +220,7 @@
     {
       "id": "architecture",
       "type": "concept",
-      "group": "concepts",
+      "group": "technical",
       "path": "architecture",
       "titles": {
         "zh-cn": "理解应用与 Runtime 的边界",
@@ -134,24 +233,6 @@
       "sources": {
         "zh-cn": "docs/learn/architecture.md",
         "en": "docs/learn/architecture.en.md"
-      }
-    },
-    {
-      "id": "scope",
-      "type": "overview",
-      "group": "concepts",
-      "path": "scope",
-      "titles": {
-        "zh-cn": "当前能力与后续阶段",
-        "en": "Current capabilities and later stages"
-      },
-      "labels": {
-        "zh-cn": "当前范围",
-        "en": "Current scope"
-      },
-      "sources": {
-        "zh-cn": "docs/learn/scope.md",
-        "en": "docs/learn/scope.en.md"
       }
     }
   ]

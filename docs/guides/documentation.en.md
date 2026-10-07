@@ -1,4 +1,4 @@
-# Generate and verify the Runtime documentation site
+# Generate and verify the Music Workbench documentation site
 
 Work from the repository root. Use Node.js 24.18.0 and pnpm 11.22.0. This guide is verified on Windows x64; PowerShell runs the isolated example checks. FastAPI and ComfyUI environments are not used for documentation generation. These commands run no Doctor checks, download no weights, and submit no GPU requests.
 
@@ -11,7 +11,7 @@ pnpm docs:dev
 
 Open <http://127.0.0.1:18029/llm-music/zh-cn/overview/>. The service listens on localhost only. Press Ctrl+C to stop your own process. Keep Runtime's port 8188 free. If 18029 is occupied, run `pnpm docs:dev --port 18030`. After changing body sources or the manifest, restart this entrypoint to regenerate content.
 
-Documentation offers three task entrypoints: first run, architecture, and task guides. Chinese and English share chapter and section ids. Switching language retains the chapter and section. Search reads locally generated chapter content only. Readers can retry failed searches while the current page remains readable.
+The main entrypoints serve music creators: first music, Reference Audio transcription, and style/lyrics/seed experiments. Preparation, Doctor, API, architecture, and development remain secondary resources. Existing chapter paths stay accessible. Chinese and English share chapter and section ids. Switching language retains the chapter and section. Search reads locally generated chapter content only. Readers can retry failed searches while the current page remains readable.
 
 ## Change the sources
 
@@ -21,7 +21,7 @@ Documentation offers three task entrypoints: first run, architecture, and task g
 4. Use matching stable section ids, such as `## Prepare the models {#models}`. Previous and next chapters must be declared and reciprocal. Undeclared links never create automatic chapter chains.
 5. Keep teaching code in complete versioned source files. Include a file with `<<< ../../runtime/comfyui/examples/doctor.ps1`. The generator reads the entire file and adds its source link at a fixed commit.
 
-Relative documentation links to registered chapters become same-language internal URLs. Other repository files become GitHub links at the source commit. Source includes and repository links resolve actual paths and reject paths or filesystem links that leave the repository.
+Relative documentation links to registered chapters become same-language internal URLs. Referenced static assets in `apps/docs/public/` become internal URLs with the deployment base. Other repository files become GitHub links at the source commit. Source includes and repository links resolve actual paths and reject paths or filesystem links that leave the repository. Images, existing music, provenance JSON, and read-only interaction scripts retain their actual source paths.
 
 `apps/docs/src/content/docs/`, `.generated/`, `.astro/`, `dist/`, and the search index are generated and ignored by Git. Edit the owning source and regenerate rather than changing generated pages.
 
@@ -44,5 +44,7 @@ Missing translations, duplicate paths, nonreciprocal navigation, missing sources
 ## Verification scope
 
 This delivery provides the P0 Runtime documentation foundation. Actual GPU results reuse accepted P0 transcription and continuous-run evidence. New example exit-code and receipt protection are exercised with an isolated fake command provider. There is no new music inference, GPU benchmark, or music-quality claim.
+
+Creator tutorials use delivered P1 generation, transcription, and explicit saving. The home-page MP3 and first recipe match a verified real 35-second piece. Other ideas are untuned, unauditioned experiments. Operations use the existing application CLI and controlled UTF-8 lyrics directly; complete source is expandable on demand. Documentation pages stay read-only. CPU checks verify recipe/lyrics/listening-copy correspondence and local static asset paths without contacting the application API or Runtime.
 
 The complete FastAPI tutorial and generated reference belong to #29. Actual GitHub Pages publication belongs to #30. This ticket provides local builds and the `/llm-music/` path. Without deployment evidence, it does not claim a live publication. The product Web app still starts in P2.

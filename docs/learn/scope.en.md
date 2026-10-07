@@ -1,23 +1,18 @@
-Documentation grows with actual delivery. Validated Runtime paths and planned product experiences are marked separately.
+Start with implemented short-fragment workflows. Later capabilities have their own stages; tutorials do not turn plans into available buttons.
 
-## Current documentation entrypoints {#current}
+## Available now {#now}
 
-<p>This site provides a browsable Runtime quick-start example. P0 real GPU paths have passed the stage gate. Pages, search, and themes use local documentation content only. They do not read running services.</p><p>The current implementation includes P1 delivery for Projects, Assets, transcription, generation, Candidate saving, cancel/retry, diagnostics, and Job events. Full P1 acceptance still awaits recovery and contract tickets.</p>
+| Your task | Actual scope |
+| --- | --- |
+| Generate from style and lyrics | Current 35-second profile; audio and ABC form a Candidate, then an explicitly saved Version. |
+| Transcribe Reference Audio | 16-second PCM16 WAV: mono24k or stereo48k; a Score, ABC, and MIDI. |
+| Try another direction | Create a new Generate in the same Project, vary style, lyrics, or seed, and download results to hear one at a time. |
+| Keep and find results | Application ids read original Assets, completed outputs, and saved Versions. HTTP reads Jobs, WS can observe phases, and uncertain operations require checking first. |
 
-## Later product tutorials {#stages}
+## Coming with later product stages {#later}
 
-<table><thead><tr><th scope="col">Stage</th><th scope="col">Status and goal</th></tr></thead><tbody><tr><td>P1 · Application Core</td><td>In development. Core paths through FastAPI HTTP / WebSocket.</td></tr><tr><td>P2 · Web MVP</td><td>Planned. Project Library, Workspace, Job Monitor, and Runtime Status.</td></tr><tr><td>P3 · Score Editing</td><td>Planned. ABC editing, preview, playback, and regeneration.</td></tr><tr><td>P4–P5 · Cover / Compare</td><td>Planned. Inspectable cover flow and Version comparison.</td></tr></tbody></table>
+<p>The product Web Workbench waits for the P1 gate and begins in P2. Integrated playback comparison, score editing, GenerateFromScore, and Cover are not delivered. Current short examples do not establish long-song support, arbitrary audio profiles, or transcription accuracy for arbitrary music.</p><p>This site reads static documentation and plays an existing MP3, isolated from business writes.</p>
 
-<div class="callout"><strong>A plan is not an operation tutorial</strong><p>The product Web Workbench starts in P2. This documentation site does not mean that the product Web app is delivered.</p></div>
+## Finish one small piece first {#next}
 
-## Outside current development {#excluded}
-
-<p>Electron packaging, React Native, cloud SaaS, multiple users, distributed GPUs, a full DAW, and a Native YuE2 rewrite are outside current scope.</p>
-
-## Read the factual sources {#sources}
-
-<p>Runtime configuration and Model Registry record source and model pins. Weight, code, and input-fixture licenses are recorded separately.</p>
-
-- [Runtime configuration ↗](../../runtime/comfyui/runtime.json)
-- [Model Registry ↗](../../runtime/comfyui/models.json)
-- [Input fixture ↗](../../runtime/comfyui/workflows/transcribe-sheetsage2/v1/fixture.json)
+<p><a href="./first-music.en.md">Make your first music with the verified recipe →</a></p>

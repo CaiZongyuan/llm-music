@@ -2,8 +2,8 @@
 import { Icon } from '@astrojs/starlight/components';
 const english = Astro.locals.starlightRoute.locale === 'en';
 const labels = english
-  ? { title: 'Search docs', input: 'Search keywords', placeholder: 'Search Runtime, models, MIDI…', close: 'Close search', loading: 'Loading search content', failed: 'Search content is unavailable', failureHint: 'The current page is still readable. Retry to continue.', retry: 'Retry', empty: 'No matching documents', emptyHint: 'Try Runtime, models, or MIDI.', clear: 'Clear search', start: 'Start with these documents' }
-  : { title: '搜索文档', input: '搜索关键词', placeholder: '搜索 Runtime、模型、MIDI…', close: '关闭搜索', loading: '正在加载搜索内容', failed: '搜索内容暂时不可用', failureHint: '当前页面仍可阅读。重试后继续搜索。', retry: '重试', empty: '没有找到对应文档', emptyHint: '试试 Runtime、模型或 MIDI。', clear: '清空搜索', start: '从这些文档开始' };
+  ? { title: 'Search docs', input: 'Search keywords', placeholder: 'Search style, lyrics, MIDI, versions…', close: 'Close search', loading: 'Loading search content', failed: 'Search content is unavailable', failureHint: 'The current page is still readable. Retry to continue.', retry: 'Retry', empty: 'No matching documents', emptyHint: 'Try style, lyrics, MIDI, or versions.', clear: 'Clear search', start: 'Start with these documents' }
+  : { title: '搜索文档', input: '搜索关键词', placeholder: '搜索风格、歌词、MIDI、版本…', close: '关闭搜索', loading: '正在加载搜索内容', failed: '搜索内容暂时不可用', failureHint: '当前页面仍可阅读。重试后继续搜索。', retry: '重试', empty: '没有找到对应文档', emptyHint: '试试风格、歌词、MIDI 或版本。', clear: '清空搜索', start: '从这些文档开始' };
 ---
 <music-doc-search data-locale={Astro.locals.starlightRoute.locale} data-index={`${import.meta.env.BASE_URL}search-index.json`} data-labels={JSON.stringify(labels)}>
   <button class="search-open" aria-label={labels.title} aria-keyshortcuts="Control+K"><Icon name="magnifier" /><span>{labels.title}</span><kbd>Ctrl K</kbd></button>
@@ -46,7 +46,7 @@ const labels = english
           return;
         }
         const query = input.value.trim().toLocaleLowerCase(this.dataset.locale);
-        const matches = (index || []).filter(entry => entry.locale === this.dataset.locale && (!query ? ['quickstart', 'doctor', 'transcribe'].includes(entry.id) : `${entry.title} ${entry.text}`.toLocaleLowerCase(this.dataset.locale).includes(query)));
+        const matches = (index || []).filter(entry => entry.locale === this.dataset.locale && (!query ? ['first-music', 'reference', 'variations'].includes(entry.id) : `${entry.title} ${entry.text}`.toLocaleLowerCase(this.dataset.locale).includes(query)));
         if (!matches.length) {
           const message = element('div', '');
           message.className = 'search-state';
