@@ -7,8 +7,10 @@ import threading
 import time
 
 from fastapi.testclient import TestClient
+import httpx
 import pytest
 from sqlalchemy import event
+from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import Session
 
 from music_api.config import Settings
@@ -18,6 +20,8 @@ from music_api.job_models import Job
 from music_api.main import create_app
 from music_api.runtime_types import RuntimeStatus
 from test_transcription import reference_audio
+from cancellation_peer import cancellation_peer
+from test_cancel_retry import wait_running
 
 
 @pytest.mark.parametrize("operation", ["Transcribe", "Generate"])
@@ -181,3 +185,47 @@ def test_only_reliable_bounded_whole_job_progress_reaches_http_and_ws(tmp_path: 
             assert value["progress"] == expected
             assert client.get(job_url).json()["progress"] == expected
             finished.set()
+
+
+def test_ws_cancel_intent_ack_loss_exposes_recovery_then_the_same_confirmed_target(tmp_path: Path, monkeypatch) -> None:
+    armed = {"value": False, "fired": False}
+
+    def lose_intent_ack(session: Session) -> None:
+        if armed["value"] and any(isinstance(item, Job) and item.cancel_requested for item in session.identity_map.values()):
+            armed["value"], armed["fired"] = False, True
+            raise OperationalError("External durable cancellation intent acknowledgement loss", None, RuntimeError("Provider ack lost"))
+
+    with cancellation_peer(tmp_path, monkeypatch) as (url, receipt, registry):
+        settings = Settings(data_dir=tmp_path / "application", runtime_mode="comfyui", runtime_url=url, runtime_evidence_path=receipt)
+        with TestClient(create_app(settings, registry=registry)) as client, httpx.Client(base_url=url, trust_env=False) as peer:
+            project = client.post("/projects", json={"name": "Morning song"}).json()
+            base = "/projects/" + project["id"]
+            reference = client.post(base + "/assets", files={"file": ("reference.wav", reference_audio())}).json()
+            submitted = client.post(base + "/transcriptions", json={"reference_asset_id": reference["id"]}).json()
+            address = base + "/jobs/" + submitted["id"]
+            original = wait_running(client, address)
+            with client.websocket_connect(address + "/events") as websocket:
+                assert websocket.receive_json()["job"]["status"] == "running"
+                event.listen(Session, "after_commit", lose_intent_ack)
+                try:
+                    armed["value"] = True
+                    unconfirmed = client.post(address + "/cancel")
+                finally:
+                    event.remove(Session, "after_commit", lose_intent_ack)
+                assert unconfirmed.status_code == 503 and armed["fired"]
+                assert unconfirmed.json()["error"]["resource_id"] == submitted["id"]
+                intent = websocket.receive_json()["job"]
+                assert intent == client.get(address).json()
+                assert intent["status"] == "running" and intent["cancel_requested"] is True and intent["recovery_required"] is True
+                assert peer.get("/facts").json()["target_states"]["native-1"] == "running"
+                assert client.post(address + "/cancel").status_code in {200, 202}
+                cancelled = websocket.receive_json()["job"]
+                assert cancelled == client.get(address).json()
+                assert cancelled["status"] == "cancelled" and cancelled["recovery_required"] is False
+                assert cancelled["inputs"] == original["inputs"] and cancelled["provenance"] == original["provenance"]
+            with client.websocket_connect(address + "/events") as websocket:
+                assert websocket.receive_json()["job"] == cancelled
+            assert peer.get("/facts").json()["foreign_state"] == "running"
+            assert peer.get("/accepted").json()["count"] == 1
+            assert client.get(base + "/assets/" + reference["id"] + "/content").content == reference_audio()
+            peer.post("/control", json={"action": "finish_survivor"}).raise_for_status()

@@ -28,6 +28,8 @@ uv run --project services/api --no-sync python services/api/examples/watch_job.p
 
 连接 `WS /projects/{project_id}/jobs/{job_id}/events`。每条 JSON 包含 `type="job.updated"`、当前直播序号 `sequence` 和 `job`。`job` 与 `GET /projects/{project_id}/jobs/{job_id}` 共用 Pydantic JobRead：应用 id、五态、领域 phase、progress、结果与恢复错误。Runtime prompt/node id 与原始 caption 不进入消息。错误 Project 或 Job 引用拒绝 WebSocket，close code 为 4404。
 
+`cancel_requested` 和 `recovery_required` 也来自同一持久 Job。queued/running 的取消意图需要确认，不能显示为已取消。取消意图提交回执丢失时，事件仍能报告持久意图与恢复标志；先查询同一 Job，再按 [取消与重试指南](api-cancel-retry.md) 明确恢复。只有确认取消后才发送 cancelled 终态。
+
 连接先登记订阅，再读取新鲜持久快照；已缓冲的旧事件不能把较新快照变回 queued。序号是当前直播通道的顺序，不是永久事件游标。重连先接收新的持久快照，重置旧直播序号；HTTP 可补回遗漏的终态。慢客户端可能省略中间快照，终态不会依赖事件回放。
 
 只有有来源的阶段才显示。锁定插件 caption 可确认 loading_model、transcribing、planning_score、generating_semantic、synthesizing 或 decoding_audio；无法确认时为 null。阶段没有固定百分比，也不要求单调排列。ComfyUI 的节点进度条包含估算份额及 token 上限，当前转谱/生成不把它们转换为 Job 比例。只有可靠、有限、0–1 的整个任务读数才可返回 progress，否则为 null。
