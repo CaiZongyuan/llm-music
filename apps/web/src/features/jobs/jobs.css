@@ -11,3 +11,4 @@
 .job-problem small { color:var(--error) }
 .job-attempt code { overflow-wrap:anywhere }
 .global-jobs { display:grid; gap:24px }
+.job-result-links { display:flex; flex-wrap:wrap; gap:18px; margin-bottom:14px }
