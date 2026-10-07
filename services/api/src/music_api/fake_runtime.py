@@ -5,7 +5,7 @@ from dataclasses import replace
 from pathlib import Path
 import struct
 import time
-from typing import Mapping
+from typing import Callable, Mapping
 from uuid import uuid4
 
 from music_api.readiness import evaluate_readiness
@@ -23,9 +23,11 @@ class FakeInferenceRuntime:
     mode: RuntimeMode = "fake"
 
     def __init__(self, results: Mapping[Operation, RuntimeResult] | None = None, registry: WorkflowRegistry | None = None,
-                 output_dir: Path | None = None, max_age_seconds: float = 300) -> None:
+                 output_dir: Path | None = None, result_factories: Mapping[Operation, Callable[[], RuntimeResult]] | None = None,
+                 max_age_seconds: float = 300) -> None:
         self.registry = registry or WorkflowRegistry()
         self.output_dir = output_dir
+        self.result_factories = dict(result_factories or {})
         self.max_age_seconds = max_age_seconds
         self.results: dict[Operation, RuntimeResult] = dict(results) if results is not None else {"Transcribe": RuntimeResult(
             (RuntimeArtifact("abc", ABC, "abc", "text/vnd.abc", "score.abc"), RuntimeArtifact("midi", MIDI, "mid", "audio/midi", "score.mid")),
@@ -34,7 +36,7 @@ class FakeInferenceRuntime:
         self._requests: dict[str, tuple[RuntimeRequest, float]] = {}
 
     def health(self) -> RuntimeObservation:
-        nodes = frozenset(node for operation in self.results for node in self.registry.workflow(operation).required_nodes)
+        nodes = frozenset(node for operation in self.results.keys() | self.result_factories.keys() for node in self.registry.workflow(operation).required_nodes)
         return RuntimeObservation("fake", "Identified CPU Runtime fixtures", datetime.now(timezone.utc), True, registered_nodes=nodes)
 
     def capabilities(self, observation: RuntimeObservation | None = None) -> tuple[CapabilityObservation, ...]:
@@ -47,6 +49,8 @@ class FakeInferenceRuntime:
         if not capability.ready:
             return SubmissionReceipt("rejected", code="capability_missing", message="The requested fake fixture is unavailable.")
         handle = str(uuid4())
+        if request.operation in self.result_factories:
+            self.results[request.operation] = self.result_factories[request.operation]()
         self._requests[handle] = (request, time.monotonic())
         if self.output_dir is not None:
             folder = self.output_dir / handle
