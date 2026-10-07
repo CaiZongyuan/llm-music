@@ -127,8 +127,15 @@ test('invalid audio, loading, failed reads, route recovery and narrow screen kee
   release(); await page.unrouteAll({ behavior: 'wait' });
   await expect(page.getByRole('heading', { name: project.name, exact: true })).toBeVisible();
   await page.goto(`/projects/${randomUUID()}`);
-  await expect(page.getByRole('alert')).toContainText('这个项目或素材不存在');
-  await page.getByRole('link', { name: '返回我的项目', exact: true }).click();
+  // Asset/Job errors can arrive before the parent Project read finishes.
+  const returnToLibrary = page.getByRole('link', { name: '返回我的项目', exact: true });
+  await expect(returnToLibrary).toBeVisible();
+  const projectError = page.getByRole('main').getByRole('alert');
+  await expect(projectError).toHaveCount(1);
+  await expect(projectError).toContainText('这个项目或素材不存在，请重新选择。');
+  await expect(projectError).toContainText('project_not_found');
+  await returnToLibrary.click();
+  await expect(page.getByRole('heading', { name: '给下一个灵感，留一个位置', exact: true })).toBeVisible();
   await page.goto('/an-address-with-no-workspace');
   await expect(page.getByRole('heading', { name: '找不到这个页面', exact: true })).toBeVisible();
   await page.getByRole('link', { name: '返回我的项目', exact: true }).click();
