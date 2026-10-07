@@ -2,6 +2,12 @@
 
 Baseline: `6b704862e0c1c3cc74bc84757422763c8a7f8cb5`. Scope: one root pnpm workspace/lock, `tests/browser/`, pinned CPU browser CI, and paired source-referenced guides. Production API routes, Swagger HTML, Runtime, models, user-staged `.gitignore`/`GLOSSARY.md`, and the formal P2 Web are outside the edit scope.
 
+## Swagger evidence preference
+
+On 2026-10-07 the user requested screenshots/traces instead of Swagger recordings. The Swagger suite now forces `video: 'off'`, including when `PLAYWRIGHT_RECORD_VIDEO=on`; failure screenshots/traces and the explicit `--trace on` option remain available. Previous Swagger recordings remain historical evidence. The general harness keeps optional video for future formal Web workflows; compressed WebM or actual-music auditions are separate delivery artifacts. The isolated one-journey confirmation and source freeze are recorded in `.scratch/p1-development/swagger-preferences-developer/`.
+
+The existing real Chromium journey passed once in 50.6 seconds with `PLAYWRIGHT_RECORD_VIDEO=on pnpm test:browser --trace on`. No WebM appeared in test results, the report or the owned API artifacts; the retained trace contains 740 automatic screenshot frames. The API acknowledged graceful shutdown, and PID `51304`/port `14662` were absent afterward. Frozen pnpm installation, strict TypeScript and both guides' five matching source includes passed. Only the Swagger suite recording option and its documentation changed; no API suite or GPU operation was run for this preference.
+
 ## Actual browser evidence
 
 Windows host: Node `24.18.0`, pnpm `11.22.0`, uv `0.11.28`, independent Python `3.12.13`, Playwright `1.63.0`, and local Swagger `5.33.1`. The API environment contains no Torch. All business reads and writes went through actual Chromium Swagger forms, Execute, and Download file; only the two pinned Swagger vendor assets were fulfilled locally, and the external favicon was cancelled. The fixture asserts both local vendor assets were used and no page exception occurred.
