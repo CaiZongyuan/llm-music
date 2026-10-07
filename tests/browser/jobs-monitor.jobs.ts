@@ -251,3 +251,34 @@ test('a definite readiness rejection preserves the original error and allows an 
   const originalAfter = received(await api.GET('/projects/{project_id}/jobs/{job_id}', { params: { path: { project_id: project.id, job_id: original.id } } }));
   expect(originalAfter.status).toBe('failed'); expect(originalAfter.inputs).toEqual(original.inputs); expect(originalAfter.error?.code).toBe('generation_failed');
 });
+
+for (const observer of ['detail', 'list'] as const) {
+  test(`${observer}: completing while only Jobs are open refreshes recently cached empty result lists`, async ({ page, request, baseURL }, info) => {
+    if (!baseURL) throw new Error('Missing Web URL');
+    const api = createMusicClient({ baseUrl: `${baseURL}/api` });
+    const seed = observer === 'detail' ? 330050 : 330051;
+    await control(request, seed, { state: 'running', phase: 'synthesizing' });
+    const project = received(await api.POST('/projects', { body: { name: `Results returned from ${observer} Jobs` } }));
+    const original = received(await api.POST('/projects/{project_id}/jobs/generate', { params: { path: { project_id: project.id } }, body: { style: 'piano', lyrics: 'Morning', seed } }));
+    await page.goto(`/test/job-results.html?projectId=${project.id}&jobId=${original.id}&observer=${observer}`);
+    for (const label of ['Asset count', 'Score count', 'Candidate count']) await expect(page.getByLabel(label, { exact: true })).toHaveText('0');
+    const cachedAt = Date.now();
+    await page.getByRole('button', { name: 'Observe only Jobs', exact: true }).click();
+    await expect(page.locator('.tag')).toHaveText(labels['zh-CN'].running);
+    await expect(page.getByRole('region', { name: 'Saved results', exact: true })).toHaveCount(0);
+    await control(request, seed, { state: 'completed' });
+    if (observer === 'list') await page.getByRole('button', { name: 'Read Job list', exact: true }).click();
+    await expect(page.locator('.tag')).toHaveText(labels['zh-CN'].completed);
+    const assets = received(await api.GET('/projects/{project_id}/assets', { params: { path: { project_id: project.id } } }));
+    const scores = received(await api.GET('/projects/{project_id}/scores', { params: { path: { project_id: project.id } } }));
+    const candidates = received(await api.GET('/projects/{project_id}/candidates', { params: { path: { project_id: project.id } } }));
+    expect(assets).toHaveLength(2); expect(scores).toHaveLength(1); expect(candidates).toHaveLength(1);
+    await page.getByRole('button', { name: 'Return to saved results', exact: true }).click();
+    await expect(page.getByLabel('Asset count', { exact: true })).toHaveText('2', { timeout: 3_000 });
+    await expect(page.getByLabel('Score count', { exact: true })).toHaveText('1', { timeout: 3_000 });
+    await expect(page.getByLabel('Candidate count', { exact: true })).toHaveText('1', { timeout: 3_000 });
+    for (const value of [...assets, ...scores, ...candidates]) await expect(page.getByText(value.id, { exact: true })).toBeVisible();
+    expect(Date.now() - cachedAt).toBeLessThan(15_000);
+    await info.attach('returned-result-identities', { body: JSON.stringify({ observer, project: project.id, job: original.id, assets, scores, candidates, elapsed_since_empty_cache_ms: Date.now() - cachedAt }, null, 2), contentType: 'application/json' });
+  });
+}
