@@ -5,8 +5,11 @@ description = "Local Project and Asset application API, independent of GPU Runti
 requires-python = ">=3.12,<3.13"
 dependencies = [
   "alembic>=1.14,<2",
+  "av>=16,<17",
   "fastapi>=0.115,<1",
+  "numpy>=2,<3",
   "pydantic-settings>=2.7,<3",
+  "psutil>=7,<8",
   "python-multipart>=0.0.20,<0.1",
   "sqlalchemy>=2.0,<2.1",
   "uvicorn>=0.34,<1",
@@ -16,7 +19,7 @@ dependencies = [
 music-api = "music_api.cli:main"
 
 [dependency-groups]
-dev = ["httpx>=0.28,<0.29", "mypy>=1.15,<2", "pytest>=8,<9"]
+dev = ["httpx>=0.28,<0.29", "mypy>=1.15,<2", "pytest>=8,<9", "types-psutil>=7,<8"]
 
 [build-system]
 requires = ["hatchling"]

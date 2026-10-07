@@ -43,7 +43,7 @@ Project 名称去掉首尾空白，长度 1–200 字符；描述至多 2000 字
 
 当前支持非空、完整的 mono/stereo PCM WAV：8、16、24 或 32 bit 整数样本，8–192 kHz。工具逐个读取所有 PCM 帧，拒绝截断或不支持的内容。默认文件预算 64 MiB、时长预算 600 秒；这些是应用上传政策，不表示模型已经验证相同长度。完整 multipart 请求另有 64 KiB 的字段/边界余量，含无 Content-Length 的请求。可在启动前设置 `MUSIC_API_MAX_UPLOAD_BYTES`、`MUSIC_API_MAX_AUDIO_SECONDS`；必须为有限正值。
 
-应用创建 `--data-dir/app.sqlite` 和 `--data-dir/assets/`。SQLAlchemy 2/Alembic 管理元数据，SQLite WAL 保存事务；原始文件独立保存在应用 storage。默认 data-dir 为仓库 `data/`，也可用 `MUSIC_API_DATA_DIR`；CLI 参数优先。保持同一配置并将数据库与 Asset 文件一起备份。Runtime 临时源文件清理不影响已成功导入的文件。当前 schema 只包含 Project 与 Reference Audio；Job、Score、Candidate、Version 和正式 Web 由后续已规划票据交付。
+应用创建 `--data-dir/app.sqlite` 和 `--data-dir/assets/`。SQLAlchemy 2/Alembic 管理元数据，SQLite WAL 保存事务；原始文件独立保存在应用 storage。默认 data-dir 为仓库 `data/`，也可用 `MUSIC_API_DATA_DIR`；CLI 参数优先。保持同一配置并将数据库与 Asset 文件一起备份。Runtime 临时源文件清理不影响已成功导入的文件。上传路径继续保留原始内容；后续已实现的 Job/Score 扩展见 [应用转谱指南](api-transcription.md)，Candidate/Version 与正式 Web 按各自票据交付。
 
 ## 失败与恢复
 

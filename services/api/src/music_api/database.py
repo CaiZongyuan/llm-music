@@ -32,8 +32,9 @@ class Project(Base):
 
 class Asset(Base):
     __tablename__ = "assets"
-    __table_args__ = (CheckConstraint("size_bytes > 0 AND duration_seconds > 0"),
-                      CheckConstraint("channels IN (1, 2) AND sample_rate > 0"),)
+    __table_args__ = (CheckConstraint("size_bytes > 0", name="ck_asset_file_size"),
+                      CheckConstraint("kind NOT IN ('reference_audio','generated_audio') OR (duration_seconds IS NOT NULL AND duration_seconds > 0 AND channels IS NOT NULL AND channels IN (1,2) AND sample_rate IS NOT NULL AND sample_rate > 0)", name="ck_asset_audio_facts"),
+                      CheckConstraint("kind != 'reference_audio' OR sample_width_bits IN (8,16,24,32) AND sample_width_bits IS NOT NULL", name="ck_reference_width"))
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True)
     project_id: Mapped[str] = mapped_column(ForeignKey("projects.id", ondelete="RESTRICT"), index=True)
@@ -44,10 +45,10 @@ class Asset(Base):
     media_type: Mapped[str] = mapped_column(String(64))
     size_bytes: Mapped[int] = mapped_column(Integer)
     sha256: Mapped[str] = mapped_column(String(64))
-    duration_seconds: Mapped[float] = mapped_column(Float)
-    channels: Mapped[int] = mapped_column(Integer)
-    sample_rate: Mapped[int] = mapped_column(Integer)
-    sample_width_bits: Mapped[int] = mapped_column(Integer)
+    duration_seconds: Mapped[float | None] = mapped_column(Float)
+    channels: Mapped[int | None] = mapped_column(Integer)
+    sample_rate: Mapped[int | None] = mapped_column(Integer)
+    sample_width_bits: Mapped[int | None] = mapped_column(Integer)
     created_at: Mapped[str] = mapped_column(String(40), default=utc_now)
 
 

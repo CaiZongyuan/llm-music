@@ -23,16 +23,16 @@ class AssetRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     id: UUID
     project_id: UUID
-    kind: Literal["reference_audio"]
+    kind: Literal["reference_audio", "score_abc", "score_midi", "generated_audio"]
     original_name: str
-    format: Literal["wav"]
-    media_type: Literal["audio/wav"]
+    format: Literal["wav", "abc", "mid", "flac"]
+    media_type: str
     size_bytes: int = Field(gt=0)
     sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
-    duration_seconds: float = Field(gt=0)
-    channels: int = Field(ge=1, le=2)
-    sample_rate: int = Field(gt=0)
-    sample_width_bits: Literal[8, 16, 24, 32]
+    duration_seconds: float | None = Field(default=None, gt=0)
+    channels: int | None = Field(default=None, ge=1, le=2)
+    sample_rate: int | None = Field(default=None, gt=0)
+    sample_width_bits: Literal[8, 16, 24, 32] | None = None
     created_at: datetime
 
 
@@ -45,3 +45,34 @@ class ErrorDetail(BaseModel):
 
 class ErrorResponse(BaseModel):
     error: ErrorDetail
+
+
+class TranscribeCreate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    reference_asset_id: UUID
+
+
+class JobRead(BaseModel):
+    id: UUID
+    project_id: UUID
+    operation: Literal["Transcribe", "Generate"]
+    status: Literal["queued", "running", "completed", "failed", "cancelled"]
+    phase: str | None
+    progress: float | None
+    inputs: dict[str, object]
+    provenance: dict[str, object]
+    error: dict[str, object] | None
+    result: dict[str, str] | None
+    recovery_required: bool
+    created_at: datetime
+    updated_at: datetime
+
+
+class ScoreRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: UUID
+    project_id: UUID
+    job_id: UUID
+    abc_asset_id: UUID
+    source_reference_asset_id: UUID | None
+    created_at: datetime

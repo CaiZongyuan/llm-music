@@ -60,7 +60,8 @@ class Storage:
     def path_for(self, key: str) -> Path:
         parts = PurePosixPath(key).parts
         try:
-            if len(parts) != 2 or str(UUID(parts[0])) != parts[0] or not parts[1].endswith(".wav") or str(UUID(parts[1][:-4])) + ".wav" != parts[1]:
+            suffix = PurePosixPath(parts[1]).suffix if len(parts) == 2 else ""
+            if len(parts) != 2 or str(UUID(parts[0])) != parts[0] or suffix not in {".wav", ".abc", ".mid", ".flac"} or str(UUID(parts[1][:-len(suffix)])) + suffix != parts[1]:
                 raise ValueError("Invalid server storage key")
         except (ValueError, AttributeError) as error:
             raise DomainError(409, "asset_path_invalid", "Asset storage key is invalid.",
