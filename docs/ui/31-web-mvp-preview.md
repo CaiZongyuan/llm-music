@@ -3,7 +3,7 @@
 - 票据：[#31](https://github.com/CaiZongyuan/llm-music/issues/31)，父规格 [#6](https://github.com/CaiZongyuan/llm-music/issues/6)。
 - 预览：[web-mvp-v1](../previews/web-mvp-v1/README.md)。
 - 实际 P1 集成基线：`15de0d9e424efaf06e5b75ffc67f57ef32421561`；#27 已关闭，#31 原生阻塞已满足。
-- 状态：**作者已冻结可运行预览及验证，等待独立核验与具体产品交互确认**。
+- 状态：**用户已确认布局与流程；正式 Web 增加中英双语和亮暗模式。预览服务按用户要求关闭。**
 
 ## 要确认的体验
 
@@ -40,4 +40,8 @@ PowerShell 未加引号的 @ref、stdin eval 和 Windows Python Store alias 曾�
 
 ## 用户反馈与确认
 
-待 Root 提交完整可审阅版本后记录实际回答。未代替用户选择，也未实施正式 React 页面。#31 不在仅源码就绪时关闭。
+Root 已对两条隔离创作流程、唯一播放器的实际时钟、明确保存 Version、16 秒本地参考输入、模型恢复与静态 GET 隔离进行独立核验。最终源码只将下载 Blob 生命周期简化为静态 attachment URL；最终原生 Chromium 下载验证覆盖该变化，两份文件字节和 SHA256 与合法 fixture 一致。证据保存在 `.scratch/p2-development/31-root-browser-facts.json`、`31-root.har` 与 `31-preview/`。
+
+用户最初回答 **“重新启动一下”**，这仅授权恢复预览，不作为体验确认。Root 恢复同一已冻结版本并核对 HTTP200 后，再提交具体确认。用户随后回答：**“认可，需要中英双语，亮暗模式”**。该回答确认 `e2029719eab0e02d2e198f48fdd0f9e21ff360d6` 的布局与流程，并要求正式 Web 同步提供中英文及亮暗主题。沿用已确认布局、创作语言和交互，不需要重新选择整体设计。
+
+用户随后明确要求 **“关闭预览吧”**。Root 核对自有 Node PID47544 的创建时间、脚本、端口与进程身份后停止服务，读回18032无监听，并关闭本任务的浏览器会话。预览源文件和已确认版本保留；正式 React 实现交由 #32 的新 Developer。#31 的实际关闭仍由 Root 在反馈记录集成后读回。
