@@ -30,6 +30,8 @@ class Job(Base):
     runtime_handle: Mapped[str | None] = mapped_column(String(200))
     submission_state: Mapped[str] = mapped_column(String(32), default="pending")
     cancel_requested: Mapped[bool] = mapped_column(Boolean, default=False)
+    runtime_proof: Mapped[dict[str, object] | None] = mapped_column(JSON(none_as_null=True))
+    recovery_cursor: Mapped[dict[str, object] | None] = mapped_column(JSON(none_as_null=True))
     status: Mapped[str] = mapped_column(String(16), default="queued")
     phase: Mapped[str | None] = mapped_column(String(32))
     progress: Mapped[float | None] = mapped_column(Float)
