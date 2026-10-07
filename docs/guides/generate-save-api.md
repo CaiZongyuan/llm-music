@@ -1,0 +1,69 @@
+# 通过应用 API 生成并保存歌曲
+
+通过 style、lyrics 和 seed 生成可试听 Audio 与可检查 Score。生成成功得到 Candidate；明确保存后才得到 Version。当前是 P1 HTTP/Swagger 流程。默认 fake 模式使用原始 CPU 夹具，不能证明模型效果。
+
+## 启动独立 API
+
+在仓库根目录执行。FastAPI 使用自己的 uv 环境和锁文件，不需要 Torch、CUDA 或运行中的 ComfyUI。
+
+```powershell
+uv sync --project services/api --locked --python 3.12.13
+$env:MUSIC_API_RUNTIME_MODE = "fake"
+uv run --project services/api --no-sync music-api serve --data-dir data/application-fake --port 8000
+```
+
+打开 `http://127.0.0.1:8000/docs`。应用在指定目录保存 SQLite 与 Asset 文件；重新启动时使用同一目录。fake 与 comfyui 数据目录分别使用，既有目录的模式不能切换。
+
+## 生成并检查 Candidate
+
+在另一个终端，从仓库根目录创建 UTF-8 歌词文件，例如 `data/morning-lyrics.txt`：
+
+```text
+[Verse]
+Morning gathers on the window
+Let the quiet carry us home
+```
+
+运行完整示例。该命令创建 Project 并提交 Generate；已有 Project 可传 `--project-id <PROJECT_ID>`。使用新的输出目录。
+
+```powershell
+uv run --project services/api --no-sync python services/api/examples/generate_save.py generate --style "gentle folk pop" --lyrics-file data/morning-lyrics.txt --seed 2026192201 --output-dir data/morning-candidate-01
+```
+
+终端输出 `project_id` 和 Candidate，下载目录包含 `audio.flac`、`score.abc`。试听音频、阅读乐谱，再决定是否保存。fake 音频是明确标识的测试音调。命令不会创建 Version。
+
+HTTP 请求为 `POST /projects/{project_id}/jobs/generate`。style 与 lyrics 去掉首尾空白后必须非空，分别最多 1024 和 10000 个字符。seed 必须是 0 到 `2^63−1` 的整数。`max_seconds` 仅支持 35；当前只验证短歌配置。
+
+请求返回 `202` 与应用 Job id。查询 `GET /projects/{project_id}/jobs/{job_id}`；五种状态为 queued、running、completed、failed、cancelled。成功结果包含 `candidate_id`、`audio_asset_id`、`abc_asset_id` 和 `score_id`。应用完成 Score 校验、FLAC 全解码和整个输出集导入后，才标记 completed。
+
+Candidate 可从 `GET /projects/{project_id}/candidates` 列表，或 `/candidates/{candidate_id}` 读取。它保留输入、运行参数、Workflow/Runtime provenance 和输出事实。G35 输出当前要求 FLAC PCM16、48 kHz、双声道、30–40 秒，并且全解码帧数与 STREAMINFO 声明一致。声明样本数为零的合法流式 FLAC 暂不能在这个已验证配置中完成确认。
+
+## 明确保存 Version
+
+将占位值替换为上一步输出，运行：
+
+```powershell
+uv run --project services/api --no-sync python services/api/examples/generate_save.py save --project-id <PROJECT_ID> --candidate-id <CANDIDATE_ID> --name "First morning"
+```
+
+这对应 `POST /projects/{project_id}/versions`。可加 `--parent-version-id <VERSION_ID>`，从同 Project 的已有 Version 建立分支。保存复制 Candidate 的输入、provenance 与输出快照；后续生成不会覆盖既有快照或 Asset。名称去掉首尾空白后必须非空，最多 200 个字符。
+
+第一次保存返回 `201`。相同 Candidate、名称和 parent 重复保存返回 `200` 与同一 Version，包括并发请求。更改已保存 Candidate 的名称或 parent 返回 `409 version_already_saved`，错误中保留既有 Version id。为新的保存意图生成新的 Candidate。
+
+用 `GET /projects/{project_id}/versions` 查看列表，用 `/versions/{version_id}` 再次读取。通过应用 Asset `/content` 地址下载音频或 ABC。停止并重启 API 后，使用同一数据目录读取历史；应用文件无需保留临时推理输出。
+
+## 失败恢复与真实 Runtime
+
+- `422 invalid_request`：修正空输入、seed 或超出范围的字段，再提交。
+- failed Job：读取其中的错误与 recovery_required，保留该 Job。缺输出、无效 Score、未完成的 FLAC 或无法确认的输出不会创建 Candidate/Version。修复原因后显式提交新的 Job；不会自动重复推理。
+- `404 candidate_not_found` / `parent_version_not_found`：选择目标 Project 的 Candidate 或已保存 parent。跨 Project 引用不能保存。
+- `503 version_commit_unconfirmed`：先用错误中的 `resource_id` 查询 Version。确认存在时读取其结果；不存在时恢复数据库访问，再重试相同 Candidate、名称和 parent。无法确认时应用保留原有 Asset 与快照。
+- `409 asset_unavailable` / `asset_path_invalid`：恢复原应用文件或备份中的映射；不能用 Runtime 路径替代应用 id。
+
+真实生成由 GPU 资源 owner 在已通过 P0 的固定 Runtime 上验证。切换 `MUSIC_API_RUNTIME_MODE=comfyui`、设置 `MUSIC_API_RUNTIME_EVIDENCE_PATH` 指向最新 owner 证据，并使用单独的应用目录。复用 [Runtime 准备](runtime-doctor.md) 与已验证的 [短歌 Workflow](api-generation.md)。该指南的 CPU 夹具检查不能替代真实 Runtime 验收。
+
+完整 HTTP 示例来自受版本控制的源码：
+
+<<< ../../services/api/examples/generate_save.py
+
+实际验证与限制见 [维护记录](../verification/generate-save-api.md)。在线文档站在后续阶段交付；当前直接阅读仓库文档。
