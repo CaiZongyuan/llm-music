@@ -45,7 +45,9 @@ def import_result(database: Database, storage: Storage, job_id: str, materials: 
                   result: RuntimeResult, registrar: ResultRegistrar | None) -> None:
     published: list[Path] = []
     staged: list[Path] = []
+    owned_ids: list[str] = []
     keep_published = False
+    commit_attempted = False
     with database.sessions() as session:
         job = session.get(Job, job_id)
         if job is None:
@@ -56,6 +58,7 @@ def import_result(database: Database, storage: Storage, job_id: str, materials: 
         try:
             for material in materials:
                 identifier = str(uuid4())
+                owned_ids.append(identifier)
                 key = job.project_id + "/" + identifier + "." + material.format
                 stage = storage.stage(io.BytesIO(material.data))
                 staged.append(stage.path)
@@ -84,27 +87,31 @@ def import_result(database: Database, storage: Storage, job_id: str, materials: 
             job.result_refs = refs
             job.status, job.phase, job.progress = "completed", None, None
             job.updated_at = utc_now()
-            try:
-                session.commit()
-            except Exception as error:
-                rollback_confirmed = True
-                try:
-                    session.rollback()
-                except Exception:
-                    rollback_confirmed = False
-                try:
-                    with database.engine.connect() as connection:
-                        completed = connection.execute(select(Job.status).where(Job.id == job_id)).scalar_one_or_none() == "completed"
-                        persisted = connection.execute(select(Asset.id).where(Asset.id.in_([item.id for item in assets.values()]))).first() is not None
-                    keep_published = completed or persisted or not rollback_confirmed
-                    if completed:
-                        return
-                except Exception:
-                    keep_published = True
-                if keep_published:
-                    raise DomainError(503, "result_commit_unconfirmed", "Result commit acknowledgement is unconfirmed; its files are retained.", "Query the same Job before explicitly retrying; do not resubmit inference automatically.") from error
-                raise DomainError(503, "result_persistence_failed", "Validated result metadata could not be committed.", "Restore database access and retain this Job's input/attempt evidence.") from error
+            commit_attempted = True
+            session.commit()
             keep_published = True
+        except Exception as error:
+            rollback_confirmed = True
+            try:
+                session.rollback()
+            except Exception:
+                rollback_confirmed = False
+            try:
+                with database.engine.connect() as connection:
+                    durable = connection.execute(select(Asset.id).where(Asset.id.in_(owned_ids))).first() is not None
+                    completed = connection.execute(select(Job.status).where(Job.id == job_id)).scalar_one_or_none() == "completed"
+                keep_published = durable or completed or not rollback_confirmed
+                if completed:
+                    return
+            except Exception:
+                keep_published = True
+            if keep_published:
+                raise DomainError(503, "result_commit_unconfirmed", "Result persistence outcome is unconfirmed; its files are retained.", "Query the same Job before explicitly retrying; do not resubmit inference automatically.") from error
+            if isinstance(error, OSError):
+                raise DomainError(503, "result_storage_unavailable", "Validated output could not be imported into application storage.", "Restore storage access and query this Job before explicitly retrying.") from error
+            if isinstance(error, DomainError):
+                raise
+            raise DomainError(503, "result_persistence_failed", "Validated result metadata could not be committed." if commit_attempted else "Validated result metadata could not be associated.", "Restore database access and retain this Job's input/attempt evidence.") from error
         finally:
             cleanup_errors = []
             for path in staged + ([] if keep_published else published):
