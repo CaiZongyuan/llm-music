@@ -31,6 +31,8 @@ def test_current_bound_source_preserves_verified_hash_without_loading_gpu(tmp_pa
     ("resaved_stale", "runtime_evidence_stale"),
     ("foreign_revision", "runtime_evidence_revision_mismatch"),
     ("foreign_mode", "runtime_evidence_invalid"),
+    ("future_receipt", "runtime_evidence_future"),
+    ("future_model", "model_evidence_future"),
 ])
 def test_current_authorization_rejects_changed_or_foreign_source(tmp_path: Path, scenario: str, code: str) -> None:
     with bound_evidence(tmp_path) as (url, requirements, receipt, receipt_path, model, _):
@@ -51,8 +53,12 @@ def test_current_authorization_rejects_changed_or_foreign_source(tmp_path: Path,
             data["models"][0]["checked_at"] = old
         elif scenario == "foreign_revision":
             data["runtime_revision"] = "0" * 40
-        else:
+        elif scenario == "foreign_mode":
             data["mode"] = "fake"
+        elif scenario == "future_receipt":
+            data["checked_at"] = (datetime.now(timezone.utc) + timedelta(seconds=600)).isoformat()
+        else:
+            data["models"][0]["checked_at"] = (datetime.now(timezone.utc) + timedelta(seconds=600)).isoformat()
         receipt_path.write_text(json.dumps(data), encoding="utf-8")
         evidence = read_runtime_evidence(receipt_path, runtime_url=url, now=datetime.now(timezone.utc),
                                          max_age_seconds=300, requirements=requirements)
