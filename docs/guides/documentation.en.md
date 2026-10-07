@@ -1,11 +1,12 @@
 # Generate and verify the Music Workbench documentation site
 
-Work from the repository root. Use Node.js 24.18.0 and pnpm 11.22.0. This guide is verified on Windows x64; PowerShell runs the isolated example checks. FastAPI and ComfyUI environments are not used for documentation generation. These commands run no Doctor checks, download no weights, and submit no GPU requests.
+Work from the repository root. Use Node.js 24.18.0, pnpm 11.22.0, uv 0.11.28, and Python 3.12.13. This guide is verified on Windows x64; PowerShell runs the isolated example checks. API references use the independent FastAPI environment for CPU contract export. The ComfyUI environment is not used. These commands run no Doctor checks, download no weights, and submit no GPU requests.
 
 ## Get a browsable site
 
 ```powershell
 pnpm install --frozen-lockfile
+uv sync --project services/api --locked --python 3.12.13
 pnpm docs:dev
 ```
 
@@ -16,10 +17,14 @@ The main entrypoints serve music creators: first music, Reference Audio transcri
 ## Change the sources
 
 1. Read the [documentation maintenance rules](../agents/documentation.md).
-2. Edit paired `.md` and `.en.md` bodies under `docs/learn/`. Do not add generated frontmatter.
+2. Edit paired `.md` and `.en.md` bodies under `docs/learn/`, `docs/guides/`, or `docs/reference/`. Do not add generated frontmatter.
 3. Register the stable id, type, group, localized titles, body sources, and publish path in the [chapter manifest](../site.json). Both languages share one path. Register implemented scope only.
 4. Use matching stable section ids, such as `## Prepare the models {#models}`. Previous and next chapters must be declared and reciprocal. Undeclared links never create automatic chapter chains.
 5. Keep teaching code in complete versioned source files. Include a file with `<<< ../../runtime/comfyui/examples/doctor.ps1`. The generator reads the entire file and adds its source link at a fixed commit.
+
+Register an API reference with `generated: "openapi"` and include `<<< @openapi` in its body. It reads the same `music-api openapi` export as the client. Register configuration with `generated: "settings"` and `<<< @settings`; the generator calls the existing Settings metadata function without reading effective configuration. Contract JSON stays in `.generated/` for checks. Do not hand-maintain fields, defaults, or constraints. If the independent API environment is missing, run the locked synchronization above and retry.
+
+Register maintained guides directly. Manifest `sectionIds` assign stable ids in body section order, and the page title replaces the first H1. A section count change fails generation; update the manifest and paired bodies when adding a section. Chapters without `sectionIds` retain explicit `{#id}` markers. Tutorials, ideas, and technical resources still use one manifest, same-language links, and fixed source versions.
 
 Relative documentation links to registered chapters become same-language internal URLs. Referenced static assets in `apps/docs/public/` become internal URLs with the deployment base. Other repository files become GitHub links at the source commit. Source includes and repository links resolve actual paths and reject paths or filesystem links that leave the repository. Images, existing music, provenance JSON, and read-only interaction scripts retain their actual source paths.
 
@@ -47,4 +52,4 @@ This delivery provides the P0 Runtime documentation foundation. Actual GPU resul
 
 Creator tutorials use delivered P1 generation, transcription, and explicit saving. The home-page MP3 and first recipe match a verified real 35-second piece. Other ideas are untuned, unauditioned experiments. Operations use the existing application CLI and controlled UTF-8 lyrics directly; complete source is expandable on demand. Documentation pages stay read-only. CPU checks verify recipe/lyrics/listening-copy correspondence and local static asset paths without contacting the application API or Runtime.
 
-The complete FastAPI tutorial and generated reference belong to #29. Actual GitHub Pages publication belongs to #30. This ticket provides local builds and the `/llm-music/` path. Without deployment evidence, it does not claim a live publication. The product Web app still starts in P2.
+Creator tutorials and secondary API/configuration references cover delivered P1 capabilities. Reference generation, language pairing, source includes, and artifact checks start no application service, create no business database, and connect to no Runtime. Actual GitHub Pages publication belongs to #30; without deployment evidence, do not claim a live publication. The product Web app starts in P2.

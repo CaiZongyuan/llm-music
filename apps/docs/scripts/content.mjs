@@ -6,6 +6,7 @@ import remarkParse from 'remark-parse';
 import remarkStringify from 'remark-stringify';
 import { visit } from 'unist-util-visit';
 import { toString } from 'mdast-util-to-string';
+import { renderAPI, renderSettings } from './references.mjs';
 
 const markdown = unified().use(remarkParse).use(remarkStringify, { fences: true, bullet: '-' });
 const localesOf = manifest => Object.keys(manifest.locales);
@@ -53,6 +54,8 @@ export function validateManifest(manifest) {
       sources.add(source);
     }
     if (chapter.sources.en !== chapter.sources['zh-cn']?.replace(/\.md$/, '.en.md')) fail(`Paired body filenames differ: ${chapter.id}`);
+    if (chapter.generated !== undefined && !['openapi', 'settings'].includes(chapter.generated)) fail(`Unknown reference source: ${chapter.id}`);
+    if (chapter.sectionIds !== undefined && (!Array.isArray(chapter.sectionIds) || chapter.sectionIds.some(value => !/^[a-z][a-z0-9-]*$/.test(value)) || new Set(chapter.sectionIds).size !== chapter.sectionIds.length)) fail(`Invalid guide section ids: ${chapter.id}`);
   }
   if (!manifest.chapters.length) fail('At least one chapter must be registered');
   const chapters = new Map(manifest.chapters.map(chapter => [chapter.id, chapter]));
@@ -75,11 +78,11 @@ export function validateManifest(manifest) {
 export function sourceVersion(root) {
   const revision = execFileSync('git', ['rev-parse', 'HEAD'], { cwd: root, encoding: 'utf8', windowsHide: true }).trim();
   if (!/^[a-f0-9]{40}$/.test(revision)) fail('No Git source commit was found');
-  const relevantChanges = execFileSync('git', ['status', '--porcelain', '--', 'docs/learn', 'docs/site.json', 'apps/docs', 'runtime/comfyui/examples', 'services/api/examples', 'package.json', 'pnpm-workspace.yaml', 'pnpm-lock.yaml'], { cwd: root, encoding: 'utf8', windowsHide: true }).trim();
+  const relevantChanges = execFileSync('git', ['status', '--porcelain', '--', 'docs', 'apps/docs', 'runtime/comfyui/examples', 'services/api', 'packages/api-client', 'package.json', 'pnpm-workspace.yaml', 'pnpm-lock.yaml'], { cwd: root, encoding: 'utf8', windowsHide: true }).trim();
   return { revision, workingCopy: Boolean(relevantChanges) };
 }
 
-export async function loadPages(root, manifest, version = sourceVersion(root)) {
+export async function loadPages(root, manifest, version = sourceVersion(root), references = {}) {
   root = await realpath(root);
   validateManifest(manifest);
   const registeredSources = new Map(manifest.chapters.flatMap(chapter => Object.values(chapter.sources).map(source => [resolve(root, source), chapter])));
@@ -96,6 +99,26 @@ export async function loadPages(root, manifest, version = sourceVersion(root)) {
       const body = await readFile(file, 'utf8');
       if (/^---\s*\r?\n/.test(body)) fail(`Body must not define generated frontmatter: ${source}`);
       const tree = markdown.parse(body);
+      if (chapter.generated) {
+        const marker = `<<< @${chapter.generated}`;
+        const index = tree.children.findIndex(node => node.type === 'paragraph' && toString(node) === marker);
+        if (index < 0 || !references[chapter.generated]) fail(`Missing generated reference input: ${source}`);
+        const render = chapter.generated === 'openapi' ? renderAPI : renderSettings;
+        tree.children.splice(index, 1, ...markdown.parse(render(references[chapter.generated], locale)).children);
+      }
+      if (chapter.sectionIds) {
+        // Register maintained guides without creating another copy of their body.
+        if (tree.children[0]?.type === 'heading' && tree.children[0].depth === 1) tree.children.shift();
+        let index = 0;
+        visit(tree, 'heading', node => {
+          const section = chapter.sectionIds[index++];
+          if (!section) fail(`Guide sections differ from registry: ${source}`);
+          const last = node.children.at(-1);
+          if (last?.type === 'text') last.value = last.value.replace(/\s+\{#[a-z][a-z0-9-]*\}$/, '');
+          node.children.push({ type: 'text', value: ` {#${section}}` });
+        });
+        if (index !== chapter.sectionIds.length) fail(`Guide sections differ from registry: ${source}`);
+      }
       const headings = [];
       visit(tree, 'heading', node => {
         const marker = /\s+\{#([a-z][a-z0-9-]*)\}$/.exec(toString(node));
