@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>声间 · 音乐工作台交互预览</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <a class="skip" href="#view">跳到工作区</a>
+  <div class="preview-banner">交互预览 · 创作与保存为模拟操作，试听使用历史音乐。<button id="scenarios-open" type="button">检查其他状态</button></div>
+  <div class="app-shell">
+    <aside class="sidebar" aria-label="项目导航">
+      <a class="brand" href="#library"><span class="brand-mark" aria-hidden="true">♫</span><span>声间<small>LOCAL MUSIC WORKBENCH</small></span></a>
+      <nav class="main-nav" aria-label="主导航">
+        <a href="#library" data-page="library"><span aria-hidden="true">▦</span> 我的项目</a>
+        <a href="#jobs" data-page="jobs"><span aria-hidden="true">≋</span> 任务</a>
+        <a href="#runtime" data-page="runtime"><span aria-hidden="true">◉</span> 运行状态</a>
+        <a href="#settings" data-page="settings"><span aria-hidden="true">⚙</span> 使用设置</a>
+      </nav>
+      <div class="side-heading">创作项目<button type="button" data-action="new-project" aria-label="新建项目">＋</button></div>
+      <div id="project-nav"></div>
+      <div class="side-bottom"><span class="local-dot"></span> 本地创作，按你的节奏<small>短片段 · 先试听，再保留</small></div>
+    </aside>
+    <div class="main-shell">
+      <header class="topbar"><button type="button" id="mobile-nav" class="mobile-only" aria-label="切换项目导航">☰</button><div id="breadcrumb"></div><button type="button" id="readiness" data-action="runtime"></button></header>
+      <main id="view" tabindex="-1"></main>
+    </div>
+  </div>
+  <section class="player" aria-label="持续音频播放器">
+    <div class="player-track"><span class="album-mark" aria-hidden="true">♪</span><div><strong id="track-name">选择一段音乐开始试听</strong><small id="track-source">候选、已存版本与参考音频都在这里播放</small></div></div>
+    <button type="button" id="play" class="play-button" aria-label="播放" disabled>▶</button>
+    <div class="transport"><div class="transport-time"><span id="elapsed">0:00</span><span id="duration">0:00</span></div><input id="seek" type="range" min="0" max="1" step="0.01" value="0" aria-label="音频定位" disabled><span id="player-error" role="alert"></span></div>
+    <div class="region"><button type="button" id="mark-start" disabled>设起点</button><button type="button" id="mark-end" disabled>设终点</button><button type="button" id="region-loop" aria-pressed="false" disabled>循环片段</button><small id="region-label">选择一个片段反复听</small></div>
+    <audio id="audio" preload="metadata"></audio>
+  </section>
+  <div id="toast" role="status" aria-live="polite"></div>
+  <dialog id="project-dialog"><form id="project-form"><div class="dialog-heading"><h2>开始一个音乐项目</h2><button type="button" data-close="project-dialog" aria-label="关闭新建项目">×</button></div><p>给这次灵感起个名字，素材、候选结果与版本会放在一起。</p><label>项目名称<input name="name" id="project-name" required maxlength="200" placeholder="例如：雨后的散步"></label><label>创作笔记<textarea name="description" rows="3" maxlength="2000" placeholder="今天想做一段什么样的音乐？"></textarea></label><button type="submit" class="primary">创建并开始创作</button></form></dialog>
+  <dialog id="save-dialog"><form id="save-form"><div class="dialog-heading"><h2>保留这次创作</h2><button type="button" data-close="save-dialog" aria-label="关闭保存版本">×</button></div><p>保存后成为版本。之后的新实验不会覆盖它。</p><label>版本名称<input id="version-name" name="name" required maxlength="200" value="晨光 · 第一次尝试"></label><div id="save-message" role="alert"></div><button type="submit" class="primary" id="save-submit">保存为版本</button></form></dialog>
+  <dialog id="scenarios"><div class="dialog-heading"><h2>隔离预览的状态检查</h2><button type="button" data-close="scenarios" aria-label="关闭状态检查">×</button></div><p>这些控件只改变本页的模拟状态。它们不连接真实服务。</p><div class="scenario-grid"><button data-scenario="reset">重新开始</button><button data-scenario="empty">没有项目</button><button data-scenario="loading">项目正在加载</button><button data-scenario="load-error">项目读取失败</button><button data-scenario="queue">排队与运行</button><button data-scenario="failure">下次任务失败</button><button data-scenario="save-error">下次保存失败</button><button data-scenario="play-error">下次播放失败</button><button data-scenario="download-error">下次下载失败</button><button data-scenario="cancel-race">取消时刚好完成</button><button data-scenario="disconnect">事件断联</button><button data-scenario="reconnect">事件重新连接</button><button data-scenario="missing">缺少模型</button><button data-scenario="unavailable">运行服务失联</button><button data-scenario="stale">就绪信息过期</button><button data-scenario="ready">恢复就绪</button><button data-scenario="known-progress">可测量进度</button><button data-scenario="bad-route">找不到项目</button></div><small>实际刷新会重置内存数据；正式产品将从 FastAPI 恢复。页面内“重新读取”演示恢复同一模拟身份。</small></dialog>
+</body>
+</html>
