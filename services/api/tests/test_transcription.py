@@ -1,6 +1,8 @@
 """Public Job/result behavior with an external fake Runtime and real owned files."""
 
 import io
+from contextlib import closing
+import sqlite3
 from pathlib import Path
 import time
 import wave
@@ -11,6 +13,10 @@ from music_api.config import Settings
 from music_api.fake_runtime import FakeInferenceRuntime
 from music_api.main import create_app
 from music_api.runtime_types import RuntimeArtifact, RuntimeResult
+from music_api.job_models import Job
+from sqlalchemy import event
+from sqlalchemy.engine import Engine
+from sqlalchemy.orm import Session
 
 
 ABC = b"X:1\nM:4/4\nL:1/4\nK:C\nC D E F |\n"
@@ -93,3 +99,127 @@ def test_complete_transcription_keeps_result_ids_after_native_outputs_are_remove
         assert client.get(base + "/assets").json() == assets
         assert client.get(base + "/assets/" + result["abc_asset_id"] + "/content").content == abc
         assert client.get(base + "/assets/" + result["midi_asset_id"] + "/content").content == midi
+
+
+def test_result_commit_lost_acknowledgement_preserves_completed_job_and_whole_owned_set(tmp_path: Path) -> None:
+    faulted = {"value": False}
+
+    def lose_result_ack(session: Session) -> None:
+        if not faulted["value"] and any(isinstance(item, Job) and item.status == "completed" for item in session.identity_map.values()):
+            faulted["value"] = True
+            raise RuntimeError("External commit provider lost the completed result acknowledgement")
+
+    event.listen(Session, "after_commit", lose_result_ack)
+    try:
+        with TestClient(create_app(Settings(data_dir=tmp_path))) as client:
+            project = client.post("/projects", json={"name": "Morning song"}).json()
+            base = "/projects/" + project["id"]
+            reference = client.post(base + "/assets", files={"file": ("reference.wav", reference_audio())}).json()
+            created = client.post(base + "/transcriptions", json={"reference_asset_id": reference["id"]}).json()
+            job = terminal(client, base + "/jobs/" + created["id"])
+            assert faulted["value"]
+            assert job["status"] == "completed"
+            assert job["error"] is None
+            result = job["result"]
+            assert client.get(base + "/assets/" + result["abc_asset_id"] + "/content").content == ABC
+            midi = client.get(base + "/assets/" + result["midi_asset_id"] + "/content").content
+            assert midi[:4] == b"MThd"
+            assets, scores = client.get(base + "/assets").json(), client.get(base + "/scores").json()
+            assert len(assets) == 3 and len(scores) == 1
+            for _ in range(3):
+                assert client.get(base + "/jobs/" + created["id"]).json() == job
+                assert client.get(base + "/assets").json() == assets
+                assert client.get(base + "/scores").json() == scores
+    finally:
+        event.remove(Session, "after_commit", lose_result_ack)
+    with TestClient(create_app(Settings(data_dir=tmp_path))) as client:
+        assert client.get(base + "/jobs/" + created["id"]).json() == job
+        assert client.get(base + "/scores").json() == scores
+        assert client.get(base + "/assets").json() == assets
+        assert client.get(base + "/assets/" + result["abc_asset_id"] + "/content").content == ABC
+        assert client.get(base + "/assets/" + result["midi_asset_id"] + "/content").content == midi
+
+
+def test_result_metadata_abort_does_not_complete_or_keep_unregistered_files(tmp_path: Path) -> None:
+    source = reference_audio()
+    with TestClient(create_app(Settings(data_dir=tmp_path))) as client:
+        project = client.post("/projects", json={"name": "Morning song"}).json()
+        base = "/projects/" + project["id"]
+        reference = client.post(base + "/assets", files={"file": ("reference.wav", source)}).json()
+        with closing(sqlite3.connect(tmp_path / "app.sqlite")) as database, database:
+            database.execute("CREATE TRIGGER abort_score BEFORE INSERT ON scores BEGIN SELECT RAISE(ABORT, 'external result metadata failure'); END")
+        created = client.post(base + "/transcriptions", json={"reference_asset_id": reference["id"]}).json()
+        job = terminal(client, base + "/jobs/" + created["id"])
+        assert job["status"] == "failed" and job["result"] is None
+        assert client.get(base + "/scores").json() == []
+        assert client.get(base + "/assets").json() == [reference]
+        assert client.get(base + "/assets/" + reference["id"] + "/content").content == source
+        assert not list((tmp_path / "assets").rglob("*.abc"))
+        assert not list((tmp_path / "assets").rglob("*.mid"))
+
+
+def test_invalid_midi_with_valid_abc_is_rejected_before_any_output_publication(tmp_path: Path) -> None:
+    runtime = FakeInferenceRuntime(results={"Transcribe": RuntimeResult(
+        (RuntimeArtifact("abc", ABC, "abc", "text/vnd.abc", "score.abc"),
+         RuntimeArtifact("midi", b"MThd\x00\x00", "mid", "audio/midi", "score.mid")),
+        score_validation={"valid": True, "note_count": 4})})
+    with TestClient(create_app(Settings(data_dir=tmp_path), runtime=runtime)) as client:
+        project = client.post("/projects", json={"name":"Morning song"}).json()
+        base = "/projects/" + project["id"]
+        reference = client.post(base + "/assets", files={"file":("reference.wav",reference_audio())}).json()
+        created = client.post(base + "/transcriptions", json={"reference_asset_id":reference["id"]}).json()
+        job = terminal(client, base + "/jobs/" + created["id"])
+        assert job["status"] == "failed" and job["result"] is None
+        assert client.get(base + "/scores").json() == []
+        assert client.get(base + "/assets").json() == [reference]
+        assert not list((tmp_path / "assets").rglob("*.abc"))
+        assert not list((tmp_path / "assets").rglob("*.mid"))
+
+
+def test_mode_switch_cannot_silently_read_fake_results_as_real(tmp_path: Path) -> None:
+    import pytest
+    from music_api.errors import DomainError
+    with TestClient(create_app(Settings(data_dir=tmp_path))) as client:
+        project = client.post("/projects", json={"name":"Morning song"}).json()
+    with pytest.raises(DomainError, match="different Runtime mode"):
+        with TestClient(create_app(Settings(data_dir=tmp_path, runtime_mode="comfyui"))):
+            pass
+    with TestClient(create_app(Settings(data_dir=tmp_path))) as client:
+        assert client.get("/projects/" + project["id"]).json() == project
+
+
+def test_result_ack_and_readback_loss_retains_committed_files_and_cannot_downgrade_completion(tmp_path: Path) -> None:
+    import threading
+    armed = {"commit": True, "readback": False}
+    readback_fault_seen = threading.Event()
+
+    def lose_ack(session: Session) -> None:
+        if armed["commit"] and any(isinstance(item, Job) and item.status == "completed" for item in session.identity_map.values()):
+            armed["commit"], armed["readback"] = False, True
+            raise RuntimeError("External acknowledgement lost after result commit")
+
+    def lose_readback(connection, cursor, statement, parameters, context, executemany):
+        if armed["readback"] and statement.startswith("SELECT jobs.status"):
+            armed["readback"] = False
+            readback_fault_seen.set()
+            raise sqlite3.OperationalError("External result confirmation read unavailable")
+
+    event.listen(Session, "after_commit", lose_ack)
+    event.listen(Engine, "before_cursor_execute", lose_readback)
+    try:
+        with TestClient(create_app(Settings(data_dir=tmp_path))) as client:
+            project = client.post("/projects", json={"name":"Morning song"}).json()
+            base = "/projects/" + project["id"]
+            reference = client.post(base + "/assets", files={"file":("reference.wav",reference_audio())}).json()
+            created = client.post(base + "/transcriptions", json={"reference_asset_id":reference["id"]}).json()
+            job = terminal(client, base + "/jobs/" + created["id"])
+            assert readback_fault_seen.wait(2), "The external confirmation read fault must actually execute"
+            assert armed == {"commit":False,"readback":False}
+            assert job["status"] == "completed"
+            assert client.get(base + "/assets/" + job["result"]["abc_asset_id"] + "/content").content == ABC
+            assert client.get(base + "/assets/" + job["result"]["midi_asset_id"] + "/content").content.startswith(b"MThd")
+            assert len(client.get(base + "/scores").json()) == 1
+            assert len(client.get(base + "/assets").json()) == 3
+    finally:
+        event.remove(Session, "after_commit", lose_ack)
+        event.remove(Engine, "before_cursor_execute", lose_readback)

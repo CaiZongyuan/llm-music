@@ -14,6 +14,7 @@ from collections.abc import Iterator
 import httpx
 
 from test_projects_assets import reference_wav
+from test_transcription import reference_audio
 
 
 @contextmanager
@@ -135,3 +136,29 @@ def test_project_directory_reparse_cannot_escape_application_storage(tmp_path: P
                 project_dir.rmdir()  # Remove the owned junction itself, preserving its target.
             else:
                 project_dir.unlink()
+
+
+def test_completed_transcription_files_survive_real_api_process_restart(tmp_path: Path) -> None:
+    data_dir = tmp_path / "application"
+    with server(data_dir, tmp_path / "transcribe-first.log") as client:
+        project = client.post("/projects", json={"name":"Morning song"}).json()
+        base = "/projects/" + project["id"]
+        reference = client.post(base + "/assets", files={"file":("reference.wav",reference_audio())}).json()
+        created = client.post(base + "/transcriptions", json={"reference_asset_id":reference["id"]}).json()
+        deadline = time.monotonic() + 5
+        while True:
+            job = client.get(base + "/jobs/" + created["id"]).json()
+            if job["status"] in {"completed","failed"}:
+                break
+            assert time.monotonic() < deadline
+            time.sleep(0.01)
+        assert job["status"] == "completed", job
+        result = job["result"]
+        abc = client.get(base + "/assets/" + result["abc_asset_id"] + "/content").content
+        midi = client.get(base + "/assets/" + result["midi_asset_id"] + "/content").content
+        score = client.get(base + "/scores/" + result["score_id"]).json()
+    with server(data_dir, tmp_path / "transcribe-reopened.log") as client:
+        assert client.get(base + "/jobs/" + created["id"]).json() == job
+        assert client.get(base + "/scores/" + result["score_id"]).json() == score
+        assert client.get(base + "/assets/" + result["abc_asset_id"] + "/content").content == abc
+        assert client.get(base + "/assets/" + result["midi_asset_id"] + "/content").content == midi
