@@ -1,0 +1,277 @@
+[
+  {
+    "id": "api-reference",
+    "type": "reference",
+    "group": "technical",
+    "path": "api-reference",
+    "titles": {
+      "zh-cn": "API 合同参考",
+      "en": "API contract reference"
+    },
+    "labels": {
+      "zh-cn": "API 合同参考",
+      "en": "API contract reference"
+    },
+    "sources": {
+      "zh-cn": "docs/reference/api.md",
+      "en": "docs/reference/api.en.md"
+    },
+    "generated": "openapi"
+  },
+  {
+    "id": "settings-reference",
+    "type": "reference",
+    "group": "technical",
+    "path": "settings-reference",
+    "titles": {
+      "zh-cn": "应用配置参考",
+      "en": "Application configuration"
+    },
+    "labels": {
+      "zh-cn": "应用配置参考",
+      "en": "Application configuration"
+    },
+    "sources": {
+      "zh-cn": "docs/reference/settings.md",
+      "en": "docs/reference/settings.en.md"
+    },
+    "generated": "settings"
+  },
+  {
+    "id": "project-audio-guide",
+    "type": "guide",
+    "group": "technical",
+    "path": "project-audio",
+    "titles": {
+      "zh-cn": "Project 与参考音频",
+      "en": "Projects and Reference Audio"
+    },
+    "labels": {
+      "zh-cn": "Project 与参考音频",
+      "en": "Projects and Reference Audio"
+    },
+    "sources": {
+      "zh-cn": "docs/guides/api-project-audio.md",
+      "en": "docs/guides/api-project-audio.en.md"
+    },
+    "sectionIds": [
+      "first-result",
+      "contract",
+      "recovery",
+      "checks"
+    ]
+  },
+  {
+    "id": "transcription-guide",
+    "type": "guide",
+    "group": "technical",
+    "path": "application-transcription",
+    "titles": {
+      "zh-cn": "应用转谱与导出",
+      "en": "Application transcription and export"
+    },
+    "labels": {
+      "zh-cn": "应用转谱与导出",
+      "en": "Application transcription and export"
+    },
+    "sources": {
+      "zh-cn": "docs/guides/api-transcription.md",
+      "en": "docs/guides/api-transcription.en.md"
+    },
+    "sectionIds": [
+      "cpu-example",
+      "real-runtime",
+      "recovery"
+    ]
+  },
+  {
+    "id": "generation-guide",
+    "type": "guide",
+    "group": "technical",
+    "path": "generation-saving",
+    "titles": {
+      "zh-cn": "生成、Candidate 与保存",
+      "en": "Generation, Candidates, and saving"
+    },
+    "labels": {
+      "zh-cn": "生成、Candidate 与保存",
+      "en": "Generation, Candidates, and saving"
+    },
+    "sources": {
+      "zh-cn": "docs/guides/generate-save-api.md",
+      "en": "docs/guides/generate-save-api.en.md"
+    },
+    "sectionIds": [
+      "start",
+      "candidate",
+      "save",
+      "recovery"
+    ]
+  },
+  {
+    "id": "cancel-retry-guide",
+    "type": "guide",
+    "group": "technical",
+    "path": "cancel-retry",
+    "titles": {
+      "zh-cn": "取消与明确重试",
+      "en": "Cancel and explicitly retry"
+    },
+    "labels": {
+      "zh-cn": "取消与明确重试",
+      "en": "Cancel and explicitly retry"
+    },
+    "sources": {
+      "zh-cn": "docs/guides/api-cancel-retry.md",
+      "en": "docs/guides/api-cancel-retry.en.md"
+    },
+    "sectionIds": [
+      "prepare",
+      "cancel",
+      "retry",
+      "recovery"
+    ]
+  },
+  {
+    "id": "job-events-guide",
+    "type": "guide",
+    "group": "technical",
+    "path": "job-events",
+    "titles": {
+      "zh-cn": "Job 事件与 HTTP 恢复",
+      "en": "Job events and HTTP recovery"
+    },
+    "labels": {
+      "zh-cn": "Job 事件与 HTTP 恢复",
+      "en": "Job events and HTTP recovery"
+    },
+    "sources": {
+      "zh-cn": "docs/guides/api-job-events.md",
+      "en": "docs/guides/api-job-events.en.md"
+    },
+    "sectionIds": [
+      "observe",
+      "contract",
+      "recovery"
+    ]
+  },
+  {
+    "id": "runtime-diagnostics-guide",
+    "type": "guide",
+    "group": "technical",
+    "path": "runtime-diagnostics",
+    "titles": {
+      "zh-cn": "Runtime 与模型诊断",
+      "en": "Runtime and model diagnostics"
+    },
+    "labels": {
+      "zh-cn": "Runtime 与模型诊断",
+      "en": "Runtime and model diagnostics"
+    },
+    "sources": {
+      "zh-cn": "docs/guides/api-runtime-diagnostics.md",
+      "en": "docs/guides/api-runtime-diagnostics.en.md"
+    },
+    "sectionIds": [
+      "first-snapshot",
+      "state",
+      "metrics",
+      "recovery"
+    ]
+  },
+  {
+    "id": "job-recovery-guide",
+    "type": "guide",
+    "group": "technical",
+    "path": "job-recovery",
+    "titles": {
+      "zh-cn": "API 重启恢复",
+      "en": "API restart recovery"
+    },
+    "labels": {
+      "zh-cn": "API 重启恢复",
+      "en": "API restart recovery"
+    },
+    "sources": {
+      "zh-cn": "docs/guides/job-recovery.md",
+      "en": "docs/guides/job-recovery.en.md"
+    },
+    "sectionIds": [
+      "start",
+      "read-job",
+      "uncertainty"
+    ]
+  },
+  {
+    "id": "api-client-guide",
+    "type": "guide",
+    "group": "technical",
+    "path": "api-client",
+    "titles": {
+      "zh-cn": "TypeScript client",
+      "en": "TypeScript client"
+    },
+    "labels": {
+      "zh-cn": "TypeScript client",
+      "en": "TypeScript client"
+    },
+    "sources": {
+      "zh-cn": "docs/guides/api-client.md",
+      "en": "docs/guides/api-client.en.md"
+    },
+    "sectionIds": [
+      "prepare",
+      "first-result",
+      "requests",
+      "recovery",
+      "cpu-checks"
+    ]
+  },
+  {
+    "id": "runtime-evidence-reference",
+    "type": "reference",
+    "group": "technical",
+    "path": "runtime-evidence",
+    "titles": {
+      "zh-cn": "诊断证据来源",
+      "en": "Diagnostic evidence sources"
+    },
+    "labels": {
+      "zh-cn": "诊断证据来源",
+      "en": "Diagnostic evidence sources"
+    },
+    "sources": {
+      "zh-cn": "docs/reference/runtime-evidence.md",
+      "en": "docs/reference/runtime-evidence.en.md"
+    },
+    "sectionIds": [
+      "collect",
+      "historical-facts",
+      "metrics"
+    ]
+  },
+  {
+    "id": "documentation-guide",
+    "type": "guide",
+    "group": "technical",
+    "path": "documentation",
+    "titles": {
+      "zh-cn": "文档维护与生成",
+      "en": "Maintain and generate documentation"
+    },
+    "labels": {
+      "zh-cn": "文档维护与生成",
+      "en": "Maintain and generate documentation"
+    },
+    "sources": {
+      "zh-cn": "docs/guides/documentation.md",
+      "en": "docs/guides/documentation.en.md"
+    },
+    "sectionIds": [
+      "browse",
+      "sources",
+      "checks",
+      "scope"
+    ]
+  }
+]

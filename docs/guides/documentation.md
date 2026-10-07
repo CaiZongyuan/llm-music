@@ -1,11 +1,12 @@
 # 生成与验证音乐工作台文档站
 
-在仓库根目录操作。需要 Node.js 24.18.0 与 pnpm 11.22.0。本文验证环境为 Windows x64，PowerShell 用于隔离示例检查。FastAPI 和 ComfyUI 环境不参与文档生成；以下命令不运行 Doctor、下载权重或提交 GPU 请求。
+在仓库根目录操作。需要 Node.js 24.18.0、pnpm 11.22.0、uv 0.11.28 与 Python 3.12.13。本文验证环境为 Windows x64，PowerShell 用于隔离示例检查。API 参考使用独立 FastAPI 环境进行 CPU 合同导出；ComfyUI 环境不参与文档生成。以下命令不运行 Doctor、下载权重或提交 GPU 请求。
 
 ## 得到可浏览的站点
 
 ```powershell
 pnpm install --frozen-lockfile
+uv sync --project services/api --locked --python 3.12.13
 pnpm docs:dev
 ```
 
@@ -16,10 +17,14 @@ pnpm docs:dev
 ## 修改来源
 
 1. 先阅读 [文档维护规范](../agents/documentation.md)。
-2. 在 `docs/learn/` 修改成对的 `.md` 与 `.en.md` 正文。正文不写生成 frontmatter。
+2. 在 `docs/learn/`、`docs/guides/` 或 `docs/reference/` 修改成对的 `.md` 与 `.en.md` 正文。正文不写生成 frontmatter。
 3. 在 [章节清单](../site.json) 登记稳定 id、类型、分组、语言标题、正文来源与发布 path。每章两种语言共享 path。只登记已实现范围。
 4. 为各语言对应小节使用相同稳定 id，例如 `## 准备模型 {#models}`。前后章必须在清单中显式声明并互相对应；未声明时不自动串联。
 5. 教学代码用独立、完整的受控源码文件。正文以 `<<< ../../runtime/comfyui/examples/doctor.ps1` 引用。生成器读取完整文件并附上固定提交的源码链接。
+
+API 参考登记 `generated: "openapi"`，正文以 `<<< @openapi` 引入同一 `music-api openapi` 导出，前端 client 也使用此入口。配置参考登记 `generated: "settings"`、引入 `<<< @settings`；生成器直接调用现有 Settings metadata 函数，不读取生效配置。合同 JSON 保存在 `.generated/` 供检查，不手工维护字段、默认值或限制。缺少独立 API 环境时，先执行上面的锁定同步，再重试。
+
+既有指南的正文直接登记，清单中的 `sectionIds` 按正文小节顺序给出稳定 id；首个 H1 由页面标题替代。小节数量漂移会使生成失败，添加小节时同步清单与双语正文。未登记 `sectionIds` 的章节继续在正文写 `{#id}`。教程、玩法与环境资料仍使用同一清单、同语言链接和固定源码版本。
 
 相对文档链接若指向登记章节，会生成同语言站内地址。`apps/docs/public/` 内的已引用静态资源生成带部署 base 的站内地址；其他仓库文件转为固定提交的 GitHub 链接。源码引用与仓库链接都检查真实文件路径，拒绝跨越仓库边界的路径和 filesystem link。图片、已有音乐、来源 JSON 和只读交互脚本均记录实际源码路径。
 
@@ -47,4 +52,4 @@ Runtime 的四个完整连接示例统一接受 `-Port`，默认 8188。选定�
 
 创作者教程使用已交付 P1 的生成、转谱与显式保存路径。首页 MP3 与第一章配方对应已验证的真实 35 秒作品；其他玩法为未调试、未试听的尝试建议。操作直接使用现成应用 CLI 与受控 UTF-8 歌词文件，完整源码按需展开。文档页面本身只读；配方、歌词与试听副本对应关系和站内静态资源路径由无 GPU 检查核对，不访问应用 API 或 Runtime。
 
-完整 FastAPI 连续教程与生成参考属于 #29，实际 GitHub Pages 发布属于 #30。这里只完成本地构建及 `/llm-music/` 路径准备，没有部署记录就不报告线上发布。正式产品 Web 仍从 P2 开始。
+创作者教程与次级 API/配置参考覆盖已交付的 P1 能力。生成参考、语言对应、源码引用与静态产物检查不启动应用服务、不创建业务数据库或连接 Runtime。实际 GitHub Pages 发布属于 #30；没有部署记录就不报告线上发布。正式产品 Web 从 P2 开始。

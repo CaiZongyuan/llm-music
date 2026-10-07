@@ -58,9 +58,9 @@ A retry creates new work and has no automatic client-intent deduplication key. A
 | `runtime_out_of_memory` / `model_missing` / `workflow_invalid` | Restore the verified memory profile, registered model or Workflow, then check current readiness. |
 | `transcription_failed` / `generation_failed` | Retain original inputs and the failed Job; inspect development logs before explicitly creating another attempt. |
 
-Current cancellation/retry uses the running API's known mappings. An uncertain request without its verifiable original graph still refuses retry. Active Job reconciliation across restart is delivered in a later lifecycle issue. Completed history/files remain readable after restart. Developer exception details stay in structured logs; public errors give domain causes and recovery actions.
+Current cancellation/retry uses persisted original mappings and ownership proof. After API restart, active original Jobs are verified without resubmitting inference. Read the same Job using the [restart recovery guide](job-recovery.en.md). Retry still refuses work without a verifiable original graph or safe terminal outcome. Completed history/files remain readable after restart. Developer exception details stay in structured logs; public errors give domain causes and recovery actions.
 
-Pre-upgrade pending records have no durable dispatch-start evidence and may already have been accepted. Upgrade to 0004 conservatively marks them unconfirmed with recovery instructions. It does not fabricate cancelled or create an unverified retry. Existing failed errors, inputs and provenance are retained.
+Old active records may lack durable dispatch-start evidence or the complete original graph, and Runtime may already have accepted them. Current upgrades and recovery retain those records. Unconfirmed work receives an explicit failure or recovery reason; the application does not invent a graph, fabricate cancelled, or create an unverified retry. Existing failed errors, inputs and provenance are retained. See [when confirmation fails](job-recovery.en.md#uncertainty) for recovery limits.
 
 The complete runnable example comes from version-controlled source:
 

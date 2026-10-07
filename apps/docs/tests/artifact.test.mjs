@@ -26,6 +26,9 @@ test('built artifact rejects missing anchors/assets, wrong base/control language
   await writeFile(target, html(sources.pages[1], '/en/overview/'));
   await assert.rejects(checkArtifact({ root, manifest, sources, dist }), /bypasses deployment base/);
   await writeFile(target, html(sources.pages[1], '#result'));
+  await writeFile(target, html(sources.pages[1], '#result') + '<h3 id="operation-route">GET /projects/{project_id}</h3><a href="#operation-route">GET /projects/${project_id}</a>');
+  await assert.rejects(checkArtifact({ root, manifest, sources, dist }), /Contract route caption differs/);
+  await writeFile(target, html(sources.pages[1], '#result'));
   await mkdir(join(root, 'apps/docs/src/content/i18n'), { recursive: true });
   await writeFile(join(root, 'apps/docs/src/content/i18n/en.json'), JSON.stringify({ 'expressiveCode.copyButtonTooltip': 'Copy to clipboard', 'expressiveCode.copyButtonCopied': 'Copied!' }));
   await writeFile(target, html(sources.pages[1], '#result') + '<button data-code="echo sample" title="复制到剪贴板" data-copied="复制成功！">Copy</button>');

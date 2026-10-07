@@ -58,9 +58,9 @@ uv run --project services/api --no-sync python services/api/examples/cancel_retr
 | `runtime_out_of_memory` / `model_missing` / `workflow_invalid` | 恢复已验证显存配置、注册模型或 Workflow，再确认当前就绪条件。 |
 | `transcription_failed` / `generation_failed` | 保留原输入和失败 Job，检查开发日志后明确创建新 attempt。 |
 
-当前取消与重试使用运行中 API 的已知映射。不确定请求缺少可核验的原 graph 时，重试仍拒绝；跨重启的 active Job 对账在后续生命周期票据交付。已完成历史和文件可以重启读取。开发异常细节留在结构化日志，公开错误给出领域原因和动作。
+当前取消与重试使用持久保存的原任务映射与归属证据。API 重启后会核验仍活动的原 Job，不重新提交推理；按[重启恢复指南](job-recovery.md)读取同一 Job。缺少可核验的原 graph 或安全终态时，重试仍拒绝。已完成历史和文件可以重启读取。开发异常细节留在结构化日志，公开错误给出领域原因和动作。
 
-升级前的 pending 记录缺少持久分发开始证据，可能已被 Runtime 接受。升级到 0004 时，应用保守标为未确认并给出恢复原因；不会当作尚未分发而伪称 cancelled，也不会创建未经确认的新重试。既有 failed 记录的错误、输入和 provenance 保留。
+旧活动记录可能缺少持久分发开始证据或完整原图，且可能已被 Runtime 接受。当前升级与恢复保留这些记录；无法确认时给出明确失败或恢复原因，不补造原图、不伪称 cancelled，也不创建未经确认的新重试。既有 failed 记录的错误、输入和 provenance 保留；恢复边界见[无法确认时](job-recovery.md#uncertainty)。
 
 完整运行示例来自受版本控制的源码：
 

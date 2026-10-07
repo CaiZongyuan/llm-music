@@ -55,7 +55,7 @@ List `GET /projects/{project_id}/versions`, or read `/versions/{version_id}`. Do
 ## Recover from failures and use real Runtime
 
 - `422 invalid_request`: correct empty inputs, seed, or unsupported fields, then submit.
-- Failed Job: read its error and recovery_required and retain that Job. Missing outputs, invalid Score, incomplete FLAC, or unconfirmed outputs cannot create Candidate/Version. Fix the cause and explicitly submit a new Job. Inference is not repeated automatically.
+- Failed Job: read its error and recovery_required and retain that Job. Missing outputs, invalid Score, incomplete FLAC, or unconfirmed outputs cannot create Candidate/Version. Check original work through the [restart recovery guide](job-recovery.en.md). When a new attempt is needed, confirm a safe terminal outcome and explicitly retry using [cancellation and retry](api-cancel-retry.en.md). Inference is not repeated automatically.
 - `404 candidate_not_found` / `parent_version_not_found`: choose a Candidate or saved parent from the target Project. Cross-Project references cannot be saved.
 - `503 version_commit_unconfirmed`: first query Version using the error's `resource_id`. For a repeat save of a known Version, that id still identifies the existing Version when both acknowledgement and independent readback fail. Read it if present. If absent, restore database access and retry the same Candidate, name, and parent. Unconfirmed saves preserve existing Assets and snapshots.
 - `409 asset_unavailable` / `asset_path_invalid`: restore the original application file or backed-up mapping. Runtime paths cannot replace application ids.
@@ -66,4 +66,4 @@ The complete HTTP example comes from version-controlled source:
 
 <<< ../../services/api/examples/generate_save.py
 
-See [the maintenance record](../verification/generate-save-api.md) for actual checks and limits. The online documentation site is delivered in a later phase; read these repository documents directly for now.
+Continue with [style, lyrics, and seed ideas](../learn/variations.en.md), or look up the [API contract reference](../reference/api.en.md) and [application configuration](../reference/settings.en.md) when needed. See [the maintenance record](../verification/generate-save-api.md) for actual checks and limits. The documentation site and repository bodies share one source.

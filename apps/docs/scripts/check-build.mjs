@@ -10,6 +10,7 @@ function walk(node, callback) {
   for (const child of node.childNodes || []) walk(child, callback);
 }
 const attribute = (node, name) => node.attrs?.find(attr => attr.name === name)?.value;
+const nodeText = node => node.nodeName === '#text' ? node.value : (node.childNodes || []).map(nodeText).join('');
 async function filesIn(directory) {
   const files = [];
   for (const entry of await readdir(directory, { withFileTypes: true })) {
@@ -28,9 +29,11 @@ export async function checkArtifact({ root, manifest, sources, dist = resolve(ro
   let checkedReferences = 0;
   for (const file of htmlFiles) {
     const document = parse(await readFile(file, 'utf8'));
-    const ids = new Set(), refs = [], metadata = new Map(), copyControls = [];
+    const ids = new Set(), refs = [], metadata = new Map(), copyControls = [], routeCaptions = new Map(), routeLinks = [];
     walk(document, node => {
       const id = attribute(node, 'id');
+      if (node.tagName === 'h3' && id?.startsWith('operation-')) routeCaptions.set(id, nodeText(node).trim());
+      if (node.tagName === 'a' && attribute(node, 'href')?.startsWith('#operation-') && /^(?:GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS|TRACE) /.test(nodeText(node).trim())) routeLinks.push({ id: attribute(node, 'href').slice(1), text: nodeText(node).trim() });
       if (node.tagName === 'button' && attribute(node, 'data-code')) copyControls.push({ title: attribute(node, 'title'), copied: attribute(node, 'data-copied') });
       if (id) { if (ids.has(id)) throw new Error(`Duplicate HTML id ${id}: ${file}`); ids.add(id); }
       // The generic 404's canonical/alternate metadata describes an unknown request path.
@@ -45,6 +48,7 @@ export async function checkArtifact({ root, manifest, sources, dist = resolve(ro
         }
       }
     });
+    for (const link of routeLinks) if (routeCaptions.get(link.id) !== link.text) throw new Error(`Contract route caption differs: ${file}#${link.id}`);
     documents.set(file, { ids, refs, metadata, copyControls });
   }
   const artifactFile = url => {
@@ -99,7 +103,8 @@ export async function checkArtifact({ root, manifest, sources, dist = resolve(ro
 if (process.argv[1] && fileURLToPath(import.meta.url) === resolve(process.argv[1])) {
   const root = fileURLToPath(new URL('../../../', import.meta.url));
   try {
-    const manifest = JSON.parse(await readFile(resolve(root, 'docs/site.json'), 'utf8'));
+    const args = process.argv.slice(2);
+    const manifest = JSON.parse(await readFile(resolve(root, args.includes('--manifest') ? args[args.indexOf('--manifest') + 1] : 'docs/site.json'), 'utf8'));
     const sources = JSON.parse(await readFile(resolve(root, 'apps/docs/.generated/sources.json'), 'utf8'));
     const result = await checkArtifact({ root, manifest, sources });
     process.stdout.write(`Checked artifact: ${JSON.stringify(result)}\n`);

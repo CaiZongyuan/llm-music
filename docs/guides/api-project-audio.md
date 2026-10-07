@@ -43,7 +43,7 @@ Project 名称去掉首尾空白，长度 1–200 字符；描述至多 2000 字
 
 当前支持非空、完整的 mono/stereo PCM WAV：8、16、24 或 32 bit 整数样本，8–192 kHz。工具逐个读取所有 PCM 帧，拒绝截断或不支持的内容。默认文件预算 64 MiB、时长预算 600 秒；这些是应用上传政策，不表示模型已经验证相同长度。完整 multipart 请求另有 64 KiB 的字段/边界余量，含无 Content-Length 的请求。可在启动前设置 `MUSIC_API_MAX_UPLOAD_BYTES`、`MUSIC_API_MAX_AUDIO_SECONDS`；必须为有限正值。
 
-应用创建 `--data-dir/app.sqlite` 和 `--data-dir/assets/`。SQLAlchemy 2/Alembic 管理元数据，SQLite WAL 保存事务；原始文件独立保存在应用 storage。默认 data-dir 为仓库 `data/`，也可用 `MUSIC_API_DATA_DIR`；CLI 参数优先。保持同一配置并将数据库与 Asset 文件一起备份。Runtime 临时源文件清理不影响已成功导入的文件。上传路径继续保留原始内容；后续已实现的 Job/Score 扩展见 [应用转谱指南](api-transcription.md)，Candidate/Version 与正式 Web 按各自票据交付。
+应用创建 `--data-dir/app.sqlite` 和 `--data-dir/assets/`。SQLAlchemy 2/Alembic 管理元数据，SQLite WAL 保存事务；原始文件独立保存在应用 storage。默认 data-dir 为仓库 `data/`，也可用 `MUSIC_API_DATA_DIR`；CLI 参数优先。保持同一配置并将数据库与 Asset 文件一起备份。Runtime 临时源文件清理不影响已成功导入的文件。上传路径继续保留原始内容；取得 Job/Score 见[应用转谱指南](api-transcription.md)，检查 Candidate 与显式保存 Version 见[生成与保存指南](generate-save-api.md)。当前操作使用应用 API，正式产品 Web 随 P2 交付。
 
 ## 失败与恢复
 
@@ -62,7 +62,7 @@ Project 名称去掉首尾空白，长度 1–200 字符；描述至多 2000 字
 
 文件和数据库不是一个原子事务。每次上传使用私有 staging、完整验证、独占创建新文件、fsync 和元数据 commit。明确 rollback 且新连接确认没有持久行时才删除本次 final；已提交或不确定时保留文件。不会覆盖旧 Asset，也不会执行全局删除/GC。进程在 commit 前崩溃可能留下未注册文件；保留并根据日志核对，不能靠删除整个 storage 恢复。
 
-初次启动从空数据库迁移到 `0001_project_audio`；建表也使用显式 SQLite 事务，失败后可修复底层问题再启动。重复启动保留现有对象。遇到不支持的 schema revision 时启动/迁移失败并保留数据；恢复兼容版本或完整备份，不手工 stamp 跳过迁移。
+初次启动从空数据库执行当前版本的应用迁移；建表也使用显式 SQLite 事务，失败后可修复底层问题再启动。升级前备份完整应用数据目录。重复启动保留现有对象；活动 Job 的处理见[重启恢复指南](job-recovery.md)。遇到不支持的 schema revision 时启动/迁移失败并保留数据；恢复兼容版本或完整备份，不手工 stamp 跳过迁移。
 
 ## 独立验证和合同导出
 
