@@ -57,7 +57,7 @@ node packages/api-client/dist/examples/generate-save.js --base-url http://127.0.
 
 连接后先取得持久 Job 快照，后续消息是 `job.updated`。`sequence` 只表示本进程事件顺序，不能当持久 replay cursor。连接丢失时先 `GET /projects/{project_id}/jobs/{job_id}`，再重连；终态连接发送同一持久结果后关闭。不存在或其他 Project 的 Job 在 upgrade 阶段拒绝，当前 HTTP 状态是 403。
 
-示例失败时保留 receipt 中的 Project/Job id，并读取原 Job。输入无效时修正输入；Runtime 不可用时先恢复 readiness；等待或连接失败时核对原任务。POST 不会自动重发，避免重复生成。已完成数据可在 API 重启后继续读取；正在执行任务的恢复由 [#25 的恢复交付](https://github.com/CaiZongyuan/llm-music/issues/25) 及其阶段证据约束。
+示例失败时保留 receipt 中的 Project/Job id，并读取原 Job。输入无效时修正输入；Runtime 不可用时先恢复 readiness；等待或连接失败时核对原任务。POST 不会自动重发，避免重复生成。已完成数据可在 API 重启后继续读取；正在执行任务的恢复见 [Job 恢复指南](job-recovery.md)。
 
 ## 无 GPU 验证 {#cpu-checks}
 
@@ -67,4 +67,4 @@ pnpm test:client
 
 该命令编译真实 Node consumer，并向生产 FastAPI 的隔离端口发送原生 fetch、FormData 和 WebSocket 请求。继承的 Fake Runtime 只控制完成、失败和取消时机；不替换业务 HTTP 路由。验证两条闭环、队列/当前任务、文件哈希、显式保存 201/200、取消/重试、404/409/422/503、断开恢复及已完成数据重新打开。测试使用自己的 API 进程和数据；不会连接保留的 Runtime 8188。
 
-默认证据位于 `packages/api-client/.artifacts/`。`MUSIC_CLIENT_ARTIFACTS` 可指定隔离目录。每次执行保留端口、实际 API leaf PID、创建时间、进程日志和停止回执；API 正常停止后，已完成数据仍保留。这个 CPU 结果不能替代 P1 的真实 GPU smoke；P1 gate 仍等待所有实际集成与阶段验收。
+默认证据位于 `packages/api-client/.artifacts/`。`MUSIC_CLIENT_ARTIFACTS` 可指定隔离目录。每次执行保留端口、实际 API leaf PID、创建时间、进程日志和停止回执；API 正常停止后，已完成数据仍保留。这个 CPU 结果不能替代真实 GPU smoke；P1 的实际证据与限制记录于 [阶段验收维护报告](../verification/p1-gate.md)。

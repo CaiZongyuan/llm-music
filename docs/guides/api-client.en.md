@@ -57,7 +57,7 @@ The current server accepts JSON integer `seed` from 0 through 2^63−1. JavaScri
 
 A connection first receives a persisted Job snapshot; later messages use `job.updated`. `sequence` orders events in the current process and is not a durable replay cursor. After losing a connection, first `GET /projects/{project_id}/jobs/{job_id}`, then reconnect. A terminal connection sends the same durable result and closes. A missing Job or a Job in another Project is rejected during upgrade; its current HTTP status is 403.
 
-On example failure, retain the Project/Job ids in the receipt and read the original Job. Correct invalid inputs; restore readiness when Runtime is unavailable; inspect the original task after a wait or connection failure. POSTs are never sent again automatically, which prevents duplicate generation. Completed data remains readable after API restart. Active Job recovery remains governed by [the #25 recovery delivery](https://github.com/CaiZongyuan/llm-music/issues/25) and its stage evidence.
+On example failure, retain the Project/Job ids in the receipt and read the original Job. Correct invalid inputs; restore readiness when Runtime is unavailable; inspect the original task after a wait or connection failure. POSTs are never sent again automatically, which prevents duplicate generation. Completed data remains readable after API restart. For active Job recovery, see the [Job recovery guide](job-recovery.en.md).
 
 ## Verify without a GPU {#cpu-checks}
 
@@ -67,4 +67,4 @@ pnpm test:client
 
 This command compiles a real Node consumer and sends native fetch, FormData and WebSocket requests to production FastAPI on an isolated port. The inherited Fake Runtime only controls completion, failure and cancellation timing. It does not replace business HTTP routes. Checks cover both loops, queue/current Job, file hashes, explicit 201/200 save, cancel/retry, 404/409/422/503, disconnect recovery and completed data reopen. Tests own their API processes and data and never connect to the retained Runtime 8188.
 
-Default evidence is under `packages/api-client/.artifacts/`. Set `MUSIC_CLIENT_ARTIFACTS` for an isolated directory. Each run retains the port, actual API leaf PID, creation time, process logs and stop receipt. Completed data remains after a graceful API stop. This CPU result cannot replace P1 real GPU smoke. The P1 gate still waits for actual integration and all stage acceptance.
+Default evidence is under `packages/api-client/.artifacts/`. Set `MUSIC_CLIENT_ARTIFACTS` for an isolated directory. Each run retains the port, actual API leaf PID, creation time, process logs and stop receipt. Completed data remains after a graceful API stop. This CPU result cannot replace real GPU smoke. The actual P1 evidence and limits are recorded in the [stage acceptance maintenance report](../verification/p1-gate.md).
