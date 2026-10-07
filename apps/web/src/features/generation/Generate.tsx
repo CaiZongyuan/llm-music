@@ -7,6 +7,8 @@ import { JobState, jobOptions, useSubmitGenerate } from '../jobs';
 import { candidatesOptions, candidateKeys } from '../candidates/queries';
 import { Candidate } from '../candidates/Candidate';
 import { versionsOptions } from '../versions/queries';
+import { assetKeys } from '../assets/queries';
+import { scoreKeys } from '../scores/queries';
 import { useMessages } from '../preferences/Preferences';
 import { useGenerationDraft } from './drafts';
 import { generationMessages } from './messages';
@@ -53,7 +55,10 @@ export function Generate({ projectId, search }: { projectId: string; search: Gen
   const candidates = useQuery(candidatesOptions(projectId));
   const versions = useQuery(versionsOptions(projectId));
   const completedCandidateId = job.data?.status === 'completed' ? job.data.result?.candidate_id : undefined;
-  useEffect(() => { if (completedCandidateId) void cache.invalidateQueries({ queryKey: candidateKeys.list(projectId), exact: true }); }, [cache, projectId, completedCandidateId]);
+  useEffect(() => {
+    if (!completedCandidateId) return;
+    for (const queryKey of [candidateKeys.list(projectId), assetKeys.list(projectId), scoreKeys.list(projectId)]) void cache.invalidateQueries({ queryKey, exact: true });
+  }, [cache, projectId, completedCandidateId]);
   const selected = search.candidateId ?? completedCandidateId ?? (search.jobId ? undefined : candidates.data?.at(-1)?.id);
   function submitted(jobId: string) { void navigate({ to: '/projects/$projectId/generate', params: { projectId }, search: { jobId } }); }
   return <div className="workspace-grid generation-grid"><div>{search.jobId && job.isPending ? <Loading /> : search.jobId && job.isError && !job.data ? <ErrorNotice error={job.error} onRetry={() => void job.refetch()} /> : <GenerateForm projectId={projectId} initial={restoredInputs(job.data?.inputs)} onSubmit={submitted} />}</div><div className="generation-results">
