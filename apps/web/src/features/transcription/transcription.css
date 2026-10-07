@@ -1,0 +1,7 @@
+.transcription-readiness { margin-top:24px; padding-top:24px; border-top:1px solid var(--line) }
+.transcription-readiness h3 { margin:0 }
+.transcription-job { margin-top:24px }
+.transcription-attempts { display:flex; flex-wrap:wrap; gap:8px }
+.transcription-attempts button { display:block; text-align:left; min-width:0; font-size:.74rem }
+.transcription-attempts button[aria-pressed=true] { background:var(--soft); border-color:var(--accent) }
+.transcription-attempts code { display:block; margin-top:6px; font-size:.65rem }
