@@ -17,4 +17,3 @@ FastAPI 拥有业务对象，ComfyUI 负责推理。Runtime 教程的直接调�
 ## 回到实践 {#practice}
 
 <p>要得到第一个实际结果，从<a href="./quickstart.md">环境准备</a>进入；已有 Runtime 时查看<a href="./transcribe.md">转谱指南</a>。</p>
-

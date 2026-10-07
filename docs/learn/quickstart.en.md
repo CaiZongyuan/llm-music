@@ -25,4 +25,3 @@ Run from the repository root. Get Runtime READY, then continue to launch and tra
 ## Next step {#next-step}
 
 <p>Read Doctor's limits. Then save the pre-start receipt, launch the local service, and transcribe.</p><p><a href="./doctor.en.md">Check and launch Runtime →</a></p>
-

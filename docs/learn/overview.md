@@ -15,4 +15,3 @@
 ## 你的第一个结果 {#result}
 
 <p>转谱工具保留输入、请求与 history，校验完整 ABC，再导出并读取 MIDI。成功的 receipt 包含 <code>status=completed</code> 与 <code>verified=true</code>。</p><p>文件存在或 HTTP 200 本身不代表成功。固定短样本也不能证明任意音乐的转谱准确率。</p>
-

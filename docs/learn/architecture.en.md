@@ -17,4 +17,3 @@ FastAPI owns domain objects. ComfyUI runs inference. Direct calls in Runtime tut
 ## Return to practice {#practice}
 
 <p>For your first real result, start with <a href="./quickstart.en.md">environment preparation</a>. If Runtime is ready, open the <a href="./transcribe.en.md">transcription guide</a>.</p>
-

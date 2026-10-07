@@ -21,4 +21,3 @@ Documentation grows with actual delivery. Validated Runtime paths and planned pr
 - [Runtime configuration ↗](../../runtime/comfyui/runtime.json)
 - [Model Registry ↗](../../runtime/comfyui/models.json)
 - [Input fixture ↗](../../runtime/comfyui/workflows/transcribe-sheetsage2/v1/fixture.json)
-

@@ -15,4 +15,3 @@ Begin with the local Runtime: prepare the environment, check readiness, then tur
 ## Your first result {#result}
 
 <p>The transcription tool retains the input, request, and history. It validates the complete ABC, then exports and reads MIDI. A successful receipt contains <code>status=completed</code> and <code>verified=true</code>.</p><p>A file or HTTP 200 alone cannot prove success. A fixed short sample does not establish transcription accuracy for arbitrary music.</p>
-

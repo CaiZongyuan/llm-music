@@ -21,4 +21,3 @@
 <table><thead><tr><th scope="col">检查结果</th><th scope="col">恢复动作</th></tr></thead><tbody><tr><td>模型 missing / downloading</td><td>执行 download-models；保留的 .part 会续传。</td></tr><tr><td>SHA256 或文件大小不符</td><td>保留或移走损坏文件，再重新下载；命令不自动覆盖 invalid 文件。</td></tr><tr><td>端口被占用</td><td>确认占用者。停止自己的服务，或为 Doctor 与 start 选择同一个空闲 --port。</td></tr><tr><td>probe 超时或非零退出</td><td>读取 last_stage、stdout_tail、stderr_tail，解决对应阶段后重试。</td></tr></tbody></table>
 
 <p><a href="./quickstart.md">返回环境准备</a>，或在成功启动后<a href="./transcribe.md">执行第一次转谱</a>。</p>
-

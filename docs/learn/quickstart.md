@@ -25,4 +25,3 @@
 ## 下一步 {#next-step}
 
 <p>阅读 Doctor 的检查边界，再保存启动前 receipt、启动本地服务并执行转谱。</p><p><a href="./doctor.md">检查并启动 Runtime →</a></p>
-
