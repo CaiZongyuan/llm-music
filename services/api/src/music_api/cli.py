@@ -17,7 +17,7 @@ class JsonLogFormatter(logging.Formatter):
     def format(self, record: logging.LogRecord) -> str:
         value: dict[str, object] = dict(at=datetime.fromtimestamp(record.created, timezone.utc).isoformat(),
                                         level=record.levelname, message=record.getMessage())
-        for key in ["event", "project_id", "asset_id", "request_path", "owned_path"]:
+        for key in ["event", "project_id", "asset_id", "request_path", "owned_path", "job_id", "runtime_handle", "native_error", "runtime_message", "operation", "attempt_id"]:
             if key in record.__dict__:
                 value[key] = record.__dict__[key]
         if record.exc_info:

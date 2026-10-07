@@ -1,7 +1,7 @@
 """Application Job/Score/result identities are independent of native requests."""
 
-from sqlalchemy import CheckConstraint, Float, ForeignKey, Integer, JSON, String, UniqueConstraint
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy import Boolean, CheckConstraint, Float, ForeignKey, Integer, JSON, String, UniqueConstraint, select, update
+from sqlalchemy.orm import Mapped, Session, mapped_column
 
 from music_api.database import Base, utc_now
 
@@ -29,6 +29,7 @@ class Job(Base):
     attempt_id: Mapped[str] = mapped_column(String(36), unique=True)
     runtime_handle: Mapped[str | None] = mapped_column(String(200))
     submission_state: Mapped[str] = mapped_column(String(32), default="pending")
+    cancel_requested: Mapped[bool] = mapped_column(Boolean, default=False)
     status: Mapped[str] = mapped_column(String(16), default="queued")
     phase: Mapped[str | None] = mapped_column(String(32))
     progress: Mapped[float | None] = mapped_column(Float)
@@ -36,6 +37,16 @@ class Job(Base):
     result_refs: Mapped[dict[str, str] | None] = mapped_column(JSON(none_as_null=True))
     created_at: Mapped[str] = mapped_column(String(40), default=utc_now)
     updated_at: Mapped[str] = mapped_column(String(40), default=utc_now)
+
+
+def job_for_write(session: Session, identifier: str, project_id: str | None = None) -> Job | None:
+    """Reserve this SQLite writer before reading a Job in a fresh transaction."""
+    conditions = [Job.id == identifier]
+    if project_id is not None:
+        conditions.append(Job.project_id == project_id)
+    session.execute(update(Job).where(*conditions, Job.status.in_(("queued", "running")))
+                    .values(id=Job.id).execution_options(synchronize_session=False))
+    return session.scalar(select(Job).where(*conditions))
 
 
 class Score(Base):

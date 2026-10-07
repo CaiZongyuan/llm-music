@@ -58,12 +58,13 @@ class JobRead(BaseModel):
     operation: Literal["Transcribe", "Generate"]
     status: Literal["queued", "running", "completed", "failed", "cancelled"]
     phase: str | None
-    progress: float | None
+    progress: float | None = Field(default=None, ge=0, le=1, allow_inf_nan=False)
     inputs: dict[str, object]
     provenance: dict[str, object]
     error: dict[str, object] | None
     result: dict[str, str] | None
     recovery_required: bool
+    cancel_requested: bool = False
     created_at: datetime
     updated_at: datetime
 

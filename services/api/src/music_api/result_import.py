@@ -14,7 +14,7 @@ from sqlalchemy.orm import Session
 from music_api.audio import AudioFacts
 from music_api.database import Asset, Database, utc_now
 from music_api.errors import DomainError
-from music_api.job_models import Job, JobResult, Score
+from music_api.job_models import Job, JobResult, Score, job_for_write
 from music_api.runtime_types import ArtifactFormat, ArtifactRole, RuntimeResult
 from music_api.storage import Storage, discard_owned, original_name
 
@@ -49,10 +49,10 @@ def import_result(database: Database, storage: Storage, job_id: str, materials: 
     keep_published = False
     commit_attempted = False
     with database.sessions() as session:
-        job = session.get(Job, job_id)
+        job = job_for_write(session, job_id)
         if job is None:
             raise DomainError(404, "job_not_found", "Job does not exist.", "Query its Project.")
-        if job.status == "completed":
+        if job.status in {"completed", "failed", "cancelled"}:
             return
         assets: dict[ArtifactRole, Asset] = {}
         try:
@@ -85,6 +85,7 @@ def import_result(database: Database, storage: Storage, job_id: str, materials: 
             if registrar is not None:
                 refs.update(registrar(session, job, ImportedBundle(assets, score)))
             job.result_refs = refs
+            job.error = None
             job.status, job.phase, job.progress = "completed", None, None
             job.updated_at = utc_now()
             commit_attempted = True

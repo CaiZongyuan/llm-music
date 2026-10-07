@@ -34,6 +34,7 @@ class FakeInferenceRuntime:
             provenance={"runtime_kind": "fake", "validation_scope": "legal CPU fixture; no model inference"},
             score_validation={"valid": True, "note_count": 4, "duration_seconds": 2})}
         self._requests: dict[str, tuple[RuntimeRequest, float]] = {}
+        self._cancelled: set[str] = set()
 
     def health(self) -> RuntimeObservation:
         nodes = frozenset(node for operation in self.results.keys() | self.result_factories.keys() for node in self.registry.workflow(operation).required_nodes)
@@ -60,12 +61,21 @@ class FakeInferenceRuntime:
         return SubmissionReceipt("accepted", handle)
 
     def status(self, handle: str) -> RuntimeStatus:
+        if handle in self._cancelled:
+            return RuntimeStatus("cancelled", code="cancelled", message="The requested fake Job was cancelled.")
         request, began = self._requests[handle]
         if time.monotonic() - began < 0.02:
             return RuntimeStatus("queued")
         if time.monotonic() - began < 0.05:
             return RuntimeStatus("running", "transcribing" if request.operation == "Transcribe" else "synthesizing")
         return RuntimeStatus("completed")
+
+    def cancel(self, handle: str) -> RuntimeStatus:
+        current = self.status(handle)
+        if current.state in {"queued", "running"}:
+            self._cancelled.add(handle)
+            return self.status(handle)
+        return current
 
     def recover(self, request: RuntimeRequest) -> SubmissionReceipt:
         matches = [handle for handle, (previous, _) in self._requests.items() if previous.attempt_id == request.attempt_id]

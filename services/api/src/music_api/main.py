@@ -8,7 +8,7 @@ from pathlib import Path
 import hashlib
 from uuid import UUID, uuid4
 
-from fastapi import Depends, FastAPI, Request, UploadFile
+from fastapi import Depends, FastAPI, Request, Response, UploadFile
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import FileResponse
 from sqlalchemy import select
@@ -183,6 +183,11 @@ def create_app(settings: Settings | None = None, runtime: InferenceRuntime | Non
         jobs: JobService = request.app.state.jobs
         return job_read(jobs.submit(project_id, "Transcribe", inputs))
 
+    @app.get("/projects/{project_id}/jobs", response_model=list[JobRead])
+    def list_jobs(project_id: UUID, session: Session = Depends(session_for)) -> list[JobRead]:
+        project_in(session, project_id)
+        return [job_read(job) for job in session.scalars(select(Job).where(Job.project_id == str(project_id)).order_by(Job.created_at, Job.id))]
+
     @app.get("/projects/{project_id}/jobs/{job_id}", response_model=JobRead)
     def get_job(project_id: UUID, job_id: UUID, session: Session = Depends(session_for)) -> JobRead:
         project_in(session, project_id)
@@ -190,6 +195,20 @@ def create_app(settings: Settings | None = None, runtime: InferenceRuntime | Non
         if job is None:
             raise DomainError(404, "job_not_found", "Job does not exist in this Project.", "Query the Job's owning Project.")
         return job_read(job)
+
+    @app.post("/projects/{project_id}/jobs/{job_id}/cancel", response_model=JobRead,
+              responses={202: {"model": JobRead}, 409: {"model": ErrorResponse}})
+    def cancel_job(project_id: UUID, job_id: UUID, request: Request, response: Response) -> JobRead:
+        jobs: JobService = request.app.state.jobs
+        job = jobs.cancel(project_id, job_id)
+        response.status_code = 202 if job.status in {"queued", "running"} else 200
+        return job_read(job)
+
+    @app.post("/projects/{project_id}/jobs/{job_id}/retry", response_model=JobRead, status_code=202,
+              responses={409: {"model": ErrorResponse}})
+    def retry_job(project_id: UUID, job_id: UUID, request: Request) -> JobRead:
+        jobs: JobService = request.app.state.jobs
+        return job_read(jobs.retry(project_id, job_id))
 
     @app.get("/projects/{project_id}/scores", response_model=list[ScoreRead])
     def list_scores(project_id: UUID, session: Session = Depends(session_for)) -> list[ScoreRead]:
