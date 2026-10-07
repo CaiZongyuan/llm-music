@@ -1,0 +1,72 @@
+name: Browser integration
+
+on:
+  push:
+    paths:
+      - package.json
+      - pnpm-workspace.yaml
+      - pnpm-lock.yaml
+      - tests/browser/**
+      - services/api/**
+      - workflows/**
+      - runtime/comfyui/runtime.json
+      - runtime/comfyui/models.json
+      - runtime/comfyui/workflows/**
+      - docs/guides/browser-tests*
+      - .github/workflows/browser-tests.yml
+  pull_request:
+    paths:
+      - package.json
+      - pnpm-workspace.yaml
+      - pnpm-lock.yaml
+      - tests/browser/**
+      - services/api/**
+      - workflows/**
+      - runtime/comfyui/runtime.json
+      - runtime/comfyui/models.json
+      - runtime/comfyui/workflows/**
+      - docs/guides/browser-tests*
+      - .github/workflows/browser-tests.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  browser:
+    runs-on: windows-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '24.18.0'
+      - uses: pnpm/action-setup@f40ffcd9367d9f12939873eb1018b921a783ffaa # v4
+      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+        with:
+          version: '0.11.28'
+          enable-cache: false
+      - name: Install locked browser and independent CPU API dependencies
+        run: |
+          pnpm install --frozen-lockfile
+          uv sync --project services/api --locked --python 3.12.13
+      - name: Install Chromium
+        run: pnpm test:browser:install
+      - name: Check strict TypeScript
+        run: pnpm test:browser:check
+      - name: Check CPU API and browser server types
+        run: uv run --project services/api --no-sync mypy --config-file services/api/pyproject.toml services/api/src/music_api tests/browser/run_api.py
+      - name: Exercise Swagger through real browser forms and HTTP
+        run: pnpm test:browser
+      - name: Retain browser failure evidence
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: browser-failure-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            tests/browser/test-results/
+            tests/browser/playwright-report/
+            tests/browser/.artifacts/
+          include-hidden-files: true
+          if-no-files-found: ignore
+          retention-days: 7
