@@ -1,10 +1,50 @@
 import { readFile, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { createMusicClient } from '@llm-music/api-client';
 import { test, expect } from '@playwright/test';
-import { runDir, labels, inputs, completedCandidate, control, received } from './generation-fixtures.js';
+import { runDir, labels, inputs, completedCandidate, mediaState, control, received } from './generation-fixtures.js';
 
 test.beforeEach(async () => { await control({}); });
+
+test('first player module transport failure can explicitly retry without losing reference selection or draft', async ({ page, baseURL }) => {
+  if (!baseURL) throw new Error('No owned URL');
+  const api = createMusicClient({ baseUrl: `${baseURL}/api` });
+  const project = received(await api.POST('/projects', { body: { name: '播放器初始化恢复 · CPU' } }));
+  const firstFailure = page.waitForEvent('requestfailed', { predicate: request => request.url().includes('wavesurfer') });
+  await page.route('**/*wavesurfer*', route => route.abort('failed'));
+  await page.goto(`/projects/${project.id}/generate`);
+  await firstFailure;
+  const originalAudio = await page.locator('audio').elementHandle();
+  if (!originalAudio) throw new Error('No original native audio element');
+  await page.getByRole('combobox').selectOption('en');
+  await inputs(page, 'en');
+  await page.unroute('**/*wavesurfer*');
+  await page.getByRole('link', { name: 'Reference audio and assets', exact: true }).click();
+  const referencePath = fileURLToPath(new URL('../../docs/previews/web-mvp-v1/reference-16s.wav', import.meta.url));
+  await page.getByLabel('Choose WAV audio').setInputFiles(referencePath);
+  await page.getByRole('button', { name: 'Add to project assets' }).click();
+  await expect(page.getByRole('region', { name: 'Asset details' }).getByRole('heading', { name: 'reference-16s.wav', exact: true })).toBeVisible();
+  await page.getByRole('link', { name: 'Reference transcription', exact: true }).click();
+  await page.getByRole('button', { name: 'Listen to selected reference' }).click();
+  const player = page.locator('#persistent-player');
+  await expect(player.getByRole('button', { name: 'Reread audio' })).toBeVisible();
+  await expect(player.getByText('reference-16s.wav', { exact: true })).toBeVisible();
+  await player.getByRole('button', { name: 'Reread audio' }).click();
+  await expect(player.getByRole('button', { name: 'Play', exact: true })).toBeEnabled();
+  expect(await originalAudio.evaluate(element => element === document.querySelector('audio'))).toBe(true);
+  await expect(page.locator('audio')).toHaveCount(1);
+  await expect.poll(async () => (await mediaState(page)).duration).toBe(16);
+  await player.getByRole('button', { name: 'Play', exact: true }).click();
+  await expect.poll(async () => (await mediaState(page)).time).toBeGreaterThan(0.15);
+  const before = (await mediaState(page)).time;
+  await page.getByRole('link', { name: 'Generate music', exact: true }).click();
+  await expect(page.getByRole('textbox', { name: labels.en.style, exact: true })).toHaveValue('温暖的钢琴 · warm piano');
+  await expect(page.getByRole('textbox', { name: labels.en.seed, exact: true })).toHaveValue('2026192201');
+  await expect.poll(async () => (await mediaState(page)).time).toBeGreaterThan(before);
+  expect((await mediaState(page)).paused).toBe(false);
+  expect(await originalAudio.evaluate(element => element === document.querySelector('audio'))).toBe(true);
+});
 
 test('OOM, model, workflow, cancellation and readiness failures preserve editable input; retry is explicit', async ({ page, baseURL }) => {
   if (!baseURL) throw new Error('No owned URL');

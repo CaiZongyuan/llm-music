@@ -9,6 +9,9 @@ import { playerSelection, subscribePlayerSelection } from './index';
 import { playerMessages } from './messages';
 import './player.css';
 
+const waveModuleUrl = new URL('../../../node_modules/wavesurfer.js/dist/wavesurfer.esm.js', import.meta.url).href;
+const regionsModuleUrl = new URL('../../../node_modules/wavesurfer.js/dist/plugins/regions.esm.js', import.meta.url).href;
+
 function clock(seconds: number) {
   const total = Math.max(0, Math.floor(seconds));
   return `${Math.floor(total / 60)}:${String(total % 60).padStart(2, '0')}`;
@@ -17,6 +20,16 @@ function waveColors() {
   const style = getComputedStyle(document.documentElement);
   const accent = style.getPropertyValue('--accent').trim();
   return { waveColor: style.getPropertyValue('--muted').trim(), progressColor: accent, cursorColor: accent };
+}
+function loadPlayerModules(attempt: number): Promise<[typeof import('wavesurfer.js'), typeof import('wavesurfer.js/dist/plugins/regions.esm.js')]> {
+  function resource(url: string) {
+    const value = new URL(url, document.baseURI);
+    // Failed ESM imports are cached by URL. Retry the same pinned bundles with
+    // a fresh address; Vite's asset URLs keep the self-contained SDKs in the build.
+    if (attempt) value.searchParams.set('player_retry', String(attempt));
+    return value.href;
+  }
+  return Promise.all([import(/* @vite-ignore */ resource(waveModuleUrl)), import(/* @vite-ignore */ resource(regionsModuleUrl))]);
 }
 
 export function Player() {
@@ -28,6 +41,8 @@ export function Player() {
   const regions = useRef<RegionsPlugin | null>(null);
   const loadQueue = useRef(Promise.resolve());
   const bounded = useRef(false);
+  const [initializationAttempt, setInitializationAttempt] = useState(0);
+  const [initializationFailed, setInitializationFailed] = useState(false);
   const [wave, setWave] = useState<WaveSurfer | null>(null);
   const [ready, setReady] = useState(false);
   const [failed, setFailed] = useState(false);
@@ -47,7 +62,7 @@ export function Player() {
   useEffect(() => {
     let disposed = false;
     let instance: WaveSurfer | undefined;
-    void Promise.all([import('wavesurfer.js'), import('wavesurfer.js/dist/plugins/regions.esm.js')]).then(([library, plugin]) => {
+    void loadPlayerModules(initializationAttempt).then(([library, plugin]) => {
       if (disposed || !container.current || !media.current) return;
       const regionPlugin = plugin.default.create();
       regions.current = regionPlugin;
@@ -66,9 +81,9 @@ export function Player() {
       });
       regionPlugin.on('region-updated', region => { setStart(region.start.toFixed(2)); setEnd(region.end.toFixed(2)); });
       setWave(instance);
-    }).catch(() => setFailed(true));
+    }).catch(() => { if (!disposed) setInitializationFailed(true); });
     return () => { disposed = true; instance?.destroy(); regions.current = null; };
-  }, []);
+  }, [initializationAttempt]);
 
   useEffect(() => {
     bounded.current = false;
@@ -114,6 +129,11 @@ export function Player() {
     regions.current?.getRegions()[0]?.setOptions({ start: from, end: to });
     bounded.current = false; setRegionInvalid(false);
   }
+  function reread() {
+    if (!wave) { setInitializationFailed(false); setInitializationAttempt(attempt => attempt + 1); }
+    setFailed(false);
+    if (selection) { void content.refetch(); void asset.refetch(); }
+  }
 
   return <footer id="persistent-player" className="continuous-player" aria-label={t.player}>
     <audio ref={media} hidden preload="metadata" />
@@ -122,7 +142,7 @@ export function Player() {
       <div className="wave-container" style={{ visibility: ready ? 'visible' : 'hidden' }} ref={container} /><output aria-label={t.clock}>{clock(time)} / {clock(duration)}</output>
       <label className="seek-label"><span className="visually-hidden">{t.seek}</span><input type="range" aria-label={t.seek} min={0} max={duration || 0} step={0.1} value={time} disabled={!selection || !ready} onChange={event => { bounded.current = false; wave?.setTime(Number(event.target.value)); }} /></label>
     </div>
-    {selection ? <>{failed || content.isError || asset.isError ? <div className="player-error" role="alert">{t.failed}<button type="button" onClick={() => { setFailed(false); void content.refetch(); void asset.refetch(); }}>{t.retry}</button></div> : !ready ? <small role="status">{t.loading}</small> : null}
-      <details className="player-regions"><summary>{t.region}</summary><div className="region-fields"><label>{t.start}<input type="number" step="0.1" min="0" max={duration} value={start} onChange={event => setStart(event.target.value)} /></label><label>{t.end}<input type="number" step="0.1" min="0" max={duration} value={end} onChange={event => setEnd(event.target.value)} /></label><button type="button" disabled={!ready} onClick={applyRegion}>{t.apply}</button><button type="button" disabled={!ready} onClick={() => void play(true)}>{t.playRegion}</button></div>{regionInvalid ? <p role="alert">{t.invalidRegion}</p> : null}</details></> : null}
+    {initializationFailed || selection && (failed || content.isError || asset.isError) ? <div className="player-error" role="alert">{initializationFailed ? t.unavailable : t.failed}<button type="button" onClick={reread}>{t.retry}</button></div> : selection && !ready ? <small role="status">{t.loading}</small> : null}
+    {selection ? <details className="player-regions"><summary>{t.region}</summary><div className="region-fields"><label>{t.start}<input type="number" step="0.1" min="0" max={duration} value={start} onChange={event => setStart(event.target.value)} /></label><label>{t.end}<input type="number" step="0.1" min="0" max={duration} value={end} onChange={event => setEnd(event.target.value)} /></label><button type="button" disabled={!ready} onClick={applyRegion}>{t.apply}</button><button type="button" disabled={!ready} onClick={() => void play(true)}>{t.playRegion}</button></div>{regionInvalid ? <p role="alert">{t.invalidRegion}</p> : null}</details> : null}
   </footer>;
 }
