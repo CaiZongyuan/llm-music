@@ -356,9 +356,7 @@ class JobService:
         if observed.phase is None:
             job.progress = measured_progress(observed.progress)
         elif observed.phase in phases:
-            previous = phases.index(job.phase) if job.phase in phases else -1
-            if phases.index(observed.phase) >= previous:
-                job.phase, job.progress = observed.phase, measured_progress(observed.progress)
+            job.phase, job.progress = observed.phase, measured_progress(observed.progress)
 
 
 def job_read(job: Job) -> JobRead:
