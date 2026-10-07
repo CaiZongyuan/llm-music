@@ -6,6 +6,9 @@ import json
 
 from fastapi.testclient import TestClient
 import httpx
+import pytest
+
+import cancellation_peer as peer_fixture
 
 from cancellation_peer import cancellation_peer
 from music_api.comfy_runtime import ComfyUIRuntime
@@ -29,7 +32,11 @@ class UnexpectedAcknowledgementLoss(ComfyUIRuntime):
         return receipt
 
 
-def test_unexpected_error_after_native_acceptance_cannot_authorize_duplicate_retry(tmp_path: Path, monkeypatch) -> None:
+@pytest.mark.parametrize("read_delay",[0,2.6],ids=["immediate-owned-result","delayed-owned-result"])
+def test_unexpected_error_after_native_acceptance_cannot_authorize_duplicate_retry(tmp_path: Path, monkeypatch,read_delay) -> None:
+    if read_delay:
+        delayed = peer_fixture.CANCELLATION_EXTENSION.replace('if self.path == "/queue":','if self.path.startswith("/history/native-2"):\n            __import__("time").sleep(2.6)\n        if self.path == "/queue":',1)
+        monkeypatch.setattr(peer_fixture,"CANCELLATION_EXTENSION",delayed)
     with cancellation_peer(tmp_path, monkeypatch) as (url, receipt_path, registry):
         configured = Settings(data_dir=tmp_path / "application", runtime_mode="comfyui", runtime_url=url, runtime_evidence_path=receipt_path)
         runtime = UnexpectedAcknowledgementLoss(configured, registry)

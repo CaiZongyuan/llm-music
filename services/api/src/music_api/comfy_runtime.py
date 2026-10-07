@@ -10,6 +10,7 @@ import json
 import math
 import logging
 import re
+import threading
 from pathlib import Path
 from typing import Callable, Literal, cast
 from urllib.error import HTTPError
@@ -42,6 +43,9 @@ class ComfyUIRuntime:
         self.requests: dict[str, RuntimeRequest] = {}
         self.graphs: dict[str, dict[str, object]] = {}
         self.workflows: dict[str, WorkflowDefinition] = {}
+        self._result_observers: set[str] = set()
+        self._terminal_history: dict[str, dict[str, object]] = {}
+        self._snapshot_lock = threading.Lock()
 
     def _read(self, path: str, deadline: datetime | None = None) -> object:
         remaining = self.settings.runtime_timeout_seconds if deadline is None else (deadline-datetime.now(timezone.utc)).total_seconds()
@@ -78,6 +82,9 @@ class ComfyUIRuntime:
         value = raw.get(handle)
         if value is None:
             return None
+        return self._owned_history(handle,value)
+
+    def _owned_history(self,handle: str,value: object) -> dict[str, object]:
         if not isinstance(value, dict):
             raise ValueError("Native history entry is invalid")
         request = self.requests.get(handle)
@@ -179,6 +186,8 @@ class ComfyUIRuntime:
         if not isinstance(reply, dict) or not isinstance(reply.get("prompt_id"), str) or not reply["prompt_id"] or reply.get("node_errors"):
             return SubmissionReceipt("unconfirmed", code="submission_unconfirmed", message="Native response has no reliable accepted identity.")
         handle = reply["prompt_id"]
+        with self._snapshot_lock:
+            self._terminal_history.pop(handle,None)
         self.requests[handle], self.graphs[handle] = request, graph
         self.workflows[handle] = workflow
         return SubmissionReceipt("accepted", handle)
@@ -190,36 +199,50 @@ class ComfyUIRuntime:
         return self._status(handle,datetime.now(timezone.utc)+timedelta(seconds=budget_seconds))
 
     def _status(self,handle: str,deadline: datetime | None = None) -> RuntimeStatus:
+        with self._snapshot_lock:
+            self._terminal_history.pop(handle,None)
         if handle not in self.requests or handle not in self.graphs:
             return RuntimeStatus("unconfirmed", code="native_mapping_unverified", message="The original request graph mapping is unavailable.")
         entry = self._history(handle,deadline)
         if entry is not None:
-            status = entry.get("status")
-            if not isinstance(status, dict):
-                return RuntimeStatus("unconfirmed", code="runtime_history_invalid")
-            if status.get("status_str") == "success" and status.get("completed") is True:
-                return RuntimeStatus("completed")
-            if status.get("status_str") == "error":
-                messages = status.get("messages")
-                interrupted = isinstance(messages, list) and any(
-                    isinstance(event, list) and len(event) == 2 and event[0] == "execution_interrupted"
-                    and isinstance(event[1], dict) and event[1].get("prompt_id") == handle for event in messages)
-                if interrupted:
-                    normalized = self._read("/api/jobs/" + quote(handle, safe=""),deadline)
-                    if isinstance(normalized, dict) and normalized.get("id") == handle and normalized.get("status") == "cancelled":
-                        return RuntimeStatus("cancelled", code="cancelled", message="The owned Runtime Job was cancelled.")
-                payload = next((event[1] for event in messages if isinstance(event, list) and len(event) == 2
-                                and event[0] == "execution_error" and isinstance(event[1], dict)
-                                and event[1].get("prompt_id") == handle), {}) if isinstance(messages, list) else {}
-                log.error("Owned Runtime execution failed", extra={"event": "runtime_execution_error", "runtime_handle": handle,
-                          "native_error": {name: payload.get(name) for name in ("exception_type", "exception_message", "node_id", "node_type", "traceback")}})
-                kind, message = str(payload.get("exception_type", "")).casefold(), str(payload.get("exception_message", "")).casefold()
-                code = "runtime_out_of_memory" if "outofmemoryerror" in kind or "cuda" in message and "out of memory" in message else None
-                if code is None and ("modelnotfound" in kind or "filenotfounderror" in kind and ("model" in message or ".safetensors" in message)):
-                    code = "model_missing"
-                detail = failure_detail(self.requests[handle].operation, code)
-                return RuntimeStatus("failed", code=detail.code, message=detail.message)
-        raw = self._read("/queue",deadline)
+            observed = self._history_status(handle,entry,deadline)
+            if observed is not None:
+                if observed.state == "completed":
+                    with self._snapshot_lock:
+                        if handle in self._result_observers:
+                            self._terminal_history[handle] = deepcopy(entry)
+                return observed
+        return self._queue_status(handle,self._read("/queue",deadline))
+
+    def _history_status(self,handle: str,entry: dict[str, object],deadline: datetime | None = None) -> RuntimeStatus | None:
+        status = entry.get("status")
+        if not isinstance(status, dict):
+            return RuntimeStatus("unconfirmed", code="runtime_history_invalid")
+        if status.get("status_str") == "success" and status.get("completed") is True:
+            return RuntimeStatus("completed")
+        if status.get("status_str") == "error":
+            messages = status.get("messages")
+            interrupted = isinstance(messages, list) and any(
+                isinstance(event, list) and len(event) == 2 and event[0] == "execution_interrupted"
+                and isinstance(event[1], dict) and event[1].get("prompt_id") == handle for event in messages)
+            if interrupted:
+                normalized = self._read("/api/jobs/" + quote(handle, safe=""),deadline)
+                if isinstance(normalized, dict) and normalized.get("id") == handle and normalized.get("status") == "cancelled":
+                    return RuntimeStatus("cancelled", code="cancelled", message="The owned Runtime Job was cancelled.")
+            payload = next((event[1] for event in messages if isinstance(event, list) and len(event) == 2
+                            and event[0] == "execution_error" and isinstance(event[1], dict)
+                            and event[1].get("prompt_id") == handle), {}) if isinstance(messages, list) else {}
+            log.error("Owned Runtime execution failed", extra={"event": "runtime_execution_error", "runtime_handle": handle,
+                      "native_error": {name: payload.get(name) for name in ("exception_type", "exception_message", "node_id", "node_type", "traceback")}})
+            kind, message = str(payload.get("exception_type", "")).casefold(), str(payload.get("exception_message", "")).casefold()
+            code = "runtime_out_of_memory" if "outofmemoryerror" in kind or "cuda" in message and "out of memory" in message else None
+            if code is None and ("modelnotfound" in kind or "filenotfounderror" in kind and ("model" in message or ".safetensors" in message)):
+                code = "model_missing"
+            detail = failure_detail(self.requests[handle].operation, code)
+            return RuntimeStatus("failed", code=detail.code, message=detail.message)
+        return None
+
+    def _queue_status(self,handle: str,raw: object) -> RuntimeStatus:
         if isinstance(raw, dict) and all(isinstance(raw.get(key),list) for key in ("queue_running","queue_pending")):
             targets = [(key,row) for key in ("queue_running","queue_pending") for row in raw[key] if isinstance(row,list) and len(row)>1 and row[1] == handle]
             if len(targets) == 1:
@@ -234,8 +257,16 @@ class ComfyUIRuntime:
         request = self.requests[handle]
         if request.operation != operation:
             raise ValueError("Subscription operation differs from the saved native request")
-        return subscribe_native(self.url, handle, request, self.workflows[handle], on_status,
-                                self.settings.runtime_timeout_seconds, lambda: self.status(handle))
+        close_native = subscribe_native(self.url, handle, request, self.workflows[handle], on_status,
+                                        self.settings.runtime_timeout_seconds, lambda: self.status(handle))
+        with self._snapshot_lock:
+            self._result_observers.add(handle)
+        def close() -> None:
+            with self._snapshot_lock:
+                self._result_observers.discard(handle)
+                self._terminal_history.pop(handle,None)
+            close_native()
+        return close
 
     def cancel(self, handle: str) -> RuntimeStatus:
         request, graph = self.requests.get(handle), self.graphs.get(handle)
@@ -279,6 +310,10 @@ class ComfyUIRuntime:
         return self.status(handle)
 
     def recover(self, request: RuntimeRequest) -> SubmissionReceipt:
+        with self._snapshot_lock:
+            for previous,original in list(self.requests.items()):
+                if previous == request.runtime_handle or original.attempt_id == request.attempt_id:
+                    self._terminal_history.pop(previous,None)
         try:
             proof = validate(request,self.mode,self.url)
             graph = cast(dict[str, object],proof["graph"])
@@ -317,11 +352,19 @@ class ComfyUIRuntime:
         if rejected or len(matches) != 1:
             return SubmissionReceipt("unconfirmed",code="original_ownership_unconfirmed")
         owned = next(iter(matches))
+        with self._snapshot_lock:
+            self._terminal_history.pop(owned,None)
         self.requests[owned],self.graphs[owned],self.workflows[owned] = replace(request,confirmation_deadline=None),deepcopy(graph),workflow
-        return SubmissionReceipt("accepted",owned,status=self._status(owned,request.confirmation_deadline))
+        entry = history.get(owned)
+        observed = self._history_status(owned,self._owned_history(owned,entry),request.confirmation_deadline) if entry is not None else None
+        return SubmissionReceipt("accepted",owned,status=observed or self._queue_status(owned,queue))
 
     def result(self, handle: str, operation: Operation) -> RuntimeResult:
-        entry = self._history(handle)
+        if handle not in self.requests or self.requests[handle].operation != operation or self.workflows[handle].operation != operation:
+            raise ValueError("Native result operation differs from its original binding")
+        with self._snapshot_lock:
+            snapshot = self._terminal_history.pop(handle,None)
+        entry = self._owned_history(handle,snapshot) if snapshot is not None else self._history(handle)
         if entry is None:
             raise ValueError("Native terminal result is unavailable")
         outputs = entry.get("outputs")

@@ -23,9 +23,10 @@ foreign_descriptor = False
 extra_history = {}
 malformed_queue = False
 delay_ack = False
+read_delay = 0
 @app.post("/fixture/edit")
 async def edit(request: Request):
-    global bad_upload,unavailable,slow_history,foreign_descriptor,malformed_queue,delay_ack
+    global bad_upload,unavailable,slow_history,foreign_descriptor,malformed_queue,delay_ack,read_delay
     value = await request.json()
     if value["action"] == "wrong_graph":
         for item in native.values():
@@ -54,10 +55,14 @@ async def edit(request: Request):
         for item in native.values(): item["queued"] = True
     elif value["action"] == "delay_ack":
         delay_ack = True
+    elif value["action"] == "read_delay":
+        read_delay = value["seconds"]
     return {"accepted":len(native)}
 
 @app.middleware("http")
 async def readonly_availability(request,call_next):
+    if read_delay and (request.url.path == "/queue" or request.url.path.startswith("/history")):
+        await asyncio.sleep(read_delay)
     if malformed_queue and request.url.path == "/queue":
         return Response(json.dumps({"queue_running":[["opaque"]],"queue_pending":[]}),media_type="application/json")
     if slow_history and request.url.path.startswith("/history/"):

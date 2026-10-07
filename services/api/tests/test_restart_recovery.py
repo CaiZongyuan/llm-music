@@ -281,7 +281,8 @@ def test_original_failure_or_cancellation_is_recovered_without_import_or_second_
             assert recovered.get(base+"/assets").json() == []
             assert peer.get("/fixture/state").json()["accepted"] == 1
 
-def test_transcribe_restarts_with_frozen_upload_and_original_reference_without_reupload(tmp_path: Path,monkeypatch):
+@pytest.mark.parametrize("read_delay",[0,0.16],ids=["immediate-owned-history","bounded-owned-history-latency"])
+def test_transcribe_restarts_with_frozen_upload_and_original_reference_without_reupload(tmp_path: Path,monkeypatch,read_delay):
     from test_transcription import reference_audio
     with recovery_peer(tmp_path,monkeypatch) as (url,receipt,registry),httpx.Client(base_url=url,trust_env=False) as peer:
         data = tmp_path/"application"
@@ -299,6 +300,7 @@ def test_transcribe_restarts_with_frozen_upload_and_original_reference_without_r
             uploads = peer.get("/fixture/state").json()["uploads"]
             assert len(uploads) == 1 and uploads[0]["sha256"] == hashlib.sha256(original).hexdigest()
         peer.post("/fixture/control",json={"action":"complete"}).raise_for_status()
+        peer.post("/fixture/edit",json={"action":"read_delay","seconds":read_delay}).raise_for_status()
         with owned_api(data,url,receipt,registry.root,tmp_path) as recovered:
             complete = terminal(recovered,route)
             assert complete["status"] == "completed",complete
