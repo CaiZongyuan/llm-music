@@ -1,6 +1,6 @@
 """Application Job/Score/result identities are independent of native requests."""
 
-from sqlalchemy import CheckConstraint, Float, ForeignKey, Integer, JSON, String, UniqueConstraint
+from sqlalchemy import Boolean, CheckConstraint, Float, ForeignKey, Integer, JSON, String, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 
 from music_api.database import Base, utc_now
@@ -29,6 +29,7 @@ class Job(Base):
     attempt_id: Mapped[str] = mapped_column(String(36), unique=True)
     runtime_handle: Mapped[str | None] = mapped_column(String(200))
     submission_state: Mapped[str] = mapped_column(String(32), default="pending")
+    cancel_requested: Mapped[bool] = mapped_column(Boolean, default=False)
     status: Mapped[str] = mapped_column(String(16), default="queued")
     phase: Mapped[str | None] = mapped_column(String(32))
     progress: Mapped[float | None] = mapped_column(Float)

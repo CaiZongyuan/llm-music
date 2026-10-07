@@ -41,25 +41,30 @@ class CancellationHandler(NativeHandler):
             handle = "native-" + str(len(native) + 1)
             native[handle] = {"prompt":[0,handle,body["prompt"],{"client_id":body["client_id"]},[]],"outputs":{"score":{"text":[abc]}},"status":{"status_str":"success","completed":True,"messages":[]}}
             if len(native) == 1:
-                live[handle] = "queued" if scenario == "queued" else "running"
-                current = "foreign-survivor" if scenario == "queued" else handle
-                if scenario == "queued": foreign_state = "running"
+                pending_scenario = scenario in {"queued", "queued_to_running"}
+                live[handle] = "queued" if pending_scenario else "running"
+                current = "foreign-survivor" if pending_scenario else handle
+                if pending_scenario: foreign_state = "running"
             self.reply({"prompt_id":handle})
         elif self.path == "/queue":
             body = json.loads(self.rfile.read(int(self.headers["Content-Length"])))
             for handle in body.get("delete", []):
                 if live.get(handle) == "queued":
-                    del live[handle]
-                    removed.add(handle)
+                    if scenario == "queued_to_running":
+                        live[handle], current, foreign_state = "running", handle, "completed"
+                    else:
+                        del live[handle]
+                        removed.add(handle)
             self.reply({})
         elif self.path.startswith("/api/jobs/") and self.path.endswith("/cancel"):
             self.rfile.read(int(self.headers["Content-Length"]))
             handle = self.path.split("/")[-2]
             dispatched = handle == current and handle in live
-            if dispatched:
+            if dispatched and scenario != "delayed_confirmation":
                 del live[handle]
                 native[handle]["status"] = {"status_str":"error","completed":False,"messages":[["execution_interrupted",{"prompt_id":handle}]]}
-                current, foreign_state = "foreign-survivor", "running"
+                current = "foreign-survivor" if foreign_state == "queued" else None
+                if foreign_state == "queued": foreign_state = "running"
             self.reply({"cancelled":dispatched})
         elif self.path == "/interrupt":
             self.rfile.read(int(self.headers["Content-Length"]))
@@ -73,6 +78,11 @@ class CancellationHandler(NativeHandler):
             if body["action"] == "finish_survivor":
                 foreign_state, current = "completed", None
             elif body["action"] == "scenario": scenario = body["value"]
+            elif body["action"] == "confirm_cancellation":
+                handle = "native-1"
+                live.pop(handle, None)
+                native[handle]["status"] = {"status_str":"error","completed":False,"messages":[["execution_interrupted",{"prompt_id":handle}]]}
+                current, foreign_state = "foreign-survivor", "running"
             self.reply({"foreign_state":foreign_state})
         else: super().do_POST()
 '''

@@ -89,12 +89,26 @@ class JobService:
                 raise DomainError(404, "job_not_found", "Job does not exist in this Project.", "Query its owning Project.")
             if job.status in {"completed", "failed", "cancelled"}:
                 return job
+            previously_requested = job.cancel_requested
+            if not previously_requested:
+                job.cancel_requested = True
+                job.updated_at = utc_now()
+                session.commit()
             if job.submission_state == "pending":
                 observed = RuntimeStatus("cancelled")
             elif job.runtime_handle is not None:
-                observed = self.runtime.cancel(job.runtime_handle)
+                observed = self.runtime.status(job.runtime_handle) if previously_requested else self.runtime.cancel(job.runtime_handle)
             else:
                 raise DomainError(409, "cancellation_unconfirmed", "The native target identity is unavailable.", "Retain this Job's attempt mapping and inspect its Runtime outcome before retrying.")
+            if observed.code == "cancellation_not_dispatched":
+                job.cancel_requested = False
+                job.error = dict(code="cancellation_not_dispatched", message="This cancellation did not reach its active target.",
+                                 recovery="Read the current Job and explicitly request cancellation again if needed.")
+                job.updated_at = utc_now()
+                session.commit()
+                self.notify(job.id)
+                raise DomainError(409, "cancellation_not_dispatched", "The target changed state before cancellation was confirmed.",
+                                  "Read the current Job and explicitly request cancellation again if needed.", identifier)
             if observed.state == "cancelled":
                 job.status, job.phase, job.progress = "cancelled", None, None
                 job.error = dict(code="cancelled", message="This Job was cancelled.", recovery="Explicitly create a new Job if you want to repeat the operation.")
@@ -249,4 +263,5 @@ class JobService:
 def job_read(job: Job) -> JobRead:
     return JobRead(id=UUID(job.id), project_id=UUID(job.project_id), operation=cast(Operation, job.operation), status=cast(JobState, job.status),
                    phase=job.phase, progress=job.progress, inputs=job.inputs, provenance=job.provenance, error=job.error, result=job.result_refs,
-                   recovery_required=job.submission_state == "unconfirmed", created_at=datetime.fromisoformat(job.created_at), updated_at=datetime.fromisoformat(job.updated_at))
+                   recovery_required=job.submission_state == "unconfirmed", cancel_requested=job.cancel_requested,
+                   created_at=datetime.fromisoformat(job.created_at), updated_at=datetime.fromisoformat(job.updated_at))

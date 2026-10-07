@@ -201,8 +201,12 @@ class ComfyUIRuntime:
             if not isinstance(after, dict) or not isinstance(after.get("queue_running"), list) or not isinstance(after.get("queue_pending"), list):
                 return RuntimeStatus("unconfirmed", code="cancellation_unconfirmed", message="Pending deletion could not be observed.")
             remaining = after["queue_running"] + after["queue_pending"]
-            if self._history(handle) is not None or any(isinstance(row, list) and len(row) > 1 and row[1] == handle for row in remaining):
+            if self._history(handle) is not None:
                 return self.status(handle)
+            if any(isinstance(row, list) and len(row) > 1 and row[1] == handle for row in remaining):
+                observed = self.status(handle)
+                return RuntimeStatus(observed.state, observed.phase, observed.progress, "cancellation_not_dispatched",
+                                     "The target is still active after queued deletion; no running interrupt was sent.")
             # Queued removal has a distinct absence proof, with no invented
             # running-interruption history or claim that execution never began.
             return RuntimeStatus("cancelled", code="cancelled", message="The owned pending Runtime target was removed.")

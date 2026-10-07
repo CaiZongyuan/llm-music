@@ -64,6 +64,7 @@ class JobRead(BaseModel):
     error: dict[str, object] | None
     result: dict[str, str] | None
     recovery_required: bool
+    cancel_requested: bool = False
     created_at: datetime
     updated_at: datetime
 
