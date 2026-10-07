@@ -70,6 +70,9 @@ class FakeInferenceRuntime:
             return RuntimeStatus("running", "transcribing" if request.operation == "Transcribe" else "synthesizing")
         return RuntimeStatus("completed")
 
+    def observe(self,handle: str,budget_seconds: float) -> RuntimeStatus:
+        return self.status(handle)
+
     def cancel(self, handle: str) -> RuntimeStatus:
         current = self.status(handle)
         if current.state in {"queued", "running"}:
@@ -78,8 +81,21 @@ class FakeInferenceRuntime:
         return current
 
     def recover(self, request: RuntimeRequest) -> SubmissionReceipt:
+        from music_api.runtime_proof import validate
+
+        try:
+            original = validate(request,self.mode,"fake-fixture-v1")
+        except ValueError:
+            return SubmissionReceipt("unconfirmed",code="original_proof_unavailable")
         matches = [handle for handle, (previous, _) in self._requests.items() if previous.attempt_id == request.attempt_id]
-        return SubmissionReceipt("accepted", matches[0]) if len(matches) == 1 else SubmissionReceipt("unconfirmed", code="submission_unconfirmed")
+        if len(matches) != 1 or request.runtime_handle is not None and request.runtime_handle != matches[0]:
+            return SubmissionReceipt("unconfirmed",code="original_ownership_unconfirmed")
+        handle = matches[0]
+        try:
+            previous = validate(self._requests[handle][0],self.mode,"fake-fixture-v1")
+        except ValueError:
+            return SubmissionReceipt("unconfirmed",code="original_ownership_unconfirmed")
+        return SubmissionReceipt("accepted",handle,status=self.status(handle)) if original == previous else SubmissionReceipt("unconfirmed",code="original_ownership_unconfirmed")
 
     def subscribe(self, handle: str, operation: Operation, on_status: Callable[[RuntimeStatus], None]) -> Callable[[], None]:
         from music_api.fake_events import subscribe_fake
@@ -96,3 +112,7 @@ class FakeInferenceRuntime:
             return result
         artifacts = tuple(replace(artifact, data=(self.output_dir / handle / (artifact.role + "." + artifact.format)).read_bytes()) for artifact in result.artifacts)
         return replace(result, artifacts=artifacts)
+    def prepare(self, request: RuntimeRequest) -> dict[str, object]:
+        from music_api.runtime_proof import freeze
+        workflow = self.registry.workflow(request.operation)
+        return freeze(request,self.mode,"fake-fixture-v1",workflow,workflow.graph)

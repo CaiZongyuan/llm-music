@@ -14,6 +14,8 @@ from test_transcription import ABC, reference_audio, terminal
 
 NATIVE_EXTENSION = '''
 import base64
+from email.parser import BytesParser
+from email.policy import default
 native = {}
 abc = "X:1\\nM:4/4\\nL:1/4\\nK:C\\nC D E F |\\n"
 midi = b'MThd\\x00\\x00\\x00\\x06\\x00\\x00\\x00\\x01\\x01\\xe0MTrk\\x00\\x00\\x00\\x0d\\x00\\x90\\x3c\\x40\\x83\\x60\\x80\\x3c\\x00\\x00\\xff\\x2f\\x00'
@@ -31,7 +33,9 @@ class NativeHandler(Handler):
     def do_POST(self):
         raw = self.rfile.read(int(self.headers["Content-Length"]))
         if self.path == "/upload/image":
-            self.reply({"name":"uploaded.wav", "subfolder":"input", "type":"input"}); return
+            message = BytesParser(policy=default).parsebytes(("Content-Type: " + self.headers["Content-Type"] + "\\r\\nMIME-Version: 1.0\\r\\n\\r\\n").encode() + raw)
+            parts = {part.get_param("name",header="content-disposition"):part for part in message.iter_parts()}
+            self.reply({"name":parts["image"].get_filename(),"subfolder":parts["subfolder"].get_payload(decode=True).decode(),"type":"input"}); return
         body = json.loads(raw)
         if self.path == "/prompt":
             handle = "native-" + str(len(native) + 1)
