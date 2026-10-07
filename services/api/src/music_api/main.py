@@ -8,7 +8,7 @@ from pathlib import Path
 import hashlib
 from uuid import UUID, uuid4
 
-from fastapi import Depends, FastAPI, Request, UploadFile
+from fastapi import Depends, FastAPI, Request, Response, UploadFile
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import FileResponse
 from sqlalchemy import select
@@ -187,6 +187,14 @@ def create_app(settings: Settings | None = None, runtime: InferenceRuntime | Non
         job = session.scalar(select(Job).where(Job.id == str(job_id), Job.project_id == str(project_id)))
         if job is None:
             raise DomainError(404, "job_not_found", "Job does not exist in this Project.", "Query the Job's owning Project.")
+        return job_read(job)
+
+    @app.post("/projects/{project_id}/jobs/{job_id}/cancel", response_model=JobRead,
+              responses={202: {"model": JobRead}, 409: {"model": ErrorResponse}})
+    def cancel_job(project_id: UUID, job_id: UUID, request: Request, response: Response) -> JobRead:
+        jobs: JobService = request.app.state.jobs
+        job = jobs.cancel(project_id, job_id)
+        response.status_code = 202 if job.status in {"queued", "running"} else 200
         return job_read(job)
 
     @app.get("/projects/{project_id}/scores", response_model=list[ScoreRead])

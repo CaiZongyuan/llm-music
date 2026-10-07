@@ -52,7 +52,7 @@ def import_result(database: Database, storage: Storage, job_id: str, materials: 
         job = session.get(Job, job_id)
         if job is None:
             raise DomainError(404, "job_not_found", "Job does not exist.", "Query its Project.")
-        if job.status == "completed":
+        if job.status in {"completed", "failed", "cancelled"}:
             return
         assets: dict[ArtifactRole, Asset] = {}
         try:
