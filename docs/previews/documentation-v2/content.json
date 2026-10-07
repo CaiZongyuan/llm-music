@@ -1,0 +1,202 @@
+{
+  "version": "documentation-v2",
+  "sourceCommit": "f02bd5310ea29845f1900a53271e71df30f5169b",
+  "groups": [
+    {"title": {"zh": "开始创作", "en": "Start creating"}, "pages": ["overview", "first-music", "reference"]},
+    {"title": {"zh": "探索玩法", "en": "Explore ideas"}, "pages": ["variations"]},
+    {"title": {"zh": "帮助与参考", "en": "Help and reference"}, "pages": ["resources", "scope"]}
+  ],
+  "pages": {
+    "overview": {
+      "type": {"zh": "创作者指南", "en": "Creator guides"},
+      "source": "docs/guides/generate-save-api.md",
+      "sourceEn": "docs/guides/generate-save-api.en.md",
+      "zh": {
+        "title": "把一个音乐想法，变成可试听的片段。",
+        "navTitle": "从这里开始",
+        "summary": "写下想要的风格与几句歌词，先做出约 35 秒音乐。再尝试参考音频转谱，或改变一个输入，找到你愿意留下的版本。",
+        "hero": true,
+        "flow": [{"title": "一个想法", "detail": "风格、歌词或参考音频"}, {"title": "听与检查", "detail": "音频与曲谱一起看"}, {"title": "留下版本", "detail": "满意后明确保存"}],
+        "sections": [
+          {"id": "choose", "title": "今天想玩什么？", "cards": [
+            {"icon": "01", "title": "做第一段音乐", "text": "从一份已验证的民谣流行配方开始。学会描述风格、组织歌词，并试听候选结果。", "link": "first-music", "action": "从一个小作品开始 →"},
+            {"icon": "02", "title": "听懂参考旋律", "text": "把一段 16 秒器乐转成 ABC 与 MIDI。对照原音频检查音高和节奏，找到值得继续研究的乐句。", "link": "reference", "action": "从参考音频开始 →"},
+            {"icon": "03", "title": "同一个想法，几种味道", "text": "只换风格、只改一句歌词，或换一个 seed。逐个试听，记录差别，再保存喜欢的 Candidate。", "link": "variations", "action": "挑一种玩法 →"}
+          ]},
+          {"id": "listen", "title": "先听一段真实示例", "html": "<p>下面是已在本地 GPU 生成并保存的约 35 秒作品：英文、温暖人声、木吉他与钢琴。可以先听听，再决定从哪个玩法开始。</p><audio controls preload=\"metadata\" aria-label=\"已验证的 35 秒音乐示例\"><source src=\"./sample-pr58.mp3\" type=\"audio/mpeg\">浏览器无法播放 MP3，请使用下方下载链接。</audio><p class=\"recipe-note\">这是 PR #58 的真实作品压缩副本，沿用当时的配方；播放不会生成新音乐。它不是下面未调试玩法的效果示例。</p><p><a href=\"./sample-pr58.mp3\" download>下载试听 MP3</a> · <a href=\"./sample-provenance.json\">查看示例来源</a></p>"},
+          {"id": "entry", "title": "开始前，知道这两件事", "html": "<p>当前实际操作入口是本地应用 API 的 Swagger 页面与现成 CLI。生成音乐需要已就绪的真实 Runtime；默认 fake 模式只发出测试音调。<a href=\"#/zh/resources\">环境准备和操作入口 →</a></p><p>这份预览只展示教程内容、复制输入和播放已有示例。它不会提交生成、上传音频或保存项目。正式音乐工作台 Web 还未交付；曲谱编辑、Cover 与内置 A/B 播放器随后续阶段实现。</p>"},
+          {"id": "habit", "title": "一次只问一个创作问题", "html": "<p>例如：“同一首歌词，钢琴比木吉他更合适吗？”先保留原输入，改一个维度，再听人声、伴奏与结尾。每次生成得到 Candidate；只有你明确保存，它才成为 Version。</p><p>教程会带你选输入、看结果、恢复一次失败，再进入下一种玩法。想查参数或排障时，使用帮助与参考即可。</p>"}
+        ]
+      },
+      "en": {
+        "title": "Turn a musical idea into something you can hear.",
+        "navTitle": "Start here",
+        "summary": "Describe a style and write a few lyric lines. Make about 35 seconds of music, then try transcription or change one input to find a version you want to keep.",
+        "hero": true,
+        "flow": [{"title": "An idea", "detail": "Style, lyrics, or Reference Audio"}, {"title": "Listen and inspect", "detail": "Hear the audio, read the score"}, {"title": "Keep a version", "detail": "Save explicitly when satisfied"}],
+        "sections": [
+          {"id": "choose", "title": "What would you like to try?", "cards": [
+            {"icon": "01", "title": "Make your first music", "text": "Start with a verified folk-pop recipe. Describe the sound, structure the lyrics, and listen to the Candidate.", "link": "first-music", "action": "Start with a small piece →"},
+            {"icon": "02", "title": "Understand a reference melody", "text": "Turn 16 seconds of instrumental music into ABC and MIDI. Check pitch and rhythm against the original and find a phrase to explore.", "link": "reference", "action": "Start with Reference Audio →"},
+            {"icon": "03", "title": "One idea, several moods", "text": "Change only style, one lyric line, or the seed. Listen to each result, note the differences, and save the Candidate you like.", "link": "variations", "action": "Choose an experiment →"}
+          ]},
+          {"id": "listen", "title": "Hear a real example first", "html": "<p>This approximately 35-second piece was generated on a local GPU and saved: English lyrics, a warm voice, acoustic guitar, and piano. Listen first, then choose a starting point.</p><audio controls preload=\"metadata\" aria-label=\"Verified 35-second music example\"><source src=\"./sample-pr58.mp3\" type=\"audio/mpeg\">Your browser cannot play MP3. Use the download link below.</audio><p class=\"recipe-note\">This is a compressed copy of the real PR #58 piece, with its original recipe. Playback generates no new music. It does not demonstrate the untested experiments below.</p><p><a href=\"./sample-pr58.mp3\" download>Download the listening MP3</a> · <a href=\"./sample-provenance.json\">View example provenance</a></p>"},
+          {"id": "entry", "title": "Two things to know before starting", "html": "<p>Current entrypoints are the local application API's Swagger page and the existing CLI. Music generation needs a ready real Runtime; default fake mode produces a test tone. <a href=\"#/en/resources\">Preparation and entrypoints →</a></p><p>This preview displays tutorials, copies inputs, and plays an existing example. It submits no generation, uploads no audio, and saves no Projects. The product Web Workbench is not delivered yet. Score editing, Cover, and an integrated A/B player belong to later stages.</p>"},
+          {"id": "habit", "title": "Ask one creative question at a time", "html": "<p>For example: “Would piano suit the same lyrics better than guitar?” Keep the original inputs, change one dimension, then listen to the voice, accompaniment, and ending. Each generation creates a Candidate. It becomes a Version only when you explicitly save it.</p><p>Each tutorial helps you choose inputs, inspect results, recover from a failure, and try the next idea. Use help and reference when you need parameters or troubleshooting.</p>"}
+        ]
+      }
+    },
+    "first-music": {
+      "type": {"zh": "创作教程 · 01", "en": "Creator tutorial · 01"},
+      "source": "docs/guides/generate-save-api.md",
+      "sourceEn": "docs/guides/generate-save-api.en.md",
+      "next": "variations",
+      "zh": {
+        "title": "做出第一段 35 秒音乐",
+        "navTitle": "第一段音乐",
+        "summary": "用一份温暖的民谣流行配方开始 Morning song 项目。先得到可试听的 Candidate，再检查曲谱，决定是否保存。",
+        "sections": [
+          {"id": "start", "title": "你会得到什么", "html": "<p>一份约 35 秒的 FLAC 音频，以及同次生成的 ABC 曲谱。这个教程使用真实生成已验证过的风格、原创歌词和 seed；首页 MP3 就是当时的压缩试听副本。重新运行的质量与耗时仍需实际检查。</p><p>开始时可以没有 Project。先按<a href=\"#/zh/resources\">准备指南</a>启动已就绪的真实 Runtime 与应用 API；如果只想练习保存流程，可以用 fake 模式，但听到的是测试音调。</p>"},
+          {"id": "style", "title": "1. 先描述你想听到的声音", "html": "<p>这个配方先说明语言与类型，再给人声、两种主要乐器和节奏。清晰的重点比堆叠相互冲突的风格词更方便调整。</p>", "blocks": [{"label": "已验证风格 · style", "text": "English, gentle folk pop, warm clear voice, acoustic guitar and piano, light bass and drums, 96 BPM"}], "after": "<p>先保持原样。想换成电子或更安静的编曲，放到下一章单独尝试；BPM 与风格词是创作意图，不能保证输出逐项精确遵循。</p>"},
+          {"id": "lyrics", "title": "2. 给片段一个小主题", "html": "<p>这个例子写早晨与陪伴。使用简短句子，分成 Verse 与 Chorus。35 秒只能承载短片段，不要求唱完每一句；先听语言与句子是否自然。</p>", "blocks": [{"label": "原创歌词 · lyrics", "text": "[Verse]\nMorning gathers on the window\nQuiet streets begin to glow\nI will carry one small promise\nEvery step can help it grow\n\n[Chorus]\nWalk with me into the daylight\nLet the little river flow\nWe can make a brighter moment\nWith the kindness that we show"}], "after": "<p>将这份歌词保存为 UTF-8 的 <code>data/morning-lyrics.txt</code>。保留原句和段落标记，便于下一章只改一句。</p>"},
+          {"id": "generate", "title": "3. 生成一次，保留这次任务", "html": "<p>使用 seed <code>2026192201</code>，片段设置保持 <code>max_seconds=35</code>。把 Project 命名为 Morning song；后面的变体继续放在这个 Project 中。</p><p>通过下面现成的操作入口提交一次。记下 Project 与 Job id，等待这次任务完成。没有百分比时看阶段名称即可；暂时没变化不代表要重复提交。</p>", "advanced": {"title": "当前操作入口：使用现成 CLI", "html": "<p>在仓库根目录、已启动 API 的第二个终端执行。先创建 <code>data/</code> 并保存上面的 UTF-8 歌词文件。命令会创建 Project、提交真实生成，并下载 <code>audio.flac</code> 与 <code>score.abc</code>；不会保存 Version。输出目录必须尚不存在。</p>", "blocks": [{"label": "PowerShell · 仓库根目录", "text": "uv run --project services/api --no-sync python services/api/examples/generate_save.py generate --style \"English, gentle folk pop, warm clear voice, acoustic guitar and piano, light bass and drums, 96 BPM\" --lyrics-file data/morning-lyrics.txt --seed 2026192201 --output-dir data/morning-candidate-01"}]}},
+          {"id": "listen", "title": "4. 先听，再看曲谱", "html": "<ol><li>播放下载的 <code>audio.flac</code>。先完整听一次，再听人声是否可懂、伴奏是否贴合情绪、结尾有没有突兀中断。</li><li>打开 <code>score.abc</code>，或用自己的 ABC 阅读工具查看。对照音频中的旋律和节奏，记下一处想继续尝试的地方。</li><li>记下“我想保留什么”和“下一次只改什么”。声音能播放与文件校验通过，不等于音乐一定满意。</li></ol><p>这时它仍是 Candidate。当前生成路径提供音频与 ABC；MIDI 来自<a href=\"#/zh/reference\">参考音频转谱</a>。内置曲谱编辑与比较播放器尚未交付。</p>"},
+          {"id": "save", "title": "5. 喜欢了，再明确保存", "html": "<p>给这个结果一个能记住意图的名字，例如“Morning · warm folk”。保存会留下这次输入、结果与来源信息；以后试其他配方不会覆盖这份音频或曲谱。</p>", "advanced": {"title": "当前保存入口：Candidate → Version", "html": "<p>将占位值替换为上一步终端输出中的实际 id。这个命令向相同 Project 写入 Version。</p>", "blocks": [{"label": "PowerShell · 明确保存", "text": "uv run --project services/api --no-sync python services/api/examples/generate_save.py save --project-id <PROJECT_ID> --candidate-id <CANDIDATE_ID> --name \"Morning - warm folk\""}]}, "after": "<p>还不满意就保留 Candidate 继续尝试，不必为了每一次生成都保存 Version。用同一 Candidate、名称和父版本重复保存会返回同一 Version。</p>"},
+          {"id": "recovery", "title": "如果等待超时，先找回同一次结果", "html": "<p>CLI 等待超时会提示 Project 与 Job id。先在本地 Swagger 的“读取 Job”操作中查询这两个 id，查看已完成结果、排队状态或错误。不要直接再跑一次生成命令：原任务可能仍在执行。</p><p>若任务明确 failed，阅读 error 与 recovery_required。先解决原因；无法确认是否已执行时，请让 Runtime 管理者核对。确认可以重试后再显式提交新任务，原 Job 与素材继续保留。</p>"},
+          {"id": "next", "title": "下一步：同一首歌词，换一种味道", "html": "<p>保留这个 Project、原歌词、seed 和喜欢的 Version。<a href=\"#/zh/variations\">下一章只改一个输入</a>，让变化更容易听清。</p>"}
+        ]
+      },
+      "en": {
+        "title": "Make your first 35 seconds of music",
+        "navTitle": "Your first music",
+        "summary": "Start a Morning song Project with a warm folk-pop recipe. Get a Candidate you can hear, inspect the score, and decide whether to save it.",
+        "sections": [
+          {"id": "start", "title": "What you will get", "html": "<p>An approximately 35-second FLAC and the ABC score from the same generation. The style, original lyrics, and seed below were verified in a real generation; the home-page MP3 is a compressed copy of that run. Check quality and duration again when rerunning.</p><p>You can start without a Project. Follow <a href=\"#/en/resources\">preparation</a> to run a ready real Runtime and application API. Fake mode can help you practice the save flow, but its audio is a test tone.</p>"},
+          {"id": "style", "title": "1. Describe the sound you want", "html": "<p>This recipe specifies language and genre first, followed by voice, two main instruments, and rhythm. Clear priorities make adjustments easier than a collection of conflicting style words.</p>", "blocks": [{"label": "Verified style · style", "text": "English, gentle folk pop, warm clear voice, acoustic guitar and piano, light bass and drums, 96 BPM"}], "after": "<p>Keep it unchanged first. Try electronic or quieter arrangements separately in the next chapter. BPM and style words express intent; exact adherence is not guaranteed.</p>"},
+          {"id": "lyrics", "title": "2. Give the fragment a small theme", "html": "<p>The example is about morning and companionship. Keep lines short and use Verse and Chorus sections. A 35-second fragment may not sing every line. First listen for natural language and phrasing.</p>", "blocks": [{"label": "Original lyrics · lyrics", "text": "[Verse]\nMorning gathers on the window\nQuiet streets begin to glow\nI will carry one small promise\nEvery step can help it grow\n\n[Chorus]\nWalk with me into the daylight\nLet the little river flow\nWe can make a brighter moment\nWith the kindness that we show"}], "after": "<p>Save these lyrics as UTF-8 in <code>data/morning-lyrics.txt</code>. Keep the original lines and section markers so you can change just one line in the next chapter.</p>"},
+          {"id": "generate", "title": "3. Generate once and keep this Job", "html": "<p>Use seed <code>2026192201</code> and keep <code>max_seconds=35</code>. Name the Project Morning song; keep later variations in this Project.</p><p>Submit once using the existing entrypoint below. Record Project and Job ids, then wait for that Job. Read the phase when no percentage is available. A quiet period is not a reason to submit again.</p>", "advanced": {"title": "Current entrypoint: use the existing CLI", "html": "<p>Run from the repository root in a second terminal while the API is running. Create <code>data/</code> and save the UTF-8 lyrics file above first. This command creates a Project, submits real generation, and downloads <code>audio.flac</code> and <code>score.abc</code>. It saves no Version. The output directory must not already exist.</p>", "blocks": [{"label": "PowerShell · repository root", "text": "uv run --project services/api --no-sync python services/api/examples/generate_save.py generate --style \"English, gentle folk pop, warm clear voice, acoustic guitar and piano, light bass and drums, 96 BPM\" --lyrics-file data/morning-lyrics.txt --seed 2026192201 --output-dir data/morning-candidate-01"}]}},
+          {"id": "listen", "title": "4. Listen, then inspect the score", "html": "<ol><li>Play the downloaded <code>audio.flac</code>. Hear the whole piece first, then check understandable vocals, accompaniment that fits the mood, and an ending without an abrupt break.</li><li>Open <code>score.abc</code> or use your own ABC reader. Compare melody and rhythm with the audio and note one thing to explore next.</li><li>Write “what I want to keep” and “what I will change next.” Playable, validated files do not guarantee music you will like.</li></ol><p>This is still a Candidate. Generation currently supplies audio and ABC. MIDI comes from <a href=\"#/en/reference\">Reference Audio transcription</a>. The integrated score editor and comparison player are not delivered yet.</p>"},
+          {"id": "save", "title": "5. Save explicitly when you like it", "html": "<p>Choose a name that captures intent, such as “Morning · warm folk.” Saving keeps the inputs, outputs, and provenance. Later experiments will not overwrite this audio or score.</p>", "advanced": {"title": "Current save entrypoint: Candidate → Version", "html": "<p>Replace placeholders with the actual ids printed in the previous step. This command writes a Version in the same Project.</p>", "blocks": [{"label": "PowerShell · explicit save", "text": "uv run --project services/api --no-sync python services/api/examples/generate_save.py save --project-id <PROJECT_ID> --candidate-id <CANDIDATE_ID> --name \"Morning - warm folk\""}]}, "after": "<p>If you are not satisfied, keep the Candidate and try again. You do not need to save every generation as a Version. Saving the same Candidate, name, and parent again returns the same Version.</p>"},
+          {"id": "recovery", "title": "If waiting expires, find the same result first", "html": "<p>The CLI timeout message includes Project and Job ids. Query those ids with “Read Job” in local Swagger first. Check for a completed result, queue state, or error. Do not rerun generation immediately: the original Job may still be running.</p><p>If the Job is explicitly failed, read error and recovery_required. Resolve the cause first; ask the Runtime operator to check any uncertain execution. Explicitly submit a new Job only when retry is safe. Keep the old Job and Assets.</p>"},
+          {"id": "next", "title": "Next: the same lyrics, a different mood", "html": "<p>Keep the Project, original lyrics, seed, and the Version you like. <a href=\"#/en/variations\">Change one input in the next chapter</a> to hear the difference more clearly.</p>"}
+        ]
+      }
+    },
+    "reference": {
+      "type": {"zh": "创作教程 · 参考音频", "en": "Creator tutorial · Reference Audio"},
+      "source": "docs/guides/api-transcription.md",
+      "sourceEn": "docs/guides/api-transcription.en.md",
+      "next": "variations",
+      "zh": {
+        "title": "从一段参考音频，找出旋律线索",
+        "navTitle": "参考音频转谱",
+        "summary": "准备 16 秒参考音频，得到 ABC 与 MIDI。把曲谱和原音频放在一起检查，学会分辨值得继续研究的乐句与需要修正的地方。",
+        "sections": [
+          {"id": "choose", "title": "1. 选一段容易听清的素材", "html": "<p>选你自己的短器乐片段，或已获许可的素材。为了方便检查，可以先挑主旋律清楚、背景不拥挤的一段；这是输入选择建议，不是转谱准确率保证。</p><p>当前真实路径只验证并接受<strong>恰好 16 秒、PCM16 WAV</strong>：24 kHz 单声道，或 48 kHz 双声道。用你现有的音频工具导出其中一种格式，保留原文件。可以在原音频中记下一个明显的音高变化或节奏，稍后用来检查。</p><p>上传允许的 64 MiB / 600 秒是存储预算，不能推断这些长度都能转谱。这个操作不会识别歌词，也不会自动生成 Cover。</p>"},
+          {"id": "transcribe", "title": "2. 上传到项目，再转谱一次", "html": "<p>继续使用 Morning song Project，把这段文件作为 Reference Audio 上传。记下 Asset id，再提交一次 Transcribe。保留 Job id，等待 completed；此时得到 Score、ABC 与 MIDI，原参考音频保持不变。</p><p>实际操作使用现有本地 Swagger。下面的说明可以展开照做；预览不会上传你的文件。</p>", "advanced": {"title": "当前操作入口：本地 Swagger 的完整路径", "html": "<ol><li>打开已运行应用 API 的 <code>http://127.0.0.1:8000/docs</code>。生成环境应使用已就绪的真实 Runtime；fake 模式只返回标识的测试结果。</li><li>已有 Project 用原 id；若从本章开始，用 <code>POST /projects</code> 输入 <code>{\"name\":\"Morning song\"}</code>，记录返回的 id。</li><li>在 <code>POST /projects/{project_id}/assets</code> 填入 Project id，用 <code>file</code> 选择上面的 WAV。提交后记录响应中的 Asset id。</li><li>在 <code>POST /projects/{project_id}/transcriptions</code> 使用下面的 JSON，替换占位值。提交一次并记录响应中的 Job id。</li><li>用 <code>GET /projects/{project_id}/jobs/{job_id}</code> 读取同一个 Job，直到 completed 或明确失败。completed 的 result 给出 <code>score_id</code>、<code>abc_asset_id</code> 和 <code>midi_asset_id</code>。</li><li>用 <code>GET /projects/{project_id}/scores/{score_id}</code> 读取曲谱信息，再用 <code>GET /projects/{project_id}/assets/{asset_id}/content</code> 分别下载 ABC 和 MIDI。保存到自己的 Morning song 文件夹。</li></ol>", "blocks": [{"label": "Transcribe 输入 · JSON", "text": "{\n  \"reference_asset_id\": \"<REFERENCE_ASSET_ID>\"\n}"}]}},
+          {"id": "inspect", "title": "3. 对照听，而不只看文件是否存在", "html": "<ol><li>先播放原参考音频，重新听你记下的那个乐句。</li><li>打开 ABC 文本，或用自己的 ABC 阅读工具看小节、节拍与音高。MIDI 可在你现有的 MIDI 播放器或音乐软件中打开。</li><li>对照原音频检查旋律走向和节奏。有偏差就记录发生在哪个乐句，不把能下载的曲谱当作完全准确的抄谱。</li></ol><p>应用会检查完整文件并导入 Score，但这些检查不能证明任意音乐的转谱准确性。当前还没有内置编辑器；你可以下载后在自己的工具中研究与编辑，但把编辑谱送回应用生成的能力尚未交付。</p>"},
+          {"id": "recovery", "title": "如果格式被拒绝，修正导出设置", "html": "<p><code>422 reference_profile_unsupported</code> 表示音频形状不在当前范围。检查是否为恰好 16 秒、16 bit 整数 PCM WAV，以及支持的声道与采样率。只改文件扩展名不能修正编码；重新导出支持的文件，再上传为新的 Reference Audio。</p><p>若提交回执不确定或等待断开，先查询已知 Job。不要通过反复上传或提交来找回结果。completed 时直接下载同一结果；明确 failed 时保留错误并按 recovery 指引处理。</p>"},
+          {"id": "next", "title": "下一种玩法：把参考变成观察题", "html": "<p>记下原片段的一个特征：节奏更稀疏、旋律更连贯，或某个乐句的起伏。下一次写 style 时，可以把这个观察变成一个明确目标；当前不能直接把这份 Score 送回生成或进行 Cover。</p><p><a href=\"#/zh/variations\">继续尝试风格与歌词变化 →</a></p>"}
+        ]
+      },
+      "en": {
+        "title": "Find melodic clues in Reference Audio",
+        "navTitle": "Transcribe Reference Audio",
+        "summary": "Prepare 16 seconds of Reference Audio and get ABC and MIDI. Check the score against the original, finding phrases to study and differences that need attention.",
+        "sections": [
+          {"id": "choose", "title": "1. Choose material you can hear clearly", "html": "<p>Choose your own short instrumental fragment or licensed material. A clear lead melody with a less crowded background can make inspection easier. This is input-selection advice, not an accuracy guarantee.</p><p>The current real path verifies and accepts only <strong>exactly 16 seconds of PCM16 WAV</strong>: mono at 24 kHz or stereo at 48 kHz. Export one supported format with your existing audio tool and keep the original. Note one clear pitch movement or rhythm in the source for later comparison.</p><p>The 64 MiB / 600-second upload budget is a storage limit, not transcription support for those lengths. This operation does not recognize lyrics or automatically create a Cover.</p>"},
+          {"id": "transcribe", "title": "2. Upload to the Project, then transcribe once", "html": "<p>Continue in the Morning song Project and upload the file as Reference Audio. Record its Asset id, submit one Transcribe Job, and keep its Job id. When completed, you get a Score, ABC, and MIDI. The original Reference Audio stays unchanged.</p><p>Use existing local Swagger for the actual steps. Expand the instructions below; this preview uploads no files.</p>", "advanced": {"title": "Current entrypoint: the complete local Swagger path", "html": "<ol><li>Open the running application API's <code>http://127.0.0.1:8000/docs</code>. Use a ready real Runtime for model work; fake mode returns identified test results.</li><li>Reuse your Project id. If starting here, send <code>{\"name\":\"Morning song\"}</code> to <code>POST /projects</code> and record the returned id.</li><li>In <code>POST /projects/{project_id}/assets</code>, enter that Project id and choose the WAV in <code>file</code>. Submit and record the returned Asset id.</li><li>Use the JSON below in <code>POST /projects/{project_id}/transcriptions</code>, replacing the placeholder. Submit once and record the returned Job id.</li><li>Read the same Job with <code>GET /projects/{project_id}/jobs/{job_id}</code> until completed or explicitly failed. A completed result includes <code>score_id</code>, <code>abc_asset_id</code>, and <code>midi_asset_id</code>.</li><li>Read score information with <code>GET /projects/{project_id}/scores/{score_id}</code>, then download ABC and MIDI separately through <code>GET /projects/{project_id}/assets/{asset_id}/content</code>. Keep them in your Morning song folder.</li></ol>", "blocks": [{"label": "Transcribe input · JSON", "text": "{\n  \"reference_asset_id\": \"<REFERENCE_ASSET_ID>\"\n}"}]}},
+          {"id": "inspect", "title": "3. Compare by listening, not just file existence", "html": "<ol><li>Play the original Reference Audio and listen again to the phrase you noted.</li><li>Read the ABC text or use your own ABC reader to inspect bars, meter, and pitch. Open MIDI in your existing MIDI player or music software.</li><li>Compare melodic movement and rhythm with the original. Note where a phrase differs. A downloadable score is not necessarily an exact transcription.</li></ol><p>The application validates complete files and imports the Score. That does not establish accuracy for arbitrary music. There is no integrated editor yet. You can study and edit downloads in your own tools; generating from an edited score in the application is not delivered.</p>"},
+          {"id": "recovery", "title": "If the format is rejected, fix export settings", "html": "<p><code>422 reference_profile_unsupported</code> means the audio profile is outside the current range. Check exactly 16 seconds, 16-bit integer PCM WAV, and supported channels and sample rate. Renaming an extension cannot change encoding. Export a supported file and upload it as new Reference Audio.</p><p>If submission acknowledgement is uncertain or waiting disconnects, query the known Job first. Repeated uploads or submissions are not recovery. Download the same completed result, or retain an explicitly failed error and follow its recovery guidance.</p>"},
+          {"id": "next", "title": "Next idea: use the reference as a listening question", "html": "<p>Note one feature of the fragment: a sparser rhythm, a smoother melody, or the contour of a phrase. Turn that observation into a clear goal for your next style input. You cannot yet send this Score directly into generation or perform Cover.</p><p><a href=\"#/en/variations\">Try changes to style and lyrics →</a></p>"}
+        ]
+      }
+    },
+    "variations": {
+      "type": {"zh": "创作教程 · 02", "en": "Creator tutorial · 02"},
+      "source": "docs/guides/generate-save-api.md",
+      "sourceEn": "docs/guides/generate-save-api.en.md",
+      "previous": "first-music",
+      "zh": {
+        "title": "同一个想法，尝试几种味道",
+        "navTitle": "风格、歌词与 seed 玩法",
+        "summary": "延续 Morning song：保留原配方，只改变一个维度。听出差别，再把最想留下的 Candidate 保存成有名字的 Version。",
+        "sections": [
+          {"id": "start", "title": "从上一段音乐继续", "html": "<p>准备第一章的 Project id、原歌词、风格、seed <code>2026192201</code>，以及下载的音频。先回听一次，并写下一个问题：我想让编曲更空一点、改一句更好唱的歌词，还是看看另一个随机起点？</p><p>下面的变化只生成新的短片段，不编辑上一份音频。当前没有内置 A/B 播放器；用自己的播放器逐个试听。相同 seed 也不保证在不同模型、环境或版本下逐字节相同。</p>"},
+          {"id": "recipes", "title": "1. 挑一个值得听的问题", "html": "<p>点选配方，查看具体改了什么。第一份是已验证示例；其余是<strong>尚未调试或试听的灵感配方</strong>，用来说明尝试方向，不承诺效果。这里只替换教程中的输入示例，不会生成音乐。</p>", "recipes": true},
+          {"id": "intent", "title": "2. 带着目标试听", "table": {"head": ["玩法", "先保留", "重点听"], "rows": [["只换风格", "原歌词、seed、35 秒设置", "乐器密度、人声与情绪是否贴合；输入风格词不是精确编曲指令。"], ["只改一句歌词", "原风格、seed、其余歌词", "咬字与句子是否自然，是否更容易记住；不保证该句一定出现在 35 秒内。"], ["只换 seed", "原风格、完整歌词、35 秒设置", "另一个结果中有没有更合适的旋律或组织方式；不把一次差别当作稳定规律。"]]}, "after": "<p>先完整听，再针对问题重听。用一句话记录偏好，比如“B 的人声更清楚，但 A 的结尾更自然”。保留原结果，避免凭记忆比较。</p>"},
+          {"id": "run", "title": "3. 在同一个 Project 里试下一份", "html": "<p>更新你选择的风格、歌词或 seed，其他输入保持原样。每次使用新的下载目录，提交一次新的 Generate，并记录它的 Job 与 Candidate id。旧 Candidate 和 Version 不会被覆盖。</p>", "advanced": {"title": "当前操作入口：继续使用同一 Project", "html": "<p>此命令示范“只换 seed”。替换 Project id；歌词文件保持第一章原样。它写入新 Job 并下载新 Candidate，尚不保存 Version。若要换风格或歌词，用你选中的输入替换相应参数或文件。</p>", "blocks": [{"label": "PowerShell · 只换 seed", "text": "uv run --project services/api --no-sync python services/api/examples/generate_save.py generate --project-id <PROJECT_ID> --style \"English, gentle folk pop, warm clear voice, acoustic guitar and piano, light bass and drums, 96 BPM\" --lyrics-file data/morning-lyrics.txt --seed 2026192202 --output-dir data/morning-candidate-02"}]}},
+          {"id": "save", "title": "4. 选择你想留下的那一个", "html": "<p>比较下载的音频与 ABC 后，选择同一 Project 的 Candidate。名字记录本次变化，比如“Morning · seed 02”。可以把第一章喜欢的 Version 作为 parent，保留从哪个作品出发；这只是创作来源关系，不表示音频做了局部编辑。</p>", "advanced": {"title": "当前保存入口：为新 Candidate 建立 Version", "html": "<p>替换实际 Project、Candidate 与已保存父 Version id。没有父版本时移除 <code>--parent-version-id</code> 参数。所有 id 必须属于这个 Project。</p>", "blocks": [{"label": "PowerShell · 保留创作分支", "text": "uv run --project services/api --no-sync python services/api/examples/generate_save.py save --project-id <PROJECT_ID> --candidate-id <NEW_CANDIDATE_ID> --name \"Morning - seed 02\" --parent-version-id <FIRST_VERSION_ID>"}]}, "after": "<p>没有喜欢的也可以暂不保存。生成完成不等于创作选择已完成。</p>"},
+          {"id": "recovery", "title": "如果保存提示冲突，先读取已有版本", "html": "<p><code>409 version_already_saved</code> 表示这个 Candidate 已按另一名称或父版本保存。先读取错误中的既有 Version id，确认已经留下的结果。不要以改名字的方式把同一 Candidate 伪装成新作品；有新的创作意图，就生成新的 Candidate。</p><p>如果只是等待断开，先按第一章查询原 Job，避免重复推理。下一轮只改一个维度，给比较保留清楚的起点。</p>"},
+          {"id": "next", "title": "下一轮可以问什么？", "html": "<ul><li>让同一个主题的歌词更简短：只改一句，看看表达是否更直接。</li><li>让乐器描述更克制：删掉一项编曲要求，观察是否更接近你的重点。</li><li>从<a href=\"#/zh/reference\">参考旋律</a>中找一个节奏观察，用文字表达新的风格目标。</li></ul><p>这些都是尝试建议，不是经过调优的成品配方。持续保留输入、Job、试听笔记与选中的 Version，创作会更容易接着做。</p>"}
+        ]
+      },
+      "en": {
+        "title": "One idea, several moods",
+        "navTitle": "Style, lyrics, and seed ideas",
+        "summary": "Continue Morning song. Keep the original recipe and change one dimension. Hear the differences, then save the Candidate you want to keep as a named Version.",
+        "sections": [
+          {"id": "start", "title": "Continue from your first piece", "html": "<p>Keep the first chapter's Project id, original lyrics, style, seed <code>2026192201</code>, and downloaded audio. Listen again and write one question: do I want more space in the arrangement, a lyric line that sings better, or another random starting point?</p><p>These changes generate new short fragments; they do not edit the earlier audio. There is no integrated A/B player yet. Listen one at a time in your own player. The same seed does not guarantee identical bytes across models, environments, or versions.</p>"},
+          {"id": "recipes", "title": "1. Choose a question worth listening for", "html": "<p>Select a recipe to see exactly what changes. The first is a verified example. The others are <strong>inspiration recipes that have not been tuned or auditioned</strong>. They illustrate directions to try, not promised results. This only changes the tutorial's example inputs; it generates no music.</p>", "recipes": true},
+          {"id": "intent", "title": "2. Listen with a goal", "table": {"head": ["Experiment", "Keep first", "Listen for"], "rows": [["Change style only", "Original lyrics, seed, 35-second setting", "Instrument density, voice, and mood; style words are not exact arrangement commands."], ["Change one lyric line", "Original style, seed, other lyrics", "Natural articulation and phrasing, and a memorable line; it may not appear in the 35-second result."], ["Change seed only", "Original style, complete lyrics, 35-second setting", "A melody or structure that suits you better in another result; one difference is not a stable rule."]]}, "after": "<p>Hear the whole piece first, then focus on your question. Record a short preference such as “B has clearer vocals; A has a more natural ending.” Keep the original result instead of comparing from memory.</p>"},
+          {"id": "run", "title": "3. Try the next Candidate in the same Project", "html": "<p>Update the chosen style, lyrics, or seed and keep the other inputs unchanged. Use a new download directory each time. Submit one new Generate Job and record its Job and Candidate ids. Existing Candidates and Versions stay unchanged.</p>", "advanced": {"title": "Current entrypoint: reuse the same Project", "html": "<p>This command demonstrates “change seed only.” Replace the Project id and keep the original first-chapter lyrics file. It creates a new Job and downloads a new Candidate, without saving a Version. For style or lyric experiments, replace the matching parameter or file with your selected input.</p>", "blocks": [{"label": "PowerShell · change seed only", "text": "uv run --project services/api --no-sync python services/api/examples/generate_save.py generate --project-id <PROJECT_ID> --style \"English, gentle folk pop, warm clear voice, acoustic guitar and piano, light bass and drums, 96 BPM\" --lyrics-file data/morning-lyrics.txt --seed 2026192202 --output-dir data/morning-candidate-02"}]}},
+          {"id": "save", "title": "4. Choose the one you want to keep", "html": "<p>Compare downloaded audio and ABC, then choose a Candidate in the same Project. Name the change, such as “Morning · seed 02.” You can use a Version from the first chapter as parent to record the starting point. That relationship is creative provenance, not a local audio edit.</p>", "advanced": {"title": "Current save entrypoint: keep the new Candidate as a Version", "html": "<p>Replace the actual Project, Candidate, and saved parent Version ids. Omit <code>--parent-version-id</code> when there is no parent. All ids must belong to this Project.</p>", "blocks": [{"label": "PowerShell · keep a creative branch", "text": "uv run --project services/api --no-sync python services/api/examples/generate_save.py save --project-id <PROJECT_ID> --candidate-id <NEW_CANDIDATE_ID> --name \"Morning - seed 02\" --parent-version-id <FIRST_VERSION_ID>"}]}, "after": "<p>You can leave every Candidate unsaved if none is right yet. Finished generation is not a finished creative choice.</p>"},
+          {"id": "recovery", "title": "If saving conflicts, read the existing Version first", "html": "<p><code>409 version_already_saved</code> means this Candidate was saved with another name or parent. Read the existing Version id in the error and confirm what you already kept. A renamed save does not make the same Candidate a new piece. Generate a new Candidate for a new creative intent.</p><p>If waiting disconnects, query the original Job as in the first chapter to avoid repeated inference. Change one dimension in the next round and keep a clear starting point.</p>"},
+          {"id": "next", "title": "What could you ask next?", "html": "<ul><li>Make lyrics on the same theme shorter: change one line and listen for more direct expression.</li><li>Use fewer instrument instructions: remove one arrangement request and listen for focus.</li><li>Notice a rhythm in <a href=\"#/en/reference\">Reference Audio</a>, then describe a new style goal in words.</li></ul><p>These are experiments, not tuned finished recipes. Keep inputs, Jobs, listening notes, and selected Versions so the next session has a clear starting point.</p>"}
+        ]
+      }
+    },
+    "resources": {
+      "type": {"zh": "指南与参考", "en": "Guides and reference"},
+      "source": "docs/guides/runtime-doctor.md",
+      "sourceEn": "docs/guides/runtime-doctor.en.md",
+      "zh": {
+        "title": "需要准备、参数或排障时，从这里找",
+        "navTitle": "准备与排障",
+        "summary": "创作教程围绕结果展开。环境准备、Doctor、API 与开发资料在这里按需查阅，现有指南继续可达。",
+        "sections": [
+          {"id": "prepare", "title": "先让实际操作入口就绪", "html": "<p>如果已有由你或管理者维护的就绪本地环境，直接进入创作教程。首次使用则先准备 Runtime、模型与应用 API；需要 Git、uv 和受支持的 NVIDIA GPU。现有指南给出完整命令、锁定版本与恢复方法。</p><p>真实模式使用独立应用数据目录和新鲜 owner receipt。不要把 fake 的项目目录切换成真实模式；fake 只适合练习应用行为，不产生模型音乐。</p>", "sourceLinks": [{"label": "环境、模型、Doctor 与 Runtime 启动", "path": "docs/guides/runtime-doctor.md"}, {"label": "应用 API 启动与生成/保存操作", "path": "docs/guides/generate-save-api.md"}, {"label": "真实 Runtime 诊断收据与刷新", "path": "docs/reference/runtime-evidence.md"}]},
+          {"id": "help", "title": "遇到问题时，先找对应任务", "sourceLinks": [{"label": "上传格式、文件预算与素材恢复", "path": "docs/guides/api-project-audio.md"}, {"label": "转谱输入范围与 ABC/MIDI 结果", "path": "docs/guides/api-transcription.md"}, {"label": "取消、明确重试与错误处理", "path": "docs/guides/api-cancel-retry.md"}, {"label": "实时阶段、断开后读取同一 Job", "path": "docs/guides/api-job-events.md"}, {"label": "Runtime 与模型就绪问题", "path": "docs/guides/api-runtime-diagnostics.md"}]},
+          {"id": "advanced", "title": "需要开发或更深入的控制", "html": "<p>当前 Swagger 在你自己运行的应用地址 <code>/docs</code>；<code>/openapi.json</code> 是 API 合同。源码与架构资料服务于接入和维护，不作为创作教程的必修章节。下方链接固定到当前接口基线。</p>", "sourceLinks": [{"label": "架构与领域边界", "path": "docs/learn/architecture.md"}, {"label": "源码：现成生成与保存 CLI", "path": "services/api/examples/generate_save.py"}, {"label": "源码：公开生成与保存参数", "path": "services/api/src/music_api/generation_schemas.py"}, {"label": "文档站维护与运行", "path": "docs/guides/documentation.md"}]},
+          {"id": "back", "title": "回到你的创作任务", "html": "<p><a href=\"#/zh/first-music\">做第一段音乐 →</a> · <a href=\"#/zh/reference\">从参考音频开始 →</a> · <a href=\"#/zh/variations\">探索新玩法 →</a></p>"}
+        ]
+      },
+      "en": {
+        "title": "Find preparation, parameters, and help here",
+        "navTitle": "Preparation and help",
+        "summary": "Creator tutorials focus on results. Consult preparation, Doctor, API, and development material here when you need it. Existing guides remain accessible.",
+        "sections": [
+          {"id": "prepare", "title": "Prepare the actual entrypoint first", "html": "<p>If you or your operator already maintain a ready local environment, continue directly to creator tutorials. For first use, prepare the Runtime, models, and application API. You need Git, uv, and a supported NVIDIA GPU. Existing guides provide complete commands, pinned versions, and recovery steps.</p><p>Real mode uses a separate application data directory and a fresh owner receipt. Do not switch a fake Project directory into real mode. Fake is for practicing application behavior and produces no model music.</p>", "sourceLinks": [{"label": "Environment, models, Doctor, and Runtime launch", "path": "docs/guides/runtime-doctor.en.md"}, {"label": "Application API launch and generate/save operations", "path": "docs/guides/generate-save-api.en.md"}, {"label": "Real Runtime diagnostic receipts and refresh", "path": "docs/reference/runtime-evidence.en.md"}]},
+          {"id": "help", "title": "Find help for the task that failed", "sourceLinks": [{"label": "Upload formats, budgets, and Asset recovery", "path": "docs/guides/api-project-audio.en.md"}, {"label": "Transcription profiles and ABC/MIDI results", "path": "docs/guides/api-transcription.en.md"}, {"label": "Cancellation, explicit retry, and errors", "path": "docs/guides/api-cancel-retry.en.md"}, {"label": "Live phases and the same Job after disconnect", "path": "docs/guides/api-job-events.en.md"}, {"label": "Runtime and model readiness", "path": "docs/guides/api-runtime-diagnostics.en.md"}]},
+          {"id": "advanced", "title": "For development or deeper control", "html": "<p>Current Swagger is at <code>/docs</code> on your running application address. <code>/openapi.json</code> is the API contract. Source and architecture material support integration and maintenance; they are not required chapters in the creator tutorial. Links below are pinned to the current API baseline.</p>", "sourceLinks": [{"label": "Architecture and domain boundaries", "path": "docs/learn/architecture.en.md"}, {"label": "Source: existing generate/save CLI", "path": "services/api/examples/generate_save.py"}, {"label": "Source: public generation and save parameters", "path": "services/api/src/music_api/generation_schemas.py"}, {"label": "Running and maintaining the docs site", "path": "docs/guides/documentation.en.md"}]},
+          {"id": "back", "title": "Return to your creative task", "html": "<p><a href=\"#/en/first-music\">Make your first music →</a> · <a href=\"#/en/reference\">Start with Reference Audio →</a> · <a href=\"#/en/variations\">Explore an idea →</a></p>"}
+        ]
+      }
+    },
+    "scope": {
+      "type": {"zh": "当前使用范围", "en": "Current usage scope"},
+      "source": "docs/learn/scope.md",
+      "sourceEn": "docs/learn/scope.en.md",
+      "zh": {
+        "title": "今天可以做什么",
+        "navTitle": "当前能力与限制",
+        "summary": "从已经跑通的短片段创作开始。未来能力有独立阶段，教程不会把计划写成可用按钮。",
+        "sections": [
+          {"id": "now", "title": "当前可用", "table": {"head": ["想做的事", "实际范围"], "rows": [["从风格与歌词生成", "当前 35 秒配置；生成音频与 ABC，得到 Candidate，再明确保存 Version。"], ["参考音频转谱", "16 秒 PCM16 WAV：mono24k 或 stereo48k，得到 Score、ABC 与 MIDI。"], ["继续尝试", "在同一 Project 创建新的 Generate，改变风格、歌词或 seed，再下载逐个试听。"], ["保留与找回", "应用 id 读取原素材、已完成结果与保存版本；HTTP 读取 Job，WS 可观察阶段，无法确认的操作要先核对。"]]}},
+          {"id": "later", "title": "随产品阶段加入", "html": "<p>正式 Workbench Web 等待 P1 gate，并在 P2 开始。内置播放比较、曲谱编辑、GenerateFromScore 与 Cover 尚未交付；长曲长度、任意音频格式或任意音乐的转谱准确率也不能从当前短样本推出。</p><p>这份文档交互预览沿用已确认的站点视觉，展示新的教程方向。它只读取静态内容并播放已有 MP3，与业务写入隔离。</p>"},
+          {"id": "next", "title": "先完成一个小作品", "html": "<p><a href=\"#/zh/first-music\">用已验证配方做第一段音乐 →</a></p>"}
+        ]
+      },
+      "en": {
+        "title": "What you can do today",
+        "navTitle": "Capabilities and limits",
+        "summary": "Start with implemented short-fragment workflows. Later capabilities have their own stages; tutorials do not turn plans into available buttons.",
+        "sections": [
+          {"id": "now", "title": "Available now", "table": {"head": ["Your task", "Actual scope"], "rows": [["Generate from style and lyrics", "Current 35-second profile; audio and ABC form a Candidate, then an explicitly saved Version."], ["Transcribe Reference Audio", "16-second PCM16 WAV: mono24k or stereo48k; a Score, ABC, and MIDI."], ["Try another direction", "Create a new Generate in the same Project, vary style, lyrics, or seed, and download results to hear one at a time."], ["Keep and find results", "Application ids read original Assets, completed outputs, and saved Versions. HTTP reads Jobs, WS can observe phases, and uncertain operations require checking first."]]}},
+          {"id": "later", "title": "Coming with later product stages", "html": "<p>The product Web Workbench waits for the P1 gate and begins in P2. Integrated playback comparison, score editing, GenerateFromScore, and Cover are not delivered. Current short examples do not establish long-song support, arbitrary audio profiles, or transcription accuracy for arbitrary music.</p><p>This interactive docs preview reuses the approved site appearance and shows the revised tutorial direction. It reads static content and plays an existing MP3, isolated from business writes.</p>"},
+          {"id": "next", "title": "Finish one small piece first", "html": "<p><a href=\"#/en/first-music\">Make your first music with the verified recipe →</a></p>"}
+        ]
+      }
+    }
+  }
+}

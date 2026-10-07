@@ -24,5 +24,15 @@
 .callout p { margin: 0; }
 .sl-markdown-content .page-source { display: flex; flex-wrap: wrap; gap: .4rem 1.2rem; margin-top: 2rem; padding-top: 1rem; border-top: 1px solid var(--sl-color-gray-5); color: var(--sl-color-gray-3); font-size: .7rem; }
 .page-source a { overflow-wrap: anywhere; }
+audio { display: block; width: 100%; margin: 1rem 0; }
+.sl-markdown-content details.creator-supplement { border: 1px solid var(--sl-color-gray-5); border-radius: .45rem; padding: .8rem 1rem; margin: 1.3rem 0; }
+.creator-supplement summary { cursor: pointer; color: var(--sl-color-text-accent); font-weight: 600; }
+music-input-recipes { display: block; }
+.sl-markdown-content .recipe-tabs { display: flex; flex-wrap: wrap; gap: .4rem; margin: 1rem 0; }
+.recipe-tabs button, [data-copy-recipe] { cursor: pointer; font: inherit; font-size: .8rem; padding: .45rem .65rem; color: var(--sl-color-text); background: var(--sl-color-gray-6); border: 1px solid var(--sl-color-gray-5); border-radius: .4rem; }
+.recipe-tabs button[aria-pressed='true'] { color: var(--sl-color-text-accent); background: var(--sl-color-accent-low); border-color: var(--sl-color-text-accent); }
+[data-recipe-status], [data-copy-status] { font-size: .8rem; color: var(--sl-color-gray-3); }
+music-input-recipes pre { overflow-x: auto; font-size: .75rem; padding: 1rem; border: 1px solid var(--sl-color-gray-5); border-radius: .4rem; }
+[data-recipe-facts] { overflow-wrap: anywhere; }
 @media (max-width: 70rem) { .sl-markdown-content .task-grid { grid-template-columns: 1fr; } }
 @media (max-width: 40rem) { .sl-markdown-content .music-flow { gap: .8rem; font-size: .8rem; } .music-flow small { font-size: .6rem; } }

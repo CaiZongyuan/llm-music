@@ -1,23 +1,18 @@
-文档随实际交付增加。已验证的 Runtime 路径与尚未实施的产品体验分别标明。
+从已经跑通的短片段创作开始。未来能力有独立阶段，教程不会把计划写成可用按钮。
 
-## 当前文档入口 {#current}
+## 当前可用 {#now}
 
-<p>本站提供可浏览的 Runtime 快速开始示例。P0 的真实 GPU 路径已通过阶段验收。本站的页面、搜索与主题仅使用本地文档内容，不读取运行中的服务。</p><p>当前实现 已包含 P1 的项目、素材、转谱、生成、候选保存、取消重试、诊断和 Job 事件交付。P1 整体验收尚待后续恢复与合同票据完成。</p>
+| 想做的事 | 实际范围 |
+| --- | --- |
+| 从风格与歌词生成 | 当前 35 秒配置；生成音频与 ABC，得到 Candidate，再明确保存 Version。 |
+| 参考音频转谱 | 16 秒 PCM16 WAV：mono24k 或 stereo48k，得到 Score、ABC 与 MIDI。 |
+| 继续尝试 | 在同一 Project 创建新的 Generate，改变风格、歌词或 seed，再下载逐个试听。 |
+| 保留与找回 | 应用 id 读取原素材、已完成结果与保存版本；HTTP 读取 Job，WS 可观察阶段，无法确认的操作要先核对。 |
 
-## 后续产品教程 {#stages}
+## 随产品阶段加入 {#later}
 
-<table><thead><tr><th scope="col">阶段</th><th scope="col">状态与目标</th></tr></thead><tbody><tr><td>P1 · Application Core</td><td>正在开发。通过 FastAPI HTTP / WebSocket 完成核心路径。</td></tr><tr><td>P2 · Web MVP</td><td>计划。项目库、工作区、任务监视与 Runtime 状态。</td></tr><tr><td>P3 · Score Editing</td><td>计划。ABC 编辑、预览、试听与重新生成。</td></tr><tr><td>P4–P5 · Cover / Compare</td><td>计划。可检查的改编流程与版本比较。</td></tr></tbody></table>
+<p>正式 Workbench Web 等待 P1 gate，并在 P2 开始。内置播放比较、曲谱编辑、GenerateFromScore 与 Cover 尚未交付；长曲长度、任意音频格式或任意音乐的转谱准确率也不能从当前短样本推出。</p><p>本站只读取静态文档并播放已有 MP3，与业务写入隔离。</p>
 
-<div class="callout"><strong>计划页不是操作教程</strong><p>正式工作台 Web 从 P2 开始。此文档站不表示产品 Web 已交付。</p></div>
+## 先完成一个小作品 {#next}
 
-## 当前不开发 {#excluded}
-
-<p>Electron 打包、React Native、云 SaaS、多用户、分布式 GPU、完整 DAW 与 Native YuE2 重写均不在当前范围内。</p>
-
-## 查阅事实来源 {#sources}
-
-<p>运行版本与模型 pins 分别记录在 Runtime 配置与 Model Registry。权重、代码和输入 fixture 的许可分别记录。</p>
-
-- [Runtime 配置 ↗](../../runtime/comfyui/runtime.json)
-- [Model Registry ↗](../../runtime/comfyui/models.json)
-- [输入 fixture ↗](../../runtime/comfyui/workflows/transcribe-sheetsage2/v1/fixture.json)
+<p><a href="./first-music.md">用已验证配方做第一段音乐 →</a></p>

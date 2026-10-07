@@ -81,3 +81,22 @@ test('link references are checked while code examples remain literal, and paired
   await writeFile(join(root, 'docs/learn/overview.en.md'), 'Intro.\n\n## Different section {#different}\n');
   await assert.rejects(loadPages(root, manifest, version), /section ids differ/);
 });
+
+test('registered public audio, provenance and scripts use the Pages base while repository source stays pinned', async t => {
+  const { root, manifest } = await fixture(t);
+  await mkdir(join(root, 'apps/docs/public/examples'), { recursive: true });
+  await writeFile(join(root, 'apps/docs/public/examples/listening.mp3'), 'identified media fixture');
+  await writeFile(join(root, 'apps/docs/public/examples/provenance.json'), '{"fixture":true}');
+  await writeFile(join(root, 'apps/docs/public/recipe.js'), 'export const readOnly = true;');
+  await writeFile(join(root, 'examples/lyrics.txt'), '[Verse]\nOriginal words\n');
+  const body = 'Listen and inspect.\n\n## Result {#result}\n\n<audio controls><source src="../../apps/docs/public/examples/listening.mp3" type="audio/mpeg"></audio>\n\n[Provenance](../../apps/docs/public/examples/provenance.json)\n\n<script type="module" src="../../apps/docs/public/recipe.js"></script>\n\n[Source](../../examples/first.py)\n\n<<< ../../examples/lyrics.txt\n';
+  for (const suffix of ['', '.en']) await writeFile(join(root, `docs/learn/overview${suffix}.md`), body);
+  const result = await loadPages(root, manifest, version);
+  const page = result.pages.find(page => page.id === 'overview' && page.locale === 'en');
+  assert.match(page.markdown, /src="\/llm-music\/examples\/listening.mp3"/);
+  assert.match(page.markdown, /\[Provenance\]\(\/llm-music\/examples\/provenance.json\)/);
+  assert.match(page.markdown, /src="\/llm-music\/recipe.js"/);
+  assert.match(page.markdown, /blob\/1234567890abcdef1234567890abcdef12345678\/examples\/first.py/);
+  assert.match(page.markdown, /```text\n\[Verse\]\nOriginal words/);
+  for (const path of ['apps/docs/public/examples/listening.mp3', 'apps/docs/public/examples/provenance.json', 'apps/docs/public/recipe.js', 'examples/lyrics.txt']) assert.ok(result.sourcePaths.includes(path));
+});

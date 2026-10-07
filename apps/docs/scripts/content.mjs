@@ -75,7 +75,7 @@ export function validateManifest(manifest) {
 export function sourceVersion(root) {
   const revision = execFileSync('git', ['rev-parse', 'HEAD'], { cwd: root, encoding: 'utf8', windowsHide: true }).trim();
   if (!/^[a-f0-9]{40}$/.test(revision)) fail('No Git source commit was found');
-  const relevantChanges = execFileSync('git', ['status', '--porcelain', '--', 'docs/learn', 'docs/site.json', 'apps/docs', 'runtime/comfyui/examples', 'package.json', 'pnpm-workspace.yaml', 'pnpm-lock.yaml'], { cwd: root, encoding: 'utf8', windowsHide: true }).trim();
+  const relevantChanges = execFileSync('git', ['status', '--porcelain', '--', 'docs/learn', 'docs/site.json', 'apps/docs', 'runtime/comfyui/examples', 'services/api/examples', 'package.json', 'pnpm-workspace.yaml', 'pnpm-lock.yaml'], { cwd: root, encoding: 'utf8', windowsHide: true }).trim();
   return { revision, workingCopy: Boolean(relevantChanges) };
 }
 
@@ -114,6 +114,10 @@ export async function loadPages(root, manifest, version = sourceVersion(root)) {
         if (registered) return chapterUrl(manifest, registered, locale) + match[2];
         const repositoryPath = relative(root, target).replaceAll('\\', '/');
         sources.add(repositoryPath);
+        if (repositoryPath.startsWith('apps/docs/public/')) {
+          const assetPath = repositoryPath.slice('apps/docs/public/'.length).split('/').map(encodeURIComponent).join('/');
+          return `${manifest.base}${assetPath}${match[2]}`;
+        }
         return github(repositoryPath) + match[2];
       };
       const pending = [];
@@ -131,7 +135,7 @@ export async function loadPages(root, manifest, version = sourceVersion(root)) {
         if (!include) continue;
         const includedFile = await repositoryFile(root, relative(root, resolve(dirname(file), include[1])));
         const includedPath = relative(root, includedFile).replaceAll('\\', '/');
-        const languages = { '.ps1': 'powershell', '.py': 'python', '.json': 'json', '.ts': 'typescript', '.js': 'javascript', '.mjs': 'javascript', '.yaml': 'yaml', '.yml': 'yaml' };
+        const languages = { '.ps1': 'powershell', '.py': 'python', '.json': 'json', '.txt': 'text', '.ts': 'typescript', '.js': 'javascript', '.mjs': 'javascript', '.yaml': 'yaml', '.yml': 'yaml' };
         if (!languages[extname(includedFile)]) fail(`Unsupported source include: ${includedPath}`);
         const code = await readFile(includedFile, 'utf8');
         if (code.includes('\0')) fail(`Source include is not text: ${includedPath}`);

@@ -1,17 +1,21 @@
-Begin with the local Runtime: prepare the environment, check readiness, then turn 16 seconds of Reference Audio into ABC and MIDI. Learn the capabilities that are implemented today.
+Describe a style and write a few lyric lines. Make about 35 seconds of music, then try transcription or change one input to find a version you want to keep.
 
-<div class="hero-actions"><a class="primary-action" href="./quickstart.en.md">Start preparation →</a><a class="secondary-action" href="./transcribe.en.md">View transcription guide</a></div>
+<div class="hero-actions"><a class="primary-action" href="./first-music.en.md">Make your first music →</a><a class="secondary-action" href="./reference.en.md">Start with Reference Audio</a></div>
 
-<div class="music-flow"><div><strong>Reference Audio</strong><small>16-second original music</small></div><span aria-hidden="true">→</span><div><strong>SheetSage2</strong><small>Local GPU transcription</small></div><span aria-hidden="true">→</span><div><strong>ABC + MIDI</strong><small>Complete file validation</small></div></div>
+<div class="music-flow"><div><strong>An idea</strong><small>Style, lyrics, or Reference Audio</small></div><span aria-hidden="true">→</span><div><strong>Listen and inspect</strong><small>Hear the audio, read the score</small></div><span aria-hidden="true">→</span><div><strong>Keep a version</strong><small>Save explicitly when satisfied</small></div></div>
 
-## Choose your starting point {#choose}
+## What would you like to try? {#choose}
 
-<div class="task-grid"><a class="task-card" href="./quickstart.en.md"><span aria-hidden="true">01</span><strong>Run it for the first time</strong><p>Prepare the pinned environment and models. Get the first Doctor result.</p><small>Open quick start →</small></a><a class="task-card" href="./architecture.en.md"><span aria-hidden="true">02</span><strong>Understand the architecture</strong><p>Learn the boundaries between Project, Job, and Runtime. Find their source.</p><small>Read the architecture →</small></a><a class="task-card" href="./transcribe.en.md"><span aria-hidden="true">03</span><strong>Find a task guide</strong><p>Runtime already ready? Read the transcription steps, outputs, and recovery actions.</p><small>Transcribe and export MIDI →</small></a></div>
+<div class="task-grid"><a class="task-card" href="./first-music.en.md"><span aria-hidden="true">01</span><strong>Make your first music</strong><p>Start with a verified folk-pop recipe. Describe the sound, structure the lyrics, and listen to the Candidate.</p><small>Start with a small piece →</small></a><a class="task-card" href="./reference.en.md"><span aria-hidden="true">02</span><strong>Understand a reference melody</strong><p>Turn 16 seconds of instrumental music into ABC and MIDI. Check pitch and rhythm against the original and find a phrase to explore.</p><small>Start with Reference Audio →</small></a><a class="task-card" href="./variations.en.md"><span aria-hidden="true">03</span><strong>One idea, several moods</strong><p>Change only style, one lyric line, or the seed. Listen to each result, note the differences, and save the Candidate you like.</p><small>Choose an experiment →</small></a></div>
 
-## What this version covers {#today}
+## Hear a real example first {#listen}
 
-<p>This site covers P0 Runtime preparation, Doctor, and the first transcription path. Real GPU validation has passed. The site runs no checks and submits no music Jobs.</p><p>The FastAPI core is being delivered in P1. The product Web Workbench starts in P2. Product tutorials will follow implemented stages.</p><p><a href="./scope.en.md">View current scope and later stages →</a></p>
+<p>This approximately 35-second piece was generated on a local GPU and saved: English lyrics, a warm voice, acoustic guitar, and piano. Listen first, then choose a starting point.</p><audio controls preload="metadata" aria-label="Verified 35-second music example"><source src="../../apps/docs/public/examples/morning-song.mp3" type="audio/mpeg">Your browser cannot play MP3. Use the download link below.</audio><p class="recipe-note">This is a compressed copy of the verified local piece, with its original recipe. Playback generates no new music. It does not demonstrate the untested experiments below.</p><p><a href="../../apps/docs/public/examples/morning-song.mp3" download>Download the listening MP3</a> · <a href="../../apps/docs/public/examples/morning-song-provenance.json">View example provenance</a></p>
 
-## Your first result {#result}
+## Two things to know before starting {#entry}
 
-<p>The transcription tool retains the input, request, and history. It validates the complete ABC, then exports and reads MIDI. A successful receipt contains <code>status=completed</code> and <code>verified=true</code>.</p><p>A file or HTTP 200 alone cannot prove success. A fixed short sample does not establish transcription accuracy for arbitrary music.</p>
+<p>Current entrypoints are the local application API's Swagger page and the existing CLI. Music generation needs a ready real Runtime; default fake mode produces a test tone. <a href="./resources.en.md">Preparation and entrypoints →</a></p><p>This site displays tutorials, copies inputs, and plays an existing example. It submits no generation, uploads no audio, and saves no Projects. The product Web Workbench is not delivered yet. Score editing, Cover, and an integrated A/B player belong to later stages.</p>
+
+## Ask one creative question at a time {#habit}
+
+<p>For example: “Would piano suit the same lyrics better than guitar?” Keep the original inputs, change one dimension, then listen to the voice, accompaniment, and ending. Each generation creates a Candidate. It becomes a Version only when you explicitly save it.</p><p>Each tutorial helps you choose inputs, inspect results, recover from a failure, and try the next idea. Use help and reference when you need parameters or troubleshooting.</p>
