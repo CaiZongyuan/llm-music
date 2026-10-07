@@ -25,6 +25,7 @@ from music_api.runtime_types import InferenceRuntime, JobState, Operation, Runti
 from music_api.schemas import JobRead
 from music_api.storage import Storage
 from music_api.workflow_registry import WorkflowRegistry
+from music_api.runtime_errors import failure_detail
 
 
 log = logging.getLogger("music_api")
@@ -37,7 +38,14 @@ OPERATION_PHASES: dict[Operation, tuple[str, ...]] = {
 
 
 def measured_progress(value: float | None) -> float | None:
-    return float(value) if value is not None and not isinstance(value, bool) and math.isfinite(value) and 0 <= value <= 1 else None
+    return float(value) if isinstance(value, (int, float)) and not isinstance(value, bool) and math.isfinite(value) and 0 <= value <= 1 else None
+
+
+def mark_cancelled(job: Job) -> None:
+    """Only the transaction owner commits this confirmed terminal state."""
+    job.status, job.phase, job.progress = "cancelled", None, None
+    job.error = dict(code="cancelled", message="This Job was cancelled.", recovery="Explicitly create a new Job to repeat the operation.")
+    job.updated_at = utc_now()
 
 
 def validate_score(result: RuntimeResult) -> RuntimeArtifact:
@@ -109,7 +117,18 @@ class JobService:
             if job.submission_state == "pending":
                 observed = RuntimeStatus("cancelled")
             elif job.runtime_handle is not None:
-                observed = self.runtime.status(job.runtime_handle) if previously_requested else self.runtime.cancel(job.runtime_handle)
+                try:
+                    observed = self.runtime.status(job.runtime_handle) if previously_requested else self.runtime.cancel(job.runtime_handle)
+                except Exception as error:
+                    log.exception("Runtime cancellation outcome unconfirmed", extra={"event": "job_cancellation_unconfirmed", "job_id": job.id,
+                                  "runtime_handle": job.runtime_handle})
+                    job.error = dict(code="runtime_unavailable", message="Cancellation could not be confirmed; the target may still be running.",
+                                     recovery="Retain this Job and inspect its owned Runtime attempt before any retry.")
+                    job.updated_at = utc_now()
+                    session.commit()
+                    self.notify(job.id)
+                    raise DomainError(503, "runtime_unavailable", "Cancellation could not be confirmed.",
+                                      "Query this Job before retrying; the original native target may still exist.", identifier) from error
             else:
                 raise DomainError(409, "cancellation_unconfirmed", "The native target identity is unavailable.", "Retain this Job's attempt mapping and inspect its Runtime outcome before retrying.")
             if observed.code == "cancellation_not_dispatched":
@@ -122,13 +141,19 @@ class JobService:
                 raise DomainError(409, "cancellation_not_dispatched", "The target changed state before cancellation was confirmed.",
                                   "Read the current Job and explicitly request cancellation again if needed.", identifier)
             if observed.state == "cancelled":
-                job.status, job.phase, job.progress = "cancelled", None, None
-                job.error = dict(code="cancelled", message="This Job was cancelled.", recovery="Explicitly create a new Job if you want to repeat the operation.")
-                job.updated_at = utc_now()
+                mark_cancelled(job)
                 session.commit()
             elif observed.state == "unconfirmed":
-                raise DomainError(409, observed.code or "cancellation_unconfirmed", observed.message or "Cancellation is unconfirmed.",
-                                  "Retain this Job and inspect the Runtime before any new attempt.")
+                code = observed.code if observed.code in {"cancellation_ownership_unverified", "runtime_unavailable"} else "cancellation_unconfirmed"
+                if code == "cancellation_ownership_unverified":
+                    job.cancel_requested = False
+                job.error = dict(code=code, message="The cancellation target or outcome is unconfirmed.",
+                                 recovery="Retain this Job and inspect its owned Runtime mapping before any new attempt.")
+                job.updated_at = utc_now()
+                session.commit()
+                self.notify(job.id)
+                raise DomainError(503 if code == "runtime_unavailable" else 409, code, "Cancellation is unconfirmed.",
+                                  "Retain this Job and inspect the Runtime before any new attempt.", identifier)
         self.notify(job.id)
         return job
 
@@ -338,13 +363,14 @@ class JobService:
                         job = session.get(Job, identifier)
                         assert job is not None
                         if job.status not in {"completed", "failed", "cancelled"}:
-                            job.status, job.phase, job.progress = "cancelled", None, None
-                            job.error = dict(code="cancelled", message="This Job was cancelled.", recovery="Explicitly create a new Job to repeat the operation.")
-                            job.updated_at = utc_now()
+                            mark_cancelled(job)
                             session.commit()
                     self.notify(identifier)
                     return
-                raise DomainError(503, observed.code or "runtime_unavailable", observed.message or "Native work did not complete successfully.", "Retain the Job inputs and native attempt mapping.")
+                detail = failure_detail(operation, observed.code)
+                log.error("Runtime reported a failed Job", extra={"event": "job_runtime_failed", "job_id": identifier,
+                          "operation": operation, "runtime_message": observed.message})
+                raise DomainError(503, detail.code, detail.message, detail.recovery)
             if time.monotonic() >= deadline:
                 raise DomainError(503, "runtime_unavailable", "Native work was not confirmed within the execution window.", "Inspect the saved attempt before retrying.")
             self.stop_event.wait(0.01)
@@ -362,5 +388,6 @@ class JobService:
 def job_read(job: Job) -> JobRead:
     return JobRead(id=UUID(job.id), project_id=UUID(job.project_id), operation=cast(Operation, job.operation), status=cast(JobState, job.status),
                    phase=job.phase, progress=job.progress, inputs=job.inputs, provenance=job.provenance, error=job.error, result=job.result_refs,
-                   recovery_required=job.submission_state in {"unconfirmed", "submitting"}, cancel_requested=job.cancel_requested,
+                   recovery_required=job.submission_state in {"unconfirmed", "submitting"} or job.error is not None and job.error.get("code") in {"runtime_unavailable", "cancellation_unconfirmed", "cancellation_ownership_unverified"},
+                   cancel_requested=job.cancel_requested,
                    created_at=datetime.fromisoformat(job.created_at), updated_at=datetime.fromisoformat(job.updated_at))

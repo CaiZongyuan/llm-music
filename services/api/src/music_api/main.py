@@ -183,6 +183,11 @@ def create_app(settings: Settings | None = None, runtime: InferenceRuntime | Non
         jobs: JobService = request.app.state.jobs
         return job_read(jobs.submit(project_id, "Transcribe", inputs))
 
+    @app.get("/projects/{project_id}/jobs", response_model=list[JobRead])
+    def list_jobs(project_id: UUID, session: Session = Depends(session_for)) -> list[JobRead]:
+        project_in(session, project_id)
+        return [job_read(job) for job in session.scalars(select(Job).where(Job.project_id == str(project_id)).order_by(Job.created_at, Job.id))]
+
     @app.get("/projects/{project_id}/jobs/{job_id}", response_model=JobRead)
     def get_job(project_id: UUID, job_id: UUID, session: Session = Depends(session_for)) -> JobRead:
         project_in(session, project_id)

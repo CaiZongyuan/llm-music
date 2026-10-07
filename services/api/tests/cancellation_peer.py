@@ -13,6 +13,7 @@ CANCELLATION_EXTENSION = '''
 live = {}
 removed = set()
 scenario = "running"
+after_delete = False
 current = None
 foreign_state = "queued"
 foreign_row = [1, "foreign-survivor", {}, {"client_id":"foreign-owner"}, []]
@@ -20,7 +21,12 @@ class CancellationHandler(NativeHandler):
     def do_GET(self):
         if self.path == "/queue":
             rows = [native[current]["prompt"]] if current in live else [foreign_row] if current == "foreign-survivor" else []
+            if rows and current in live and scenario in {"foreign_client", "foreign_graph"}:
+                rows = json.loads(json.dumps(rows))
+                if scenario == "foreign_client": rows[0][3]["client_id"] = "wrong-owner"
+                else: rows[0][2] = {"wrong-node":{"class_type":"WrongGraph","inputs":{}}}
             pending = [native[key]["prompt"] for key,state in live.items() if state == "queued"]
+            if scenario == "malformed_after_delete" and after_delete: pending = [["unreadable-target"]]
             self.reply({"queue_running":rows, "queue_pending":pending + ([foreign_row] if foreign_state == "queued" else [])})
         elif self.path == "/facts":
             self.reply({"foreign_state":foreign_state, "target_states":{key:"removed_pending" if key in removed else live.get(key, value["status"]["status_str"]) for key,value in native.items()}})
@@ -37,22 +43,35 @@ class CancellationHandler(NativeHandler):
             self.reply({"id":handle,"status":state})
         else: super().do_GET()
     def do_POST(self):
-        global current, foreign_state, scenario
+        global current, foreign_state, scenario, after_delete
         if self.path == "/prompt":
             body = json.loads(self.rfile.read(int(self.headers["Content-Length"])))
+            if scenario == "reject":
+                self.send_error(400, "INTERNAL workflow validation detail")
+                return
             handle = "native-" + str(len(native) + 1)
             native[handle] = {"prompt":[0,handle,body["prompt"],{"client_id":body["client_id"]},[]],"outputs":{"score":{"text":[abc]}},"status":{"status_str":"success","completed":True,"messages":[]}}
             if len(native) == 1:
-                pending_scenario = scenario in {"queued", "queued_to_running"}
-                live[handle] = "queued" if pending_scenario else "running"
-                current = "foreign-survivor" if pending_scenario else handle
-                if pending_scenario: foreign_state = "running"
+                if scenario == "success":
+                    pass
+                elif scenario in {"oom", "model_missing", "ordinary_failure"}:
+                    kind, detail = {"oom":("torch.OutOfMemoryError","CUDA out of memory"), "model_missing":("FileNotFoundError","Missing required model sheetsage2_bf16.safetensors"), "ordinary_failure":("ValueError","Native inference failed")}[scenario]
+                    native[handle]["status"] = {"status_str":"error","completed":False,"messages":[["execution_error",{"prompt_id":handle,"exception_type":kind,"exception_message":detail + ": INTERNAL CPU peer detail","node_id":"score"}]]}
+                else:
+                    pending_scenario = scenario in {"queued", "queued_to_running", "malformed_after_delete"}
+                    live[handle] = "queued" if pending_scenario else "running"
+                    current = "foreign-survivor" if pending_scenario else handle
+                    if pending_scenario: foreign_state = "running"
+            elif current == "foreign-survivor" and foreign_state == "running":
+                live[handle] = "queued"
             self.reply({"prompt_id":handle})
         elif self.path == "/queue":
             body = json.loads(self.rfile.read(int(self.headers["Content-Length"])))
+            after_delete = True
             for handle in body.get("delete", []):
                 if live.get(handle) == "queued":
-                    if scenario == "queued_to_running":
+                    if scenario == "malformed_after_delete": pass
+                    elif scenario == "queued_to_running":
                         live[handle], current, foreign_state = "running", handle, "completed"
                     else:
                         del live[handle]
@@ -60,7 +79,14 @@ class CancellationHandler(NativeHandler):
             self.reply({})
         elif self.path.startswith("/api/jobs/") and self.path.endswith("/cancel"):
             self.rfile.read(int(self.headers["Content-Length"]))
+            if scenario == "cancel_unavailable":
+                self.connection.shutdown(2)
+                self.connection.close()
+                return
             handle = self.path.split("/")[-2]
+            if scenario == "switch_before_cancel" and handle in live:
+                del live[handle]
+                current, foreign_state = "foreign-survivor", "running"
             dispatched = handle == current and handle in live
             if dispatched and scenario != "delayed_confirmation":
                 del live[handle]
@@ -79,11 +105,16 @@ class CancellationHandler(NativeHandler):
             body = json.loads(self.rfile.read(int(self.headers["Content-Length"])))
             if body["action"] == "finish_survivor":
                 foreign_state, current = "completed", None
+                for handle in list(live):
+                    if live[handle] == "queued": live.pop(handle)
             elif body["action"] == "scenario": scenario = body["value"]
             elif body["action"] == "confirm_cancellation":
                 handle = "native-1"
                 live.pop(handle, None)
                 native[handle]["status"] = {"status_str":"error","completed":False,"messages":[["execution_interrupted",{"prompt_id":handle}]]}
+                current, foreign_state = "foreign-survivor", "running"
+            elif body["action"] == "finish_target":
+                live.pop("native-1", None)
                 current, foreign_state = "foreign-survivor", "running"
             self.reply({"foreign_state":foreign_state})
         else: super().do_POST()

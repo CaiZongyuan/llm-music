@@ -50,10 +50,11 @@ def test_owned_phase_observations_cannot_complete_a_job_and_stream_closes(tmp_pa
             assert running["progress"] is None
             source["send"](RuntimeStatus("completed"))
             source["send"](RuntimeStatus("running", "loading_model"))
+            assert wait_phase(client, address, "loading_model")["status"] == "running"
             for _ in range(3):
                 current = client.get(address).json()
                 assert current["status"] == "running"
-                assert current["phase"] == "transcribing"
+                assert current["phase"] == "loading_model"
                 assert current["result"] is None
             source["send"](RuntimeStatus("unconfirmed", code="native_event_source_lost"))
             assert wait_phase(client, address, None)["progress"] is None
@@ -62,6 +63,9 @@ def test_owned_phase_observations_cannot_complete_a_job_and_stream_closes(tmp_pa
             assert complete["status"] == "completed", complete
             assert complete["result"]["abc_asset_id"]
             assert stopped.wait(timeout=2), "Owned observation source did not close"
+            source["send"](RuntimeStatus("running", "loading_model"))
+            source["send"](RuntimeStatus("completed"))
             assert client.get(address).json() == complete
+            assert len(client.get(base + "/assets").json()) == 3
     finally:
         release.set()
