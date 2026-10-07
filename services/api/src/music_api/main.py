@@ -67,9 +67,15 @@ def asset_file(storage: Storage, asset: Asset) -> Path:
 
 def create_app(settings: Settings | None = None, runtime: InferenceRuntime | None = None,
                configure_jobs: Callable[[JobService], None] | None = None, registry: WorkflowRegistry | None = None) -> FastAPI:
+    from music_api.fake_generation import generation_fixture
+    from music_api.generation import configure_generation, router as generation_router
+    from music_api.version_routes import router as version_router
+
     configured = settings or Settings()
     registry = registry or WorkflowRegistry()
-    selected_runtime: InferenceRuntime = runtime or (FakeInferenceRuntime(registry=registry, max_age_seconds=configured.diagnostics_max_age_seconds) if configured.runtime_mode == "fake" else ComfyUIRuntime(configured, registry))
+    selected_runtime: InferenceRuntime = runtime or (FakeInferenceRuntime(registry=registry, max_age_seconds=configured.diagnostics_max_age_seconds,
+                                                                          result_factories={"Generate": generation_fixture})
+                                                    if configured.runtime_mode == "fake" else ComfyUIRuntime(configured, registry))
     if selected_runtime.mode != configured.runtime_mode:
         raise ValueError("Injected Runtime mode differs from the configured data namespace")
 
@@ -83,6 +89,7 @@ def create_app(settings: Settings | None = None, runtime: InferenceRuntime | Non
             app.state.storage = Storage(configured)
             jobs = JobService(database, app.state.storage, selected_runtime, registry, configured)
             app.state.jobs = jobs
+            configure_generation(jobs)
             if configure_jobs is not None:
                 configure_jobs(jobs)
             jobs.start()
@@ -195,4 +202,6 @@ def create_app(settings: Settings | None = None, runtime: InferenceRuntime | Non
             raise DomainError(404, "score_not_found", "Score does not exist in this Project.", "Query the Score's owning Project.")
         return ScoreRead.model_validate(score)
 
+    app.include_router(generation_router)
+    app.include_router(version_router)
     return app
