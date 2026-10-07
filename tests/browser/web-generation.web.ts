@@ -16,9 +16,13 @@ for (const locale of ['zh-CN', 'en'] as const) for (const theme of ['light', 'da
     page.on('request', request => requests.push(request.url()));
     const project = received(await api.POST('/projects', { body: { name: `听晨光 · ${randomUUID().slice(0, 8)}` } }));
     const path = { project_id: project.id };
-    await page.goto(`/projects/${project.id}/generate`);
+    await page.goto(`/projects/${project.id}`);
     await page.getByRole('combobox').selectOption(locale);
     if (theme === 'dark') await page.locator('.preferences button').click();
+    await expect(page.getByRole('heading', { name: locale === 'en' ? 'No reference audio yet' : '还没有参考音频' })).toBeVisible();
+    await page.locator('.tabs').getByRole('link', { name: locale === 'en' ? 'Scores' : '乐谱', exact: true }).click();
+    await expect(page.getByRole('heading', { name: locale === 'en' ? 'No score to inspect yet' : '还没有可以查看的乐谱' })).toBeVisible();
+    await page.getByRole('link', { name: t.generateTab, exact: true }).click();
     await expect(page.getByRole('heading', { name: locale === 'en' ? 'No candidate music yet' : '还没有候选音乐' })).toBeVisible();
     await inputs(page, locale);
     // Preferences preserve live text and the form identity.
@@ -65,6 +69,9 @@ for (const locale of ['zh-CN', 'en'] as const) for (const theme of ['light', 'da
     await expect(page).toHaveURL(new RegExp(`generate\\?jobId=${candidate.job_id}`));
     await expect.poll(async () => (await mediaState(page)).time).toBeGreaterThan(beforeResult);
     expect((await mediaState(page)).paused).toBe(false);
+    await page.locator('.tabs').getByRole('link', { name: locale === 'en' ? 'Scores' : '乐谱', exact: true }).click();
+    await expect(page.locator(`a[href$="/scores/${candidate.score_id}"]`)).toBeVisible();
+    await page.getByRole('link', { name: t.generateTab, exact: true }).click();
     await page.getByRole('link', { name: t.score, exact: true }).click();
     await expect(page).toHaveURL(new RegExp(candidate.score_id));
     await expect(page.locator('audio')).toHaveCount(1);
@@ -97,6 +104,10 @@ for (const locale of ['zh-CN', 'en'] as const) for (const theme of ['light', 'da
     const original = versions[0]!;
     const repeated = await api.POST('/projects/{project_id}/versions', { params: { path }, body: intent });
     expect(repeated.response.status).toBe(200); expect(received(repeated)).toEqual(original);
+    await page.getByRole('link', { name: locale === 'en' ? 'Reference audio and assets' : '参考音频与素材', exact: true }).click();
+    await expect(page.locator('.asset-list button').filter({ hasText: asset.original_name })).toBeVisible();
+    await page.getByRole('link', { name: t.versionsTab, exact: true }).click();
+    await page.getByRole('link', { name: locale === 'en' ? 'View version' : '查看版本', exact: true }).click();
     await page.reload();
     await expect(page.locator('[data-version-id]')).toHaveAttribute('data-version-id', original.id);
     await expect(page.getByRole('heading', { name: intent.name })).toBeVisible();
