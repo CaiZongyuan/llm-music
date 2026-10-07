@@ -1,0 +1,69 @@
+name: API client contract
+
+on:
+  push:
+    paths:
+      - packages/api-client/**
+      - services/api/**
+      - package.json
+      - pnpm-workspace.yaml
+      - pnpm-lock.yaml
+      - workflows/**
+      - runtime/comfyui/runtime.json
+      - runtime/comfyui/models.json
+      - runtime/comfyui/workflows/**
+      - docs/guides/api-client*
+      - .github/workflows/client-contract.yml
+  pull_request:
+    paths:
+      - packages/api-client/**
+      - services/api/**
+      - package.json
+      - pnpm-workspace.yaml
+      - pnpm-lock.yaml
+      - workflows/**
+      - runtime/comfyui/runtime.json
+      - runtime/comfyui/models.json
+      - runtime/comfyui/workflows/**
+      - docs/guides/api-client*
+      - .github/workflows/client-contract.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  client:
+    runs-on: windows-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '24.18.0'
+      - uses: pnpm/action-setup@f40ffcd9367d9f12939873eb1018b921a783ffaa # v4
+      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+        with:
+          version: '0.11.28'
+          enable-cache: false
+      - name: Install one locked JS workspace and independent CPU API
+        run: |
+          pnpm install --frozen-lockfile
+          uv sync --project services/api --locked --python 3.12.13
+      - name: Check reproducible Pydantic export and strict generated consumers
+        run: pnpm client:check
+      - name: Check production and owned fixture types
+        run: uv run --project services/api --no-sync mypy --config-file services/api/pyproject.toml services/api/src/music_api packages/api-client/tests/run_api.py
+      - name: Check public export, event collision and binary descriptions
+        run: uv run --project services/api --no-sync python -m pytest services/api/tests/test_client_contract.py -q
+      - name: Exercise native Node fetch, FormData and WebSocket against production API
+        run: pnpm test:client
+      - name: Retain CPU client ownership, results and failure logs
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: api-client-${{ github.run_id }}-${{ github.run_attempt }}
+          path: packages/api-client/.artifacts/
+          include-hidden-files: true
+          if-no-files-found: ignore
+          retention-days: 7

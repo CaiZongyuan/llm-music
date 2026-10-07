@@ -3,6 +3,9 @@
   "private": true,
   "packageManager": "pnpm@11.22.0",
   "scripts": {
+    "client:generate": "pnpm --filter @llm-music/api-client generate",
+    "client:check": "pnpm --filter @llm-music/api-client check",
+    "test:client": "pnpm --filter @llm-music/api-client test",
     "test:browser": "pnpm --filter @llm-music/browser-tests test",
     "test:browser:ui": "pnpm --filter @llm-music/browser-tests test:ui",
     "test:browser:install": "pnpm --filter @llm-music/browser-tests exec playwright install chromium",

@@ -4,10 +4,18 @@ on:
   push:
     paths:
       - services/api/**
+      - workflows/**
+      - runtime/comfyui/runtime.json
+      - runtime/comfyui/models.json
+      - runtime/comfyui/workflows/**
       - .github/workflows/application-api.yml
   pull_request:
     paths:
       - services/api/**
+      - workflows/**
+      - runtime/comfyui/runtime.json
+      - runtime/comfyui/models.json
+      - runtime/comfyui/workflows/**
       - .github/workflows/application-api.yml
   workflow_dispatch:
 

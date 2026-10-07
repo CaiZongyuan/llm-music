@@ -3,6 +3,7 @@
 from pathlib import Path
 from datetime import datetime, timedelta, timezone
 import json
+import time
 
 from fastapi.testclient import TestClient
 import httpx
@@ -34,9 +35,14 @@ class UnexpectedAcknowledgementLoss(ComfyUIRuntime):
 
 @pytest.mark.parametrize("read_delay",[0,2.6],ids=["immediate-owned-result","delayed-owned-result"])
 def test_unexpected_error_after_native_acceptance_cannot_authorize_duplicate_retry(tmp_path: Path, monkeypatch,read_delay) -> None:
-    if read_delay:
-        delayed = peer_fixture.CANCELLATION_EXTENSION.replace('if self.path == "/queue":','if self.path.startswith("/history/native-2"):\n            __import__("time").sleep(2.6)\n        if self.path == "/queue":',1)
-        monkeypatch.setattr(peer_fixture,"CANCELLATION_EXTENSION",delayed)
+    # Measure actual GETs for the new owned attempt, independent of total host time.
+    extension = "history_reads = []\n" + peer_fixture.CANCELLATION_EXTENSION
+    extension = extension.replace('if self.path == "/queue":',
+        'if self.path.startswith("/history/native-2"):\n            history_reads.append(self.path)\n'
+        f'            if {read_delay}: __import__("time").sleep({read_delay})\n        if self.path == "/queue":',1)
+    extension = extension.replace('self.reply({"foreign_state":foreign_state,',
+        'self.reply({"history_reads":list(history_reads),"foreign_state":foreign_state,',1)
+    monkeypatch.setattr(peer_fixture,"CANCELLATION_EXTENSION",extension)
     with cancellation_peer(tmp_path, monkeypatch) as (url, receipt_path, registry):
         configured = Settings(data_dir=tmp_path / "application", runtime_mode="comfyui", runtime_url=url, runtime_evidence_path=receipt_path)
         runtime = UnexpectedAcknowledgementLoss(configured, registry)
@@ -67,9 +73,31 @@ def test_unexpected_error_after_native_acceptance_cannot_authorize_duplicate_ret
             new = confirmed_retry.json()
             assert new["id"] != failed["id"]
             assert new["inputs"] == failed["inputs"]
-            assert terminal(client, base + "/jobs/" + new["id"])["status"] == "completed"
+            new_address = base + "/jobs/" + new["id"]
+            if read_delay:
+                # One imposed 2.6s read plus OS/SQL/import work is not a <5s promise.
+                # Correctness is bounded by normal provider capacity and exact GET count.
+                deadline = time.monotonic() + configured.runtime_timeout_seconds
+                while True:
+                    response = client.get(new_address)
+                    assert response.status_code == 200
+                    complete = response.json()
+                    if complete["status"] in {"completed","failed","cancelled"}:
+                        break
+                    assert time.monotonic() < deadline, {"job":complete,"native":peer.get("/facts").json()}
+                    time.sleep(0.01)
+            else:
+                complete = terminal(client,new_address)  # Original five-second control.
+            assert complete["status"] == "completed",complete
+            assert complete["error"] is None
+            facts = peer.get("/facts").json()
+            assert facts["history_reads"].count("/history/native-2") == 1,facts
             assert client.get(address).json() == failed
             assert peer.get("/accepted").json()["count"] == 2
+            (tmp_path/"retry-observation.json").write_text(json.dumps({"read_delay_seconds":read_delay,
+                "observation_budget_seconds":configured.runtime_timeout_seconds if read_delay else 5,
+                "history_reads":facts["history_reads"],"original":failed,"retried":complete,
+                "native_acceptances":2}),encoding="utf-8")
 
 
 def test_explicit_retry_of_confirmed_cancel_creates_new_ids_and_retains_original_history(tmp_path: Path, monkeypatch) -> None:
