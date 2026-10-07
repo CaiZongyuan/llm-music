@@ -94,6 +94,7 @@ def create_app(settings: Settings | None = None, runtime: InferenceRuntime | Non
             jobs = JobService(database, app.state.storage, selected_runtime, registry, configured)
             app.state.jobs = jobs
             jobs.on_change = event_broker.publish
+            jobs.subscription_factory = selected_runtime.subscribe
             configure_generation(jobs)
             if configure_jobs is not None:
                 configure_jobs(jobs)

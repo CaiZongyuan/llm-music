@@ -81,6 +81,13 @@ class FakeInferenceRuntime:
         matches = [handle for handle, (previous, _) in self._requests.items() if previous.attempt_id == request.attempt_id]
         return SubmissionReceipt("accepted", matches[0]) if len(matches) == 1 else SubmissionReceipt("unconfirmed", code="submission_unconfirmed")
 
+    def subscribe(self, handle: str, operation: Operation, on_status: Callable[[RuntimeStatus], None]) -> Callable[[], None]:
+        from music_api.fake_events import subscribe_fake
+
+        if self._requests[handle][0].operation != operation:
+            raise ValueError("Subscription operation differs from the fixture request")
+        return subscribe_fake(lambda: self.status(handle), on_status)
+
     def result(self, handle: str, operation: Operation) -> RuntimeResult:
         if self._requests[handle][0].operation != operation:
             raise ValueError("Fixture result does not match its operation")

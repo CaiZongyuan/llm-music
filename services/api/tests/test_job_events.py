@@ -23,8 +23,13 @@ from test_transcription import reference_audio
 @pytest.mark.parametrize("operation", ["Transcribe", "Generate"])
 def test_ws_unknown_progress_saving_and_reconnect_recover_the_same_durable_result(tmp_path: Path, operation: str) -> None:
     native_finished, commit_entered, allow_commit = threading.Event(), threading.Event(), threading.Event()
+    callbacks = []
 
     class ExternalRuntimeFixture(FakeInferenceRuntime):
+        def subscribe(self, handle, operation, on_status):
+            callbacks.append(on_status)
+            return super().subscribe(handle, operation, on_status)
+
         def status(self, handle: str) -> RuntimeStatus:
             if native_finished.is_set():
                 return RuntimeStatus("completed")
@@ -69,6 +74,9 @@ def test_ws_unknown_progress_saving_and_reconnect_recover_the_same_durable_resul
                 assert before_commit["phase"] == "saving"
                 assert before_commit["progress"] is None
                 assert before_commit["result"] is None
+                for callback in callbacks:
+                    callback(RuntimeStatus("completed"))
+                    callback(RuntimeStatus("running", "transcribing" if operation == "Transcribe" else "planning_score", None))
                 saving = websocket.receive_json()
                 assert saving["job"]["status"] == "running"
                 assert saving["job"]["phase"] == "saving"
@@ -83,6 +91,11 @@ def test_ws_unknown_progress_saving_and_reconnect_recover_the_same_durable_resul
                 assert time.monotonic() < deadline
                 time.sleep(0.01)
             assert durable["status"] == "completed", durable
+            # Late/duplicate external hints cannot re-enter import or change HTTP.
+            for callback in callbacks:
+                callback(RuntimeStatus("running", "loading_model", None))
+                callback(RuntimeStatus("completed"))
+                callback(RuntimeStatus("completed"))
             with client.websocket_connect(job_url + "/events") as websocket:
                 recovered = websocket.receive_json()["job"]
                 assert recovered == durable
@@ -96,3 +109,75 @@ def test_ws_unknown_progress_saving_and_reconnect_recover_the_same_durable_resul
         native_finished.set()
         allow_commit.set()
         event.remove(Session, "before_commit", hold_result_commit)
+
+
+def test_missing_and_cross_project_ws_job_references_are_denied(tmp_path: Path) -> None:
+    from uuid import uuid4
+    from starlette.websockets import WebSocketDisconnect
+
+    with TestClient(create_app(Settings(data_dir=tmp_path, runtime_mode="fake"))) as client:
+        project = client.post("/projects", json={"name": "Morning song"}).json()
+        other = client.post("/projects", json={"name": "Another song"}).json()
+        source = client.post("/projects/" + project["id"] + "/assets", files={"file": ("reference.wav", reference_audio())}).json()
+        job = client.post("/projects/" + project["id"] + "/transcriptions", json={"reference_asset_id": source["id"]}).json()
+        for project_id, identifier in [(project["id"], str(uuid4())), (other["id"], job["id"])]:
+            with pytest.raises(WebSocketDisconnect) as failure:
+                with client.websocket_connect("/projects/" + project_id + "/jobs/" + identifier + "/events"):
+                    pass
+            assert failure.value.code == 4404
+
+
+def test_reconnected_ws_and_http_retain_the_same_failed_result_recovery(tmp_path: Path) -> None:
+    from music_api.runtime_types import RuntimeArtifact, RuntimeResult
+
+    runtime = FakeInferenceRuntime(results={"Transcribe": RuntimeResult((RuntimeArtifact("abc", b"X:1\nK:C\nC|", "abc", "text/vnd.abc", "score.abc"),),
+                                                                        score_validation={"valid": True, "note_count": 1})})
+    with TestClient(create_app(Settings(data_dir=tmp_path, runtime_mode="fake"), runtime=runtime)) as client:
+        project = client.post("/projects", json={"name": "Morning song"}).json()
+        base = "/projects/" + project["id"]
+        source = client.post(base + "/assets", files={"file": ("reference.wav", reference_audio())}).json()
+        job = client.post(base + "/transcriptions", json={"reference_asset_id": source["id"]}).json()
+        job_url = base + "/jobs/" + job["id"]
+        with client.websocket_connect(job_url + "/events") as websocket:
+            while True:
+                failed = websocket.receive_json()["job"]
+                if failed["status"] in {"completed", "failed", "cancelled"}:
+                    break
+        assert failed["status"] == "failed"
+        assert failed["error"]["code"] == "transcription_failed"
+        assert failed["error"]["recovery"]
+        assert failed["result"] is None
+        assert client.get(job_url).json() == failed
+        with client.websocket_connect(job_url + "/events") as websocket:
+            assert websocket.receive_json()["job"] == failed
+        assert client.get(base + "/assets").json() == [source]
+        assert client.get(base + "/scores").json() == []
+
+
+@pytest.mark.parametrize("reading,expected", [(0.25, 0.25), (float("nan"), None), (1.1, None), (-0.1, None), (True, None)])
+def test_only_reliable_bounded_whole_job_progress_reaches_http_and_ws(tmp_path: Path, reading, expected) -> None:
+    finished = threading.Event()
+
+    class MeasuredExternalFixture(FakeInferenceRuntime):
+        # The legal reading models one of four measured whole-Job units; the
+        # invalid samples model an unavailable/invalid external source.
+        def status(self, handle: str) -> RuntimeStatus:
+            return RuntimeStatus("completed") if finished.is_set() else RuntimeStatus("running", "transcribing", reading)
+
+    runtime = MeasuredExternalFixture()
+    with TestClient(create_app(Settings(data_dir=tmp_path, runtime_mode="fake"), runtime=runtime)) as client, ExitStack() as cleanup:
+        cleanup.callback(finished.set)
+        project = client.post("/projects", json={"name": "Morning song"}).json()
+        base = "/projects/" + project["id"]
+        source = client.post(base + "/assets", files={"file": ("reference.wav", reference_audio())}).json()
+        job = client.post(base + "/transcriptions", json={"reference_asset_id": source["id"]}).json()
+        job_url = base + "/jobs/" + job["id"]
+        with client.websocket_connect(job_url + "/events") as websocket:
+            while True:
+                value = websocket.receive_json()["job"]
+                if value["status"] == "running":
+                    break
+            assert value["phase"] == "transcribing"
+            assert value["progress"] == expected
+            assert client.get(job_url).json()["progress"] == expected
+            finished.set()
