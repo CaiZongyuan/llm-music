@@ -23,10 +23,11 @@ def diagnostics_peer(*, unavailable: bool = False) -> Iterator[tuple[str, dict[s
         "/models/audio_encoders": ["sheetsage2_bf16.safetensors"],
         "/queue": {"queue_running": [], "queue_pending": []},
     }
-    state = {"unavailable": unavailable, "payloads": payloads, "writes": []}
+    state = {"unavailable": unavailable, "payloads": payloads, "writes": [], "reads": []}
 
     class Handler(BaseHTTPRequestHandler):
         def do_GET(self) -> None:
+            state["reads"].append(self.path)
             if state["unavailable"]:
                 self.send_error(503, "Owned CPU peer unavailable")
                 return

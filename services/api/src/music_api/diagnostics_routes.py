@@ -1,54 +1,75 @@
 """Public diagnostics project the shared Runtime observations and readiness decision."""
 
 from datetime import datetime, timezone
+import platform
 from typing import Literal
 
 from fastapi import APIRouter, Request
+from sqlalchemy import select
 
 from music_api.config import Settings
-from music_api.diagnostics_schemas import (CapabilitiesRead, CapabilityRead, CodeRegistryRead, DiagnosticReason,
-                                         DiagnosticSource, ModelRead, ModelsRead)
+from music_api.database import Database
+from music_api.diagnostics import build_diagnostics, observed_value, reason, source
+from music_api.diagnostics_schemas import (ActiveApplicationJobRead, ApplicationQueueRead, BackendHealthRead, CapabilitiesRead, CapabilityRead, CodeRegistryRead,
+                                         DiagnosticsRead, HealthRead, ModelRead, ModelsRead, RuntimeHealthRead, SettingsMetadataRead)
 from music_api.runtime_types import InferenceRuntime, RuntimeRequirements
+from music_api.job_models import Job
 
 
 router = APIRouter(tags=["Runtime diagnostics"])
 
 
-def reason(code: str) -> DiagnosticReason:
-    messages = {
-        "runtime_unavailable": ("The Runtime is unreachable.", "Ask the Runtime owner to restore the configured local service, then refresh."),
-        "runtime_evidence_stale": ("The owner receipt is outside the freshness window.", "Ask the Runtime owner to collect new evidence; saving an old receipt again does not refresh it."),
-        "model_evidence_stale": ("The model verification is outside the freshness window.", "Ask the owner to verify the original weights and collect a new receipt."),
-        "model_missing": ("A required model is missing.", "Ask the owner to restore the registered model and verify its pinned hash."),
-        "gpu_unavailable": ("A usable Runtime GPU is unavailable.", "Ask the owner to restore the pinned GPU Runtime, then refresh."),
-        "model_hash_invalid": ("The observed model hash or size differs from the pinned registry.", "Preserve the invalid file; ask the owner to restore the registered weights and verify them again."),
-        "model_fingerprint_changed": ("The model file changed after its recorded hash verification.", "Treat the last hash as historical; ask the owner to verify the current original weights and collect a new receipt."),
-        "model_layout_unavailable": ("The model file layout cannot be read.", "Ask the owner to restore model file access and collect a new receipt."),
-        "model_revision_mismatch": ("The model revision differs from the pinned registry.", "Ask the owner to restore the registered model revision and verify its hash."),
-        "model_verification_unavailable": ("Current model verification is unavailable.", "Ask the owner to collect a receipt for the registered weights and current Runtime."),
-        "runtime_evidence_unavailable": ("An owner verification receipt is unavailable.", "Ask the owner to run the CPU receipt collector and configure its output path."),
-        "runtime_evidence_invalid": ("The owner receipt cannot be validated.", "Retain the file and collect a new receipt using the documented schema and current Runtime."),
-        "runtime_evidence_future": ("The owner receipt has a future source timestamp.", "Check the host clock and collect new evidence; do not edit an old receipt timestamp."),
-        "model_evidence_future": ("The model verification has a future source timestamp.", "Check the host clock and repeat actual model verification."),
-        "runtime_evidence_identity_mismatch": ("The receipt belongs to another Runtime endpoint.", "Configure the receipt for this Runtime, or collect new evidence for the configured endpoint."),
-        "runtime_evidence_revision_mismatch": ("The receipt source revisions differ from the pinned registry.", "Preserve local changes and restore the registered Runtime/plugin revisions before collecting evidence."),
-        "runtime_process_identity_changed": ("The current Runtime process differs from the receipt.", "Ask the owner to identify the actual current listener and collect new evidence."),
-        "runtime_listener_identity_changed": ("The configured listener does not belong to the recorded Runtime process.", "Ask the owner to identify and restore the configured local Runtime before collecting evidence."),
-        "runtime_model_layout_changed": ("The current Runtime model root differs from the receipt.", "Ask the owner to verify the actual configured model layout and collect a new receipt."),
-        "runtime_source_revision_changed": ("The current source checkout differs from the clean pinned revision.", "Preserve local changes and restore the pinned checkout before collecting evidence."),
-        "runtime_binding_unavailable": ("Current local process or source binding cannot be verified.", "Ask the owner to restore local process/source access; retain the old receipt as historical evidence."),
-    }
-    message, recovery = messages.get(code, ("Runtime prerequisites are not currently verified.",
-                                           "Ask the Runtime owner to check source binding, pinned revisions and model verification, then refresh."))
-    return DiagnosticReason(code=code, message=message, recovery=recovery)
+@router.get("/settings/metadata", response_model=SettingsMetadataRead)
+def settings_metadata() -> SettingsMetadataRead:
+    prefix = str(Settings.model_config.get("env_prefix", ""))
+    return SettingsMetadataRead(source="music_api.config.Settings.model_json_schema", environment_prefix=prefix,
+                                environment_variables={name: prefix + name.upper() for name in Settings.model_fields},
+                                settings_schema=Settings.model_json_schema())
 
 
-def source(source_name: str, observed_at: datetime | None, now: datetime, max_age: float) -> DiagnosticSource:
-    age = None if observed_at is None else (now - observed_at).total_seconds()
-    freshness: Literal["fresh", "stale", "unavailable"] = "unavailable" if age is None or age < 0 else "stale" if age > max_age else "fresh"
-    return DiagnosticSource(source=source_name, observed_at=observed_at,
-                            age_seconds=None if age is None or age < 0 else age,
-                            freshness=freshness, max_age_seconds=max_age)
+@router.get("/runtime/diagnostics", response_model=DiagnosticsRead)
+def diagnostics(request: Request) -> DiagnosticsRead:
+    runtime: InferenceRuntime = request.app.state.runtime
+    settings: Settings = request.app.state.settings
+    observation = runtime.health()
+    now = datetime.now(timezone.utc)
+    database: Database = request.app.state.database
+    with database.sessions() as session:
+        rows = list(session.scalars(select(Job).where(Job.status.in_(("queued", "running"))).order_by(Job.created_at, Job.id)))
+        jobs = [ActiveApplicationJobRead.model_validate(dict(id=job.id, project_id=job.project_id, operation=job.operation,
+                                         status=job.status, phase=job.phase,
+                                         observation=source("Application persisted Job row", datetime.fromisoformat(job.updated_at),
+                                                            now, settings.diagnostics_max_age_seconds))) for job in rows]
+    running = [job for job in jobs if job.status == "running"]
+    current = running[0] if len(running) == 1 else None
+    queue = ApplicationQueueRead(scope="Application persisted active Job states; not native occupancy",
+                                 queued=sum(job.status == "queued" for job in jobs), running=len(running), jobs=jobs,
+                                 observation=source("Current application SQLite active Job query", now, now, settings.diagnostics_max_age_seconds),
+                                 recorded_running_job=observed_value(None if current is None else str(current.id), "Last recorded application running Job",
+                                    None if current is None else current.observation.observed_at, now, settings.diagnostics_max_age_seconds,
+                                    "application_running_job_unavailable" if current is None else None))
+    return build_diagnostics(observation, now, settings.diagnostics_max_age_seconds, queue)
+
+
+@router.get("/health", response_model=HealthRead)
+def health(request: Request) -> HealthRead:
+    runtime: InferenceRuntime = request.app.state.runtime
+    settings: Settings = request.app.state.settings
+    observation = runtime.health()
+    observed_capabilities = runtime.capabilities(observation)
+    now = datetime.now(timezone.utc)
+    ready = any(item.ready for item in observed_capabilities)
+    codes = list(observation.reasons)
+    if not ready:
+        codes.extend(code for item in observed_capabilities for code in item.reasons)
+    status: Literal["ready", "not_ready", "unavailable"] = "unavailable" if not observation.reachable else "ready" if ready else "not_ready"
+    return HealthRead(checked_at=now, backend=BackendHealthRead(status="ready", scope="application HTTP process",
+                     version=request.app.version, python_version=platform.python_version(),
+                     observation=source("Current application HTTP response", now, now, settings.diagnostics_max_age_seconds)),
+                     runtime=RuntimeHealthRead(mode=observation.mode, status=status, reachable=observation.reachable, ready=ready,
+                     binding_verified=None if observation.attestation is None else observation.attestation.binding_verified,
+                     observation=source(observation.source, observation.observed_at, now, settings.diagnostics_max_age_seconds),
+                     reasons=[reason(code) for code in dict.fromkeys(codes)]))
 
 
 @router.get("/runtime/capabilities", response_model=CapabilitiesRead)

@@ -1,8 +1,9 @@
 """Client diagnostics distinguish current availability from immutable source time."""
 
 from typing import Literal
+from uuid import UUID
 
-from pydantic import AwareDatetime, BaseModel, Field
+from pydantic import AwareDatetime, BaseModel, Field, JsonValue
 
 
 class DiagnosticReason(BaseModel):
@@ -68,3 +69,79 @@ class ModelsRead(BaseModel):
     checked_at: AwareDatetime
     code_registry: list[CodeRegistryRead]
     models: list[ModelRead]
+
+
+class BackendHealthRead(BaseModel):
+    status: Literal["ready"]
+    scope: Literal["application HTTP process"]
+    version: str
+    python_version: str
+    observation: DiagnosticSource
+
+
+class RuntimeHealthRead(BaseModel):
+    mode: Literal["fake", "comfyui"]
+    status: Literal["ready", "not_ready", "unavailable"]
+    reachable: bool
+    ready: bool
+    binding_verified: bool | None
+    observation: DiagnosticSource
+    reasons: list[DiagnosticReason]
+
+
+class HealthRead(BaseModel):
+    checked_at: AwareDatetime
+    backend: BackendHealthRead
+    runtime: RuntimeHealthRead
+
+
+class DiagnosticValue[T](BaseModel):
+    value: T | None
+    availability: Literal["available", "unavailable"]
+    observation: DiagnosticSource
+    reasons: list[DiagnosticReason]
+
+
+class MemoryMetricRead(DiagnosticValue[int]):
+    name: str
+    scope: str
+    unit: Literal["bytes"]
+    value: int | None = Field(ge=0)
+
+
+class ActiveApplicationJobRead(BaseModel):
+    id: UUID
+    project_id: UUID
+    operation: Literal["Transcribe", "Generate"]
+    status: Literal["queued", "running"]
+    phase: str | None
+    observation: DiagnosticSource
+
+
+class ApplicationQueueRead(BaseModel):
+    scope: Literal["Application persisted active Job states; not native occupancy"]
+    queued: int = Field(ge=0)
+    running: int = Field(ge=0)
+    jobs: list[ActiveApplicationJobRead]
+    recorded_running_job: DiagnosticValue[str]
+    observation: DiagnosticSource
+
+
+class DiagnosticsRead(BaseModel):
+    mode: Literal["fake", "comfyui"]
+    checked_at: AwareDatetime
+    source_observations: dict[str, DiagnosticSource]
+    gpu_name: DiagnosticValue[str]
+    versions: dict[str, DiagnosticValue[str]]
+    memory: list[MemoryMetricRead]
+    loaded_models: DiagnosticValue[list[str]]
+    generic_model_inventory: DiagnosticValue[dict[str, list[str]]]
+    application_queue: ApplicationQueueRead
+    native_queue_occupancy: DiagnosticValue[int]
+
+
+class SettingsMetadataRead(BaseModel):
+    source: Literal["music_api.config.Settings.model_json_schema"]
+    environment_prefix: str
+    environment_variables: dict[str, str]
+    settings_schema: dict[str, JsonValue]

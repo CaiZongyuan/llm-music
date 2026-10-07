@@ -1,0 +1,27 @@
+# Application Runtime diagnostics verification
+
+Issue #26, P1. Baseline main: `d0f61ab5ff4d453897f51a01708ab999044c6f60`. Owner evidence is retained under `.scratch/p1-development/26-developer/`; the final revision, source hashes and working-tree state are recorded in `freeze.json`. Root owns independent review, hosted CI, actual Runtime/browser checks and combined application integration.
+
+## Delivered source boundary
+
+Pydantic-backed application routes report backend HTTP process health, Runtime reachability and per-operation readiness, Model Registry facts, sourced diagnostics, persisted application Job state and Settings schema metadata. They consume the #21-owned Runtime/registry/types and its single readiness predicate. The only #26 main composition change is registering its router. No second native client, registry parser, CUDA probe or automatic model hashing was introduced.
+
+The independent CPU receipt collector and verifier first froze at `016d45790de2d67a91ea4a84dcaf1d391f58211d`, retaining the original `d6da51b483403685e31384fa8ed5cdaa67e21d15` JSON input schema. Owner collection verifies actual listener PID/create time, selected executable/main.py, model-root environment, clean pinned source and complete stable-file SHA256. The application reader checks current identity/layout and cheap fingerprints within the configured window. Source timestamps remain unchanged on reads and saves. Related previous receipts are copied before atomic replacement; malformed/foreign files and failed replacement preserve original evidence.
+
+Root's actual readback corrected an early proposal: generic ComfyUI inventories are empty while valid YuE2/SheetSage2 weights in YUE2_MODELS_ROOT successfully infer. Those generic lists remain optional observations and do not veto these registry entries. Actual model-root files, not generic filenames, supply prerequisite evidence. Loaded-model identity and process GPU/RSS readings are unavailable in the current observation contract. Native memory fields retain device, system/platform and Torch active/reserved meanings; no device value replaces process memory.
+
+## Isolated CPU evidence
+
+The first production `create_app` oracle uploads supported T16 mono24k PCM16, supplies an old ready/hash receipt freshly saved with its old source time and observes a current unavailable native peer. Capabilities become not ready, model source remains stale with original age/time, actual Transcribe HTTP submission returns 503 and sends no native POST. Project/Asset reads and identical source downloads continue; the API environment has no Torch.
+
+Further public/source checks cover legal empty generic inventory with current binding, changed or missing files, invalid hash, no GPU, foreign URL/mode/revision, reused identity, future/stale source and individual stale system/node facts despite a fresh aggregate. Fake mode consumes the configured freshness policy. Unknown metrics remain null/unavailable, and a held external Runtime demonstrates scoped persisted Job queue/current-record output without claiming native occupancy. OpenAPI exports all diagnostics/metadata without native requests or database initialization.
+
+The complete read-only example ran against an owned actual CPU API process using identified FakeInferenceRuntime. All five responses were saved, Projects remained empty and the child stopped with graceful acknowledgement. Receipt: `.scratch/p1-development/26-developer/example/receipt.json`. This is HTTP/example evidence, not real inference or GPU telemetry.
+
+Final affected checks passed **30 tests in 31.53 seconds**, strict mypy passed **28 production files**, independent lock and contract export passed, and **20 local links plus two language pairs** passed. Two later future-timestamp cases passed separately. Receipts are under `final-checks/`. Earlier whole-suite validation had 50 passing and three stale #20 test assumptions after the shared schema/Job expansion; #21 repaired the current-head/restore/OpenAPI assertions and those three affected cases passed in 6.39 seconds. Reuse that valid evidence instead of repeating P0 or unrelated checks. The named audio constraints and supported-old-schema upgrade are #21-owned compatibility obligations.
+
+## Root actual collector evidence
+
+Root ran the immutable 016 collector in a separate locked API environment with Torch absent. `26-real-final/official-receipt-016d.json` records source time `2026-10-07T00:33:51Z`; `official-collector-comparison.json` confirms process identity, paths, clean pins and both complete model SHA256/fingerprints against separately collected root evidence. This validates collection on actual inputs. It performs no GPU inference and does not prove current readiness after the freshness window. Never renew that timestamp by copying the receipt.
+
+Final new-head actual health/readiness/Swagger and hosted integration evidence belongs to root. No complete P1 gate, loaded-model observation, performance promise, music-quality result or broad filesystem-race guarantee is claimed here.
