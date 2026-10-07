@@ -191,6 +191,11 @@ def create_app(settings: Settings | None = None, runtime: InferenceRuntime | Non
         jobs: JobService = request.app.state.jobs
         return job_read(jobs.submit(project_id, "Transcribe", inputs))
 
+    @app.get("/projects/{project_id}/jobs", response_model=list[JobRead])
+    def list_jobs(project_id: UUID, session: Session = Depends(session_for)) -> list[JobRead]:
+        project_in(session, project_id)
+        return [job_read(job) for job in session.scalars(select(Job).where(Job.project_id == str(project_id)).order_by(Job.created_at, Job.id))]
+
     @app.get("/projects/{project_id}/jobs/{job_id}", response_model=JobRead)
     def get_job(project_id: UUID, job_id: UUID, session: Session = Depends(session_for)) -> JobRead:
         project_in(session, project_id)
@@ -206,6 +211,12 @@ def create_app(settings: Settings | None = None, runtime: InferenceRuntime | Non
         job = jobs.cancel(project_id, job_id)
         response.status_code = 202 if job.status in {"queued", "running"} else 200
         return job_read(job)
+
+    @app.post("/projects/{project_id}/jobs/{job_id}/retry", response_model=JobRead, status_code=202,
+              responses={409: {"model": ErrorResponse}})
+    def retry_job(project_id: UUID, job_id: UUID, request: Request) -> JobRead:
+        jobs: JobService = request.app.state.jobs
+        return job_read(jobs.retry(project_id, job_id))
 
     @app.get("/projects/{project_id}/scores", response_model=list[ScoreRead])
     def list_scores(project_id: UUID, session: Session = Depends(session_for)) -> list[ScoreRead]:

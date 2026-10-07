@@ -6,6 +6,7 @@ from copy import deepcopy
 import hashlib
 import json
 import math
+import logging
 from pathlib import Path
 from typing import Callable, Literal, cast
 from urllib.error import HTTPError
@@ -19,6 +20,10 @@ from music_api.runtime_evidence import read_runtime_evidence
 from music_api.runtime_types import (OPERATIONS, CapabilityObservation, Operation, RuntimeArtifact, RuntimeMode, RuntimeObservation,
                                      RuntimeRequest, RuntimeResult, RuntimeStatus, SubmissionReceipt)
 from music_api.workflow_registry import WorkflowRegistry
+from music_api.runtime_errors import failure_detail
+
+
+log = logging.getLogger("music_api")
 
 
 class ComfyUIRuntime:
@@ -40,7 +45,8 @@ class ComfyUIRuntime:
     def _post(self, path: str, value: object) -> object:
         request = Request(self.url + path, data=json.dumps(value).encode("utf-8"), headers={"Content-Type": "application/json"})
         with urlopen(request, timeout=self.settings.runtime_timeout_seconds) as response:
-            return json.loads(response.read(8 * 1024 * 1024))
+            body = response.read(8 * 1024 * 1024)
+            return json.loads(body) if body else {}
 
     def _upload(self, path: Path, subfolder: str) -> dict[str, object]:
         return self._upload_bytes(path.read_bytes(), path.name, subfolder)
@@ -153,6 +159,8 @@ class ComfyUIRuntime:
         return SubmissionReceipt("accepted", handle)
 
     def status(self, handle: str) -> RuntimeStatus:
+        if handle not in self.requests or handle not in self.graphs:
+            return RuntimeStatus("unconfirmed", code="native_mapping_unverified", message="The original request graph mapping is unavailable.")
         entry = self._history(handle)
         if entry is not None:
             status = entry.get("status")
@@ -169,7 +177,17 @@ class ComfyUIRuntime:
                     normalized = self._read("/api/jobs/" + quote(handle, safe=""))
                     if isinstance(normalized, dict) and normalized.get("id") == handle and normalized.get("status") == "cancelled":
                         return RuntimeStatus("cancelled", code="cancelled", message="The owned Runtime Job was cancelled.")
-                return RuntimeStatus("failed", code="runtime_execution_failed", message="Native execution failed; inspect the retained attempt evidence.")
+                payload = next((event[1] for event in messages if isinstance(event, list) and len(event) == 2
+                                and event[0] == "execution_error" and isinstance(event[1], dict)
+                                and event[1].get("prompt_id") == handle), {}) if isinstance(messages, list) else {}
+                log.error("Owned Runtime execution failed", extra={"event": "runtime_execution_error", "runtime_handle": handle,
+                          "native_error": {name: payload.get(name) for name in ("exception_type", "exception_message", "node_id", "node_type", "traceback")}})
+                kind, message = str(payload.get("exception_type", "")).casefold(), str(payload.get("exception_message", "")).casefold()
+                code = "runtime_out_of_memory" if "outofmemoryerror" in kind or "cuda" in message and "out of memory" in message else None
+                if code is None and ("modelnotfound" in kind or "filenotfounderror" in kind and ("model" in message or ".safetensors" in message)):
+                    code = "model_missing"
+                detail = failure_detail(self.requests[handle].operation, code)
+                return RuntimeStatus("failed", code=detail.code, message=detail.message)
         raw = self._read("/queue")
         if isinstance(raw, dict):
             for key, state in (("queue_running", "running"), ("queue_pending", "queued")):
@@ -196,11 +214,31 @@ class ComfyUIRuntime:
             return current
         raw = self._read("/queue")
         running = raw.get("queue_running") if isinstance(raw, dict) else None
-        if not isinstance(running, list) or len(running) != 1:
-            return RuntimeStatus("unconfirmed", code="cancellation_unconfirmed", message="No exclusively owned running target was confirmed.")
-        row = running[0]
-        if not isinstance(row, list) or len(row) < 4 or row[1] != handle or row[2] != graph or not isinstance(row[3], dict) or row[3].get("client_id") != str(request.attempt_id):
-            return RuntimeStatus("unconfirmed", code="cancellation_ownership_unverified", message="The current Runtime Job differs from the saved cancellation mapping.")
+        pending = raw.get("queue_pending") if isinstance(raw, dict) else None
+        if not isinstance(running, list) or len(running) > 1 or not isinstance(pending, list):
+            return RuntimeStatus("unconfirmed", code="cancellation_ownership_unverified", message="The Runtime queue cannot establish target ownership.")
+        targets = [row for row in running + pending if isinstance(row, list) and len(row) >= 4 and row[1] == handle]
+        if len(targets) != 1 or targets[0][2] != graph or not isinstance(targets[0][3], dict) or targets[0][3].get("client_id") != str(request.attempt_id):
+            return RuntimeStatus("unconfirmed", code="cancellation_ownership_unverified", message="The Runtime target differs from the saved cancellation mapping.")
+        if targets[0] in pending:
+            self._post("/queue", {"delete": [handle]})
+            after = self._read("/queue")
+            if not isinstance(after, dict) or not isinstance(after.get("queue_running"), list) or not isinstance(after.get("queue_pending"), list):
+                return RuntimeStatus("unconfirmed", code="cancellation_unconfirmed", message="Pending deletion could not be observed.")
+            remaining = after["queue_running"] + after["queue_pending"]
+            if len(after["queue_running"]) > 1 or any(not isinstance(row, list) or len(row) < 4 or not isinstance(row[1], str)
+                                                      or not isinstance(row[2], dict) or not isinstance(row[3], dict) for row in remaining):
+                return RuntimeStatus("unconfirmed", code="cancellation_unconfirmed", message="The queue cannot prove target absence after pending deletion.")
+            if self._history(handle) is not None:
+                return self.status(handle)
+            if any(isinstance(row, list) and len(row) > 1 and row[1] == handle for row in remaining):
+                observed = self.status(handle)
+                return RuntimeStatus(observed.state, observed.phase, observed.progress, "cancellation_not_dispatched",
+                                     "The target is still active after queued deletion; no running interrupt was sent.")
+            # Queued removal has a distinct absence proof, with no invented
+            # running-interruption history or claim that execution never began.
+            return RuntimeStatus("cancelled", code="cancelled", message="The owned pending Runtime target was removed.")
+        # The sole target passed client/graph checks above and is not pending.
         reply = self._post("/api/jobs/" + quote(handle, safe="") + "/cancel", {})
         if not isinstance(reply, dict) or type(reply.get("cancelled")) is not bool:
             return RuntimeStatus("unconfirmed", code="cancellation_unconfirmed", message="Cancellation dispatch could not be confirmed.")

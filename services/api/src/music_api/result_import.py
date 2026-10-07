@@ -85,6 +85,7 @@ def import_result(database: Database, storage: Storage, job_id: str, materials: 
             if registrar is not None:
                 refs.update(registrar(session, job, ImportedBundle(assets, score)))
             job.result_refs = refs
+            job.error = None
             job.status, job.phase, job.progress = "completed", None, None
             job.updated_at = utc_now()
             commit_attempted = True
