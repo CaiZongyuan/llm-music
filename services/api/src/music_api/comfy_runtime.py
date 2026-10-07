@@ -43,9 +43,17 @@ class ComfyUIRuntime:
         self.requests: dict[str, RuntimeRequest] = {}
         self.graphs: dict[str, dict[str, object]] = {}
         self.workflows: dict[str, WorkflowDefinition] = {}
-        self._result_observers: set[str] = set()
+        self._result_observers: dict[str, RuntimeRequest] = {}
         self._terminal_history: dict[str, dict[str, object]] = {}
+        self._observation_generation: dict[str, int] = {}
         self._snapshot_lock = threading.Lock()
+
+    def _invalidate_snapshot(self,handle: str) -> int:
+        """Caller holds the lock; generations never reset after close or consume."""
+        generation = self._observation_generation.get(handle,0)+1
+        self._observation_generation[handle] = generation
+        self._terminal_history.pop(handle,None)
+        return generation
 
     def _read(self, path: str, deadline: datetime | None = None) -> object:
         remaining = self.settings.runtime_timeout_seconds if deadline is None else (deadline-datetime.now(timezone.utc)).total_seconds()
@@ -187,9 +195,8 @@ class ComfyUIRuntime:
             return SubmissionReceipt("unconfirmed", code="submission_unconfirmed", message="Native response has no reliable accepted identity.")
         handle = reply["prompt_id"]
         with self._snapshot_lock:
-            self._terminal_history.pop(handle,None)
-        self.requests[handle], self.graphs[handle] = request, graph
-        self.workflows[handle] = workflow
+            self._invalidate_snapshot(handle)
+            self.requests[handle], self.graphs[handle],self.workflows[handle] = request,graph,workflow
         return SubmissionReceipt("accepted", handle)
 
     def status(self, handle: str) -> RuntimeStatus:
@@ -200,7 +207,7 @@ class ComfyUIRuntime:
 
     def _status(self,handle: str,deadline: datetime | None = None) -> RuntimeStatus:
         with self._snapshot_lock:
-            self._terminal_history.pop(handle,None)
+            generation = self._invalidate_snapshot(handle)
         if handle not in self.requests or handle not in self.graphs:
             return RuntimeStatus("unconfirmed", code="native_mapping_unverified", message="The original request graph mapping is unavailable.")
         entry = self._history(handle,deadline)
@@ -209,7 +216,7 @@ class ComfyUIRuntime:
             if observed is not None:
                 if observed.state == "completed":
                     with self._snapshot_lock:
-                        if handle in self._result_observers:
+                        if self._observation_generation.get(handle) == generation and self._result_observers.get(handle) is self.requests.get(handle):
                             self._terminal_history[handle] = deepcopy(entry)
                 return observed
         return self._queue_status(handle,self._read("/queue",deadline))
@@ -260,11 +267,12 @@ class ComfyUIRuntime:
         close_native = subscribe_native(self.url, handle, request, self.workflows[handle], on_status,
                                         self.settings.runtime_timeout_seconds, lambda: self.status(handle))
         with self._snapshot_lock:
-            self._result_observers.add(handle)
+            self._invalidate_snapshot(handle)
+            self._result_observers[handle] = request
         def close() -> None:
             with self._snapshot_lock:
-                self._result_observers.discard(handle)
-                self._terminal_history.pop(handle,None)
+                self._invalidate_snapshot(handle)
+                self._result_observers.pop(handle,None)
             close_native()
         return close
 
@@ -313,7 +321,7 @@ class ComfyUIRuntime:
         with self._snapshot_lock:
             for previous,original in list(self.requests.items()):
                 if previous == request.runtime_handle or original.attempt_id == request.attempt_id:
-                    self._terminal_history.pop(previous,None)
+                    self._invalidate_snapshot(previous)
         try:
             proof = validate(request,self.mode,self.url)
             graph = cast(dict[str, object],proof["graph"])
@@ -353,8 +361,8 @@ class ComfyUIRuntime:
             return SubmissionReceipt("unconfirmed",code="original_ownership_unconfirmed")
         owned = next(iter(matches))
         with self._snapshot_lock:
-            self._terminal_history.pop(owned,None)
-        self.requests[owned],self.graphs[owned],self.workflows[owned] = replace(request,confirmation_deadline=None),deepcopy(graph),workflow
+            self._invalidate_snapshot(owned)
+            self.requests[owned],self.graphs[owned],self.workflows[owned] = replace(request,confirmation_deadline=None),deepcopy(graph),workflow
         entry = history.get(owned)
         observed = self._history_status(owned,self._owned_history(owned,entry),request.confirmation_deadline) if entry is not None else None
         return SubmissionReceipt("accepted",owned,status=observed or self._queue_status(owned,queue))
@@ -364,6 +372,7 @@ class ComfyUIRuntime:
             raise ValueError("Native result operation differs from its original binding")
         with self._snapshot_lock:
             snapshot = self._terminal_history.pop(handle,None)
+            self._invalidate_snapshot(handle)
         entry = self._owned_history(handle,snapshot) if snapshot is not None else self._history(handle)
         if entry is None:
             raise ValueError("Native terminal result is unavailable")
