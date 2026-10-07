@@ -22,7 +22,7 @@ API 使用 `services/api` 自己的 uv 环境。测试为每次运行选择空�
 
 ## 查看失败并恢复
 
-失败时查看 `tests/browser/playwright-report/index.html`。`tests/browser/test-results/` 保留截图、WebM 和 trace。GitHub Actions 的失败产物保留七天。运行中与退出后的 API 事实保存在 `.artifacts/<RUN_ID>/owner.json`、`api.log` 和 `stopped.json`；`graceful: true` 表示服务完成应用关闭。
+失败时查看 `tests/browser/playwright-report/index.html`。Swagger 测试在 `tests/browser/test-results/` 保留失败截图和 trace；按用户反馈始终关闭视频，即使设置 `PLAYWRIGHT_RECORD_VIDEO=on`。GitHub Actions 的失败产物保留七天，不会生成或上传新的 Swagger 录屏。运行中与退出后的 API 事实保存在 `.artifacts/<RUN_ID>/owner.json`、`api.log` 和 `stopped.json`；`graceful: true` 表示服务完成应用关闭。
 
 ```powershell
 pnpm --filter @llm-music/browser-tests exec playwright show-report
@@ -33,21 +33,19 @@ pnpm --filter @llm-music/browser-tests exec playwright show-trace test-results/<
 
 测试结束会请求自己的 API 平稳退出并等待确认。数据和日志保留，便于检查失败；不会自动删除。确认 `stopped.json` 后，可清理对应 `<RUN_ID>` 目录。截图、视频、数据库、Node modules 和 Python 环境不进入 Git。
 
-## 交互调试与录屏
+## 交互调试与 trace
 
 ```powershell
 pnpm test:browser:ui
 ```
 
-此命令打开 Playwright 测试界面。单独保留一次成功操作的 WebM 时，在新终端运行：
+此命令打开 Playwright 测试界面。需要保留一次成功操作的 trace（包含自动截图）时，运行：
 
 ```powershell
-$env:PLAYWRIGHT_RECORD_VIDEO = "on"
-pnpm test:browser
-Remove-Item Env:PLAYWRIGHT_RECORD_VIDEO
+pnpm test:browser --trace on
 ```
 
-成功录屏位于 `tests/browser/test-results/<TEST_RESULT_DIR>/video.webm`。提交更新的 PR 附件时，保留原件与 SHA256，并另做压缩副本；普通 CI 只保留失败录屏。音频测试下载不代表生成了真实音乐。
+trace 位于 `tests/browser/test-results/<TEST_RESULT_DIR>/trace.zip`。此前已交付的 Swagger 录屏只作为历史证据保留。通用 harness 的 `PLAYWRIGHT_RECORD_VIDEO=on` 选项仍供未来正式 Web 使用；重大可见流程可按需另做压缩 WebM，实际生成音乐的试听附件使用独立压缩副本。当前 Swagger 套件不录屏；音频测试下载不代表生成了真实音乐。
 
 该仓库只使用根目录的一套 pnpm workspace 和锁文件。后续 TypeScript client 与 P2 Web 接入同一 workspace。P2 用户流程应补充真实产品页面测试，不能把 Swagger 测试改名作为产品 Web 验收。
 

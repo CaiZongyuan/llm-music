@@ -22,7 +22,7 @@ The existing `/docs` HTML and OpenAPI stay unchanged. Only Swagger CDN JS/CSS re
 
 ## Inspect a failure and recover
 
-After a failure, inspect `tests/browser/playwright-report/index.html`. `tests/browser/test-results/` retains screenshots, WebM, and trace. GitHub Actions retains failure artifacts for seven days. API ownership and shutdown facts remain in `.artifacts/<RUN_ID>/owner.json`, `api.log`, and `stopped.json`; `graceful: true` records completed application shutdown.
+After a failure, inspect `tests/browser/playwright-report/index.html`. Swagger tests retain failure screenshots and traces in `tests/browser/test-results/`. Following user feedback, they always disable video, even with `PLAYWRIGHT_RECORD_VIDEO=on`. GitHub Actions retains failure artifacts for seven days and generates or uploads no new Swagger recording. API ownership and shutdown facts remain in `.artifacts/<RUN_ID>/owner.json`, `api.log`, and `stopped.json`; `graceful: true` records completed application shutdown.
 
 ```powershell
 pnpm --filter @llm-music/browser-tests exec playwright show-report
@@ -33,21 +33,19 @@ Replace `<TEST_RESULT_DIR>` with the actual failure directory name. If Chromium 
 
 At completion, the test requests graceful shutdown of its own API and waits for acknowledgement. Data and logs remain for failure inspection and are not deleted automatically. After checking `stopped.json`, you can remove that specific `<RUN_ID>` directory. Screenshots, videos, databases, Node modules, and Python environments do not enter Git.
 
-## Interactive debugging and recording
+## Interactive debugging and traces
 
 ```powershell
 pnpm test:browser:ui
 ```
 
-This opens the Playwright test interface. To retain one successful WebM recording, run in a new terminal:
+This opens the Playwright test interface. To retain one successful trace, including automatic screenshots, run:
 
 ```powershell
-$env:PLAYWRIGHT_RECORD_VIDEO = "on"
-pnpm test:browser
-Remove-Item Env:PLAYWRIGHT_RECORD_VIDEO
+pnpm test:browser --trace on
 ```
 
-The successful recording is `tests/browser/test-results/<TEST_RESULT_DIR>/video.webm`. For an updated PR attachment, retain the original and its SHA256, then create a separate compressed copy. Normal CI retains only failure recordings. A downloaded CPU test tone is not real music generation evidence.
+The trace is `tests/browser/test-results/<TEST_RESULT_DIR>/trace.zip`. Previously delivered Swagger recordings remain historical evidence. The general harness keeps `PLAYWRIGHT_RECORD_VIDEO=on` available for future formal Web tests; major visible workflows can use a separate compressed WebM when needed, and actual generated music auditions use separate compressed copies. The current Swagger suite records no video. A downloaded CPU test tone is not real music generation evidence.
 
 This repository uses one root pnpm workspace and lockfile. Future TypeScript client and P2 Web packages join that workspace. P2 journeys need tests of real product pages; renaming Swagger tests does not establish product Web acceptance.
 

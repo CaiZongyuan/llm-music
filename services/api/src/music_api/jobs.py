@@ -17,7 +17,7 @@ from sqlalchemy import select, update
 from music_api.config import Settings
 from music_api.database import Asset, Database, utc_now
 from music_api.errors import DomainError
-from music_api.job_models import Job, Namespace
+from music_api.job_models import Job, Namespace, job_for_write
 from music_api.result_import import ImportMaterial, ResultRegistrar
 from music_api.result_import import import_result
 from music_api.midi_validation import note_count
@@ -103,15 +103,16 @@ class JobService:
             log.exception("Job observer unavailable", extra={"event": "job_observer_failed", "job_id": identifier})
 
     def cancel(self, project_id: UUID, identifier: UUID) -> Job:
-        with self.transition_lock, self.database.sessions() as session:
-            job = session.scalar(select(Job).where(Job.id == str(identifier), Job.project_id == str(project_id)))
-            if job is None:
-                raise DomainError(404, "job_not_found", "Job does not exist in this Project.", "Query its owning Project.")
-            if job.status in {"completed", "failed", "cancelled"}:
-                return job
-            if not job.cancel_requested:
-                job.cancel_requested = True
-                job.updated_at = utc_now()
+        with self.transition_lock:
+            with self.database.sessions() as session:
+                job = job_for_write(session, str(identifier), str(project_id))
+                if job is None:
+                    raise DomainError(404, "job_not_found", "Job does not exist in this Project.", "Query its owning Project.")
+                if job.status in {"completed", "failed", "cancelled"}:
+                    return job
+                if not job.cancel_requested:
+                    job.cancel_requested = True
+                    job.updated_at = utc_now()
                 try:
                     session.commit()
                 except Exception as error:
@@ -119,49 +120,48 @@ class JobService:
                     self.notify(str(identifier))
                     raise DomainError(503, "cancellation_unconfirmed", "The cancellation intent could not be confirmed.",
                                       "Query this Job and explicitly repeat cancellation if still needed; intent alone is not dispatch proof.", identifier) from error
-            if job.submission_state == "pending":
+                state, handle = job.submission_state, job.runtime_handle
+            # The SQLite writer is released during bounded native HTTP work.
+            # Intent never substitutes for this request's ownership-checked dispatch.
+            if state == "pending":
                 observed = RuntimeStatus("cancelled")
-            elif job.runtime_handle is not None:
+            elif handle is not None:
                 try:
-                    # Every explicit request uses the same guarded target operation.
-                    # A persisted intent cannot establish that native dispatch occurred.
-                    observed = self.runtime.cancel(job.runtime_handle)
-                except Exception as error:
-                    log.exception("Runtime cancellation outcome unconfirmed", extra={"event": "job_cancellation_unconfirmed", "job_id": job.id,
-                                  "runtime_handle": job.runtime_handle})
-                    job.error = dict(code="runtime_unavailable", message="Cancellation could not be confirmed; the target may still be running.",
-                                     recovery="Retain this Job and inspect its owned Runtime attempt before any retry.")
-                    job.updated_at = utc_now()
-                    session.commit()
-                    self.notify(job.id)
-                    raise DomainError(503, "runtime_unavailable", "Cancellation could not be confirmed.",
-                                      "Query this Job before retrying; the original native target may still exist.", identifier) from error
+                    observed = self.runtime.cancel(handle)
+                except Exception:
+                    log.exception("Runtime cancellation outcome unconfirmed", extra={"event": "job_cancellation_unconfirmed", "job_id": str(identifier),
+                                  "runtime_handle": handle})
+                    observed = RuntimeStatus("unconfirmed", code="runtime_unavailable")
             else:
-                raise DomainError(409, "cancellation_unconfirmed", "The native target identity is unavailable.", "Retain this Job's attempt mapping and inspect its Runtime outcome before retrying.")
-            if observed.code == "cancellation_not_dispatched":
-                job.cancel_requested = False
-                job.error = dict(code="cancellation_not_dispatched", message="This cancellation did not reach its active target.",
-                                 recovery="Read the current Job and explicitly request cancellation again if needed.")
-                job.updated_at = utc_now()
-                session.commit()
-                self.notify(job.id)
-                raise DomainError(409, "cancellation_not_dispatched", "The target changed state before cancellation was confirmed.",
-                                  "Read the current Job and explicitly request cancellation again if needed.", identifier)
-            if observed.state == "cancelled":
-                mark_cancelled(job)
-                session.commit()
-            elif observed.state == "unconfirmed":
-                code = observed.code if observed.code in {"cancellation_ownership_unverified", "runtime_unavailable"} else "cancellation_unconfirmed"
-                if code == "cancellation_ownership_unverified":
+                observed = RuntimeStatus("unconfirmed", code="cancellation_unconfirmed")
+            failure = None
+            with self.database.sessions() as session:
+                job = job_for_write(session, str(identifier), str(project_id))
+                assert job is not None
+                if job.status in {"completed", "failed", "cancelled"}:
+                    return job
+                if observed.code == "cancellation_not_dispatched":
                     job.cancel_requested = False
-                job.error = dict(code=code, message="The cancellation target or outcome is unconfirmed.",
-                                 recovery="Retain this Job and inspect its owned Runtime mapping before any new attempt.")
-                job.updated_at = utc_now()
+                    job.error = dict(code="cancellation_not_dispatched", message="This cancellation did not reach its active target.",
+                                     recovery="Read the current Job and explicitly request cancellation again if needed.")
+                    job.updated_at = utc_now()
+                    failure = DomainError(409, "cancellation_not_dispatched", "The target changed state before cancellation was confirmed.",
+                                          "Read the current Job and explicitly request cancellation again if needed.", identifier)
+                elif observed.state == "cancelled":
+                    mark_cancelled(job)
+                elif observed.state == "unconfirmed":
+                    code = observed.code if observed.code in {"cancellation_ownership_unverified", "runtime_unavailable"} else "cancellation_unconfirmed"
+                    if code == "cancellation_ownership_unverified":
+                        job.cancel_requested = False
+                    job.error = dict(code=code, message="The cancellation target or outcome is unconfirmed.",
+                                     recovery="Retain this Job and inspect its owned Runtime mapping before any new attempt.")
+                    job.updated_at = utc_now()
+                    failure = DomainError(503 if code == "runtime_unavailable" else 409, code, "Cancellation is unconfirmed.",
+                                          "Retain this Job and inspect the Runtime before any new attempt.", identifier)
                 session.commit()
-                self.notify(job.id)
-                raise DomainError(503 if code == "runtime_unavailable" else 409, code, "Cancellation is unconfirmed.",
-                                  "Retain this Job and inspect the Runtime before any new attempt.", identifier)
         self.notify(job.id)
+        if failure is not None:
+            raise failure
         return job
 
     def retry(self, project_id: UUID, identifier: UUID) -> Job:
@@ -250,7 +250,7 @@ class JobService:
             except Exception as error:
                 log.exception("Application Job failed", extra={"event": "job_failed", "job_id": identifier})
                 with self.transition_lock, self.database.sessions() as session:
-                    job = session.get(Job, identifier)
+                    job = job_for_write(session, identifier)
                     if job is not None and job.status not in {"completed", "failed", "cancelled"}:
                         if job.submission_state == "submitting":
                             job.submission_state = "unconfirmed"
@@ -288,7 +288,7 @@ class JobService:
         self.notify(identifier)
         receipt = self.runtime.submit(request)
         with self.database.sessions() as session:
-            job = session.get(Job, identifier)
+            job = job_for_write(session, identifier)
             assert job is not None
             job.submission_state = receipt.outcome
             job.runtime_handle = receipt.handle
@@ -326,7 +326,7 @@ class JobService:
         while not self.stop_event.is_set():
             observed = self.runtime.status(handle)
             with self.transition_lock, self.database.sessions() as session:
-                job = session.get(Job, identifier)
+                job = job_for_write(session, identifier)
                 assert job is not None
                 if job.status in {"completed", "failed", "cancelled"}:
                     return
@@ -350,7 +350,7 @@ class JobService:
             self.notify(identifier)
             if observed.state == "completed":
                 with self.transition_lock, self.database.sessions() as session:
-                    job = session.get(Job, identifier)
+                    job = job_for_write(session, identifier)
                     assert job is not None
                     if job.status in {"completed", "failed", "cancelled"}:
                         return
@@ -367,7 +367,7 @@ class JobService:
             if observed.state in {"failed", "cancelled"}:
                 if observed.state == "cancelled":
                     with self.transition_lock, self.database.sessions() as session:
-                        job = session.get(Job, identifier)
+                        job = job_for_write(session, identifier)
                         assert job is not None
                         if job.status not in {"completed", "failed", "cancelled"}:
                             mark_cancelled(job)
