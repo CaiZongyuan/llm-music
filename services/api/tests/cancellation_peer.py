@@ -24,6 +24,8 @@ class CancellationHandler(NativeHandler):
             self.reply({"queue_running":rows, "queue_pending":pending + ([foreign_row] if foreign_state == "queued" else [])})
         elif self.path == "/facts":
             self.reply({"foreign_state":foreign_state, "target_states":{key:"removed_pending" if key in removed else live.get(key, value["status"]["status_str"]) for key,value in native.items()}})
+        elif self.path == "/accepted-attempts":
+            self.reply([entry["prompt"][3]["client_id"] for entry in native.values()])
         elif self.path.startswith("/history/"):
             handle = self.path.split("/")[-1]
             self.reply({handle:native[handle]} if handle in native and handle not in live and handle not in removed else {})

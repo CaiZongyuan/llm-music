@@ -154,6 +154,8 @@ class ComfyUIRuntime:
         return SubmissionReceipt("accepted", handle)
 
     def status(self, handle: str) -> RuntimeStatus:
+        if handle not in self.requests or handle not in self.graphs:
+            return RuntimeStatus("unconfirmed", code="native_mapping_unverified", message="The original request graph mapping is unavailable.")
         entry = self._history(handle)
         if entry is not None:
             status = entry.get("status")
