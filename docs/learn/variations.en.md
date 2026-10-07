@@ -84,7 +84,7 @@ uv run --project services/api --no-sync python services/api/examples/generate_sa
 
 ## If saving conflicts, read the existing Version first {#recovery}
 
-<p><code>409 version_already_saved</code> means this Candidate was saved with another name or parent. Read the existing Version id in the error and confirm what you already kept. A renamed save does not make the same Candidate a new piece. Generate a new Candidate for a new creative intent.</p><p>If waiting disconnects, query the original Job as in the first chapter to avoid repeated inference. Change one dimension in the next round and keep a clear starting point.</p>
+<p>When the save command returns <code>409</code>, the CLI prints the HTTP status and URL, without the existing Version id from the response body. In local Swagger, read this Project's version list with <code>GET /projects/{project_id}/versions</code>. Look for a saved record with the submitted <code>candidate_id</code>. If found, check its actual <code>name</code> and <code>parent_version_id</code>, record the returned Version <code>id</code>, and read <code>GET /projects/{project_id}/versions/{version_id}</code> to confirm what you kept. Generate a new Candidate for a new creative intent. If no record matches, retain the Candidate id and error, then use the <a href="./resources.en.md">saving and Asset recovery guide</a> to check other save failures.</p><p>If waiting disconnects, query the original Job as in the first chapter to avoid repeated inference. Change one dimension in the next round and keep a clear starting point.</p>
 
 ## What could you ask next? {#next}
 

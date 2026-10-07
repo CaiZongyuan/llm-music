@@ -68,3 +68,5 @@ Markdown 正文是正式来源。歌词与配方从受版本控制的示例引�
 原生定位器对 Starlight 前一章链接的换行名称匹配失败，改用已读取 DOM 的 `rel=prev` 后成功。语言选择值实际是章节 URL，已按实读值操作。首次静态 transport barrier 清理了仍被 pending fetch 引用的测试属性，造成预期之外的索引失败；验证器改为捕获原 fetch 后通过，同一产品源码未因此修改。原失败均保留。
 
 收尾按 reduce-complexity 删除了重复的 PowerShell 配方启动层，保持当前 CLI 为操作入口。其隔离 stub 检查曾挂起；经核对专属进程身份后停止，保留 harness/失败输出，无实际 uv/API/GPU 调用。最终代码没有这个启动层，验证范围聚焦实际保留的正文、配方、词句、音乐字节、站点来源与用户操作。Root 继续负责非作者 review、候选 CI、实际合并与后续发布记录。
+
+独立 review 在首个正式候选 `f5898ee99ac3ff71d4bfb4330c1332132be7c7a1` 发现 CLI 保存冲突恢复说明无法照做：CLI 不打印 HTTP 错误正文里的 Version id。中英文恢复段落已改为先使用 Swagger 的实际只读版本列表，按 `candidate_id` 找到记录、核对保存的名称/父版本，再用返回的 id 读取同一 Version。原反例与评审保留，CLI/API 没有修改；原预览也保持不变。

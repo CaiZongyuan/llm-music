@@ -84,7 +84,7 @@ uv run --project services/api --no-sync python services/api/examples/generate_sa
 
 ## 如果保存提示冲突，先读取已有版本 {#recovery}
 
-<p><code>409 version_already_saved</code> 表示这个 Candidate 已按另一名称或父版本保存。先读取错误中的既有 Version id，确认已经留下的结果。不要以改名字的方式把同一 Candidate 伪装成新作品；有新的创作意图，就生成新的 Candidate。</p><p>如果只是等待断开，先按第一章查询原 Job，避免重复推理。下一轮只改一个维度，给比较保留清楚的起点。</p>
+<p>保存命令返回 <code>409</code> 时，CLI 只显示 HTTP 状态与地址，不显示错误响应中的既有 Version id。先在本地 Swagger 用 <code>GET /projects/{project_id}/versions</code> 读取这个 Project 的版本列表，按本次的 <code>candidate_id</code> 查找已保存记录。找到时核对实际 <code>name</code> 与 <code>parent_version_id</code>，记录返回的 Version <code>id</code>，再用 <code>GET /projects/{project_id}/versions/{version_id}</code> 确认已经留下的结果。有新的创作意图时生成新的 Candidate。若列表没有对应记录，保留 Candidate id 与错误，按<a href="./resources.md">保存与素材恢复指南</a>核对其他保存失败原因。</p><p>如果只是等待断开，先按第一章查询原 Job，避免重复推理。下一轮只改一个维度，给比较保留清楚的起点。</p>
 
 ## 下一轮可以问什么？ {#next}
 
