@@ -1,0 +1,19 @@
+.generation-results { display:grid; gap:24px; align-content:start; }
+.field-row { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+.feature-actions { display:flex; flex-wrap:wrap; gap:10px; margin:18px 0; }
+.feature-actions button,.feature-actions .button { font-size:.78rem; }
+.lyric-text { font:inherit; font-size:.85rem; line-height:1.85; white-space:pre-wrap; overflow-wrap:anywhere; }
+.input-snapshot { margin:20px 0; font-size:.82rem; }
+.input-snapshot summary { cursor:pointer; color:var(--accent); margin-bottom:16px; }
+.input-snapshot h3 { margin:16px 0 8px; }
+.save-candidate { padding-top:20px; border-top:1px solid var(--line); }
+.saved-candidate { display:flex; flex-wrap:wrap; align-items:center; gap:12px; margin-top:20px; }
+.fixture-notice { margin:16px 0; }
+.candidate-list,.version-list { list-style:none; padding:0; margin:0; display:grid; gap:12px; }
+.candidate-list a { display:block; padding:14px; border:1px solid var(--line); border-radius:9px; }
+.candidate-list strong { display:block; font-size:.82rem; overflow-wrap:anywhere; }
+.candidate-list code { display:block; margin-top:8px; }
+.record-details pre { white-space:pre-wrap; overflow-wrap:anywhere; font-size:.7rem; }
+.version-row { padding:22px 0; border-top:1px solid var(--line); }
+.version-row h3 { margin-bottom:8px; overflow-wrap:anywhere; }
+@media(max-width:680px) { .field-row { grid-template-columns:1fr; } }
