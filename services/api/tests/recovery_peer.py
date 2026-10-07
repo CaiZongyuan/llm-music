@@ -15,6 +15,8 @@ from music_api.runtime_evidence import ModelFingerprint, ModelReceipt
 from music_api.workflow_registry import WorkflowRegistry
 
 EDIT = '''
+from datetime import datetime, timezone
+import time
 uploads = []
 bad_upload = False
 unavailable = False
@@ -24,6 +26,7 @@ extra_history = {}
 malformed_queue = False
 delay_ack = False
 read_delay = 0
+native_reads = []
 @app.post("/fixture/edit")
 async def edit(request: Request):
     global bad_upload,unavailable,slow_history,foreign_descriptor,malformed_queue,delay_ack,read_delay
@@ -61,6 +64,19 @@ async def edit(request: Request):
 
 @app.middleware("http")
 async def readonly_availability(request,call_next):
+    tracked = request.method == "GET" and (request.url.path == "/queue" or request.url.path.startswith("/history"))
+    if not tracked:
+        return await observed_read(request,call_next)
+    observation = {"path":request.url.path,"began_at":datetime.now(timezone.utc).isoformat(),"begin_clock":time.monotonic()}
+    try:
+        return await observed_read(request,call_next)
+    finally:
+        observation.update(finished_at=datetime.now(timezone.utc).isoformat(),end_clock=time.monotonic())
+        native_reads.append(observation)
+        with Path(sys.argv[1]).with_suffix(".native-reads.jsonl").open("a",encoding="utf-8") as output:
+            output.write(json.dumps(observation)+"\\n")
+
+async def observed_read(request,call_next):
     if read_delay and (request.url.path == "/queue" or request.url.path.startswith("/history")):
         await asyncio.sleep(read_delay)
     if malformed_queue and request.url.path == "/queue":
