@@ -71,6 +71,8 @@ jobs:
         run: pnpm test:web:runtime
       - name: Exercise current ABC notation, MIDI audition, immutable saves and recovery
         run: pnpm test:web:score
+      - name: Exercise selected Score generation, frozen inputs and explicit parent Version recovery
+        run: pnpm test:web:score-generation
       - name: Restore both creator journeys and persisted entities after an API process restart
         run: pnpm test:web:gate
       - name: Bound failed shutdown and retain owned-child cleanup receipts

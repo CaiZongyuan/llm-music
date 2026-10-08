@@ -97,8 +97,7 @@ independently absent afterward. All previous owned runs also stopped; protected
 ```powershell
 pnpm web:check
 pnpm test:browser:check
-pnpm --filter @llm-music/api-client build
-pnpm --filter @llm-music/browser-tests exec playwright test --config score-generation.playwright.config.ts
+pnpm test:web:score-generation
 pnpm docs:check
 pnpm docs:build
 ```
@@ -119,7 +118,11 @@ small persisted submission intent is needed for the observed unknown-ACK
 boundary; it does not copy server Jobs into a second long-lived store. No
 additional abstraction or dependency was warranted.
 
-Root owns common pnpm/CI registration, final non-author Standards/Spec review,
+The root `pnpm test:web:score-generation` command runs all fourteen cases in
+the existing Windows Web workbench CI and retains the existing browser and
+owned-process artifacts.
+
+Root owns final non-author Standards/Spec review,
 final-head CI, approved-preview comparison, the fresh real browser→API→GPU
 35-second P3 gate, media publication, restart/refresh/old-graph evidence and
 actual integration. Historical #41 real native evidence is valid for that API
