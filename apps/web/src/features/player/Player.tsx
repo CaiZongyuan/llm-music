@@ -72,6 +72,7 @@ export function Player() {
   const [time, setTime] = useState(0), [duration, setDuration] = useState(0);
   const [start, setStart] = useState('0'), [end, setEnd] = useState('0');
   const [regionInvalid, setRegionInvalid] = useState(false), [regionReset, setRegionReset] = useState(false);
+  const [hasRegion, setHasRegion] = useState(false);
   const versions = useQuery({ ...versionsOptions(projectId), enabled: Boolean(compare) });
   const version = compare ? versions.data?.find(value => value.id === compare.pair[compare.pair.side] && value.project_id === projectId && value.audio_asset_id) : null;
   const other = compare?.pair.b ? versions.data?.find(value => value.id === compare.pair[compare.pair.side === 'a' ? 'b' : 'a'] && value.project_id === projectId && value.audio_asset_id) : null;
@@ -94,7 +95,9 @@ export function Player() {
 
   function showRegion() {
     regions.current?.clearRegions();
-    if (region.current && validRegion(region.current, limit.current)) regions.current?.addRegion({ id: 'listening', ...region.current, color: 'color-mix(in srgb, var(--accent) 20%, transparent)', drag: true, resize: true, minLength: Math.min(0.1, limit.current) });
+    const available = Boolean(region.current && validRegion(region.current, limit.current));
+    setHasRegion(available);
+    if (available && region.current) regions.current?.addRegion({ id: 'listening', ...region.current, color: 'color-mix(in srgb, var(--accent) 20%, transparent)', drag: true, resize: true, minLength: Math.min(0.1, limit.current) });
   }
   function failPlayback() {
     intent.current.playing = false; intent.current.bounded = false; loaded.current = null;
@@ -153,13 +156,13 @@ export function Player() {
     const wasReady = loaded.current?.key === playerMediaKey(earlier);
     intent.current = continuing ? { time: wasReady ? media.current?.currentTime ?? 0 : intent.current.time, playing: wasReady ? Boolean(media.current && !media.current.paused && !media.current.ended) : intent.current.playing, bounded: intent.current.bounded }
       : { time: 0, playing: selection?.kind === 'score', bounded: false };
-    if (!compare || earlier?.kind !== 'compare' || earlier.projectId !== projectId) { region.current = null; setStart('0'); setEnd('0'); setRegionReset(false); setRegionInvalid(false); }
+    if (!compare || earlier?.kind !== 'compare' || earlier.projectId !== projectId) { region.current = null; setHasRegion(false); setStart('0'); setEnd('0'); setRegionReset(false); setRegionInvalid(false); }
     previous.current = selection; loaded.current = null; publishScorePlayback(null); wave?.pause(); regions.current?.clearRegions();
     setReady(false); setFailed(false); setPlaying(false); setContinuation(intent.current.playing); setTime(intent.current.time); setDuration(0);
   }, [wave, key]);
   useEffect(() => {
     limit.current = regionLimit;
-    if (region.current && regionLimit > 0 && !validRegion(region.current, regionLimit)) { region.current = null; intent.current.bounded = false; regions.current?.clearRegions(); setRegionReset(true); }
+    if (region.current && regionLimit > 0 && !validRegion(region.current, regionLimit)) { region.current = null; setHasRegion(false); intent.current.bounded = false; regions.current?.clearRegions(); setRegionReset(true); }
     else if (loaded.current?.key === key && region.current) showRegion();
   }, [regionLimit]);
   useEffect(() => {
@@ -249,6 +252,6 @@ export function Player() {
     {controlsFailed ? <div className="player-error" role="alert"><span>{initializationFailed ? t.unavailable : pairMissing ? t.pairLost : compare && versions.isError ? t.pairReadFailed : t.failed}</span><button type="button" onClick={reread}>{t.retry}</button>{compare ? <Link to="/projects/$projectId/versions" params={{ projectId }}>{t.choosePair}</Link> : null}</div> : selection && !currentReady ? <small role="status">{t.loading}</small> : currentReady && time >= duration ? <small role="status">{t.ended}</small> : null}
     {compare && choice.notice === 'storage' ? <p className="player-notice" role="alert">{t.storageWarning}</p> : null}
     {compare ? <p className="player-notice">{t.refreshRule}</p> : null}
-    {selection ? <details className="player-regions"><summary>{compare?.pair.b ? t.commonRegion : t.region}</summary><div className="region-fields"><label>{t.start}<input type="number" step="0.1" min="0" max={regionLimit} value={start} onChange={event => setStart(event.target.value)} /></label><label>{t.end}<input type="number" step="0.1" min="0" max={regionLimit} value={end} onChange={event => setEnd(event.target.value)} /></label><button type="button" disabled={!currentReady || !regionLimit} onClick={applyRegion}>{t.apply}</button><button type="button" disabled={!currentReady || !region.current || regionReset} onClick={() => void play(true)}>{t.playRegion}</button></div>{regionInvalid ? <p role="alert">{compare?.pair.b ? t.invalidCommonRegion : t.invalidRegion}</p> : null}{regionReset ? <p role="alert">{t.regionReset}</p> : null}<p className="field-help">{t.regionRule}</p></details> : null}
+    {selection ? <details className="player-regions"><summary>{compare?.pair.b ? t.commonRegion : t.region}</summary><div className="region-fields"><label>{t.start}<input type="number" step="0.1" min="0" max={regionLimit} value={start} onChange={event => setStart(event.target.value)} /></label><label>{t.end}<input type="number" step="0.1" min="0" max={regionLimit} value={end} onChange={event => setEnd(event.target.value)} /></label><button type="button" disabled={!currentReady || !regionLimit} onClick={applyRegion}>{t.apply}</button><button type="button" disabled={!currentReady || !hasRegion || regionReset} onClick={() => void play(true)}>{t.playRegion}</button></div>{regionInvalid ? <p role="alert">{compare?.pair.b ? t.invalidCommonRegion : t.invalidRegion}</p> : null}{regionReset ? <p role="alert">{t.regionReset}</p> : null}<p className="field-help">{t.regionRule}</p></details> : null}
   </footer>;
 }
