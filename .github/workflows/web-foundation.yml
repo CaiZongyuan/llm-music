@@ -71,6 +71,8 @@ jobs:
         run: pnpm test:web:runtime
       - name: Restore both creator journeys and persisted entities after an API process restart
         run: pnpm test:web:gate
+      - name: Bound failed shutdown and retain owned-child cleanup receipts
+        run: pnpm test:web:gate:shutdown
       - name: Retain browser results and process ownership receipts
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4

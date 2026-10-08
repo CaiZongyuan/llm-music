@@ -15,6 +15,7 @@
     "test:web:generation": "pnpm --filter @llm-music/api-client build && pnpm --filter @llm-music/browser-tests exec playwright test --config generation.playwright.config.ts",
     "test:web:runtime": "pnpm --filter @llm-music/api-client build && pnpm --filter @llm-music/browser-tests exec playwright test --config runtime.playwright.config.ts",
     "test:web:gate": "pnpm --filter @llm-music/api-client build && pnpm --filter @llm-music/browser-tests exec playwright test --config gate.playwright.config.ts",
+    "test:web:gate:shutdown": "uv run --project services/api --frozen --no-sync python -m pytest tests/browser/test_gate_shutdown.py -q",
     "client:generate": "pnpm --filter @llm-music/api-client generate",
     "client:check": "pnpm --filter @llm-music/api-client check",
     "test:client": "pnpm --filter @llm-music/api-client test",
