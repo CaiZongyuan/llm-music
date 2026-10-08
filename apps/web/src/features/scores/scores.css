@@ -7,6 +7,7 @@
 .score-notation svg { fill:currentColor; color:var(--text) }
 .score-notation svg text { fill:currentColor }
 .score-notation svg path { fill:currentColor }
+.score-notation .abcjs-note.highlight { fill:var(--accent); color:var(--accent) }
 .score-code { white-space:pre-wrap; overflow-wrap:anywhere; font: .82rem/1.8 "Cascadia Code",monospace; padding:18px; background:var(--surface); border:1px solid var(--line); border-radius:9px }
 .score-actions { display:flex; align-items:start; flex-wrap:wrap; gap:18px; margin:24px 0 }
 .score-download { flex:1; min-width:150px }

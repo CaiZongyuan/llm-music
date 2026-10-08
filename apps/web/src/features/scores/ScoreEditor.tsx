@@ -2,11 +2,12 @@ import { useEffect, useRef, useState } from 'react';
 import { Link } from '@tanstack/react-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { components } from '@llm-music/api-client';
+import type { NoteTimingEvent } from 'abcjs';
 import { ErrorNotice } from '../../components/States';
 import { api, ApiFailure, dataOf } from '../../lib/api';
 import { assetKeys } from '../assets/queries';
 import { useMessages } from '../preferences/Preferences';
-import { selectPlayerScore } from '../player';
+import { scorePlayback, selectPlayerScore, subscribeScorePlayback, type ScorePlayback } from '../player';
 import { versionsOptions } from '../versions/queries';
 import { scoreKeys } from './queries';
 import { useScoreDraft } from './drafts';
@@ -17,7 +18,7 @@ import { loadABCJS } from './abcjs';
 type Score = components['schemas']['ScoreRead'];
 type SaveIntent = components['schemas']['ScoreCreate'];
 type SaveRequest = { intent: SaveIntent; revision: number; abcSha256: string };
-type CheckedScore = { abc: string; revision: number; host: HTMLDivElement; midi: Uint8Array; abcSha256: string };
+type CheckedScore = { abc: string; revision: number; host: HTMLDivElement; midi: Uint8Array; timings: NoteTimingEvent[]; abcSha256: string };
 type CheckError = { kind: 'notation' | 'native' | 'network' | 'headers' | 'midi'; detail?: string };
 
 function warningText(warnings: string[]) {
@@ -54,6 +55,7 @@ export function ScoreEditor({ projectId, score, initialABC }: { projectId: strin
         }
         const host = document.createElement('div');
         let midi: Uint8Array;
+        let timings: NoteTimingEvent[];
         try {
           const library = await loadABCJS();
           if (!active) return;
@@ -66,6 +68,8 @@ export function ScoreEditor({ projectId, score, initialABC }: { projectId: strin
           if (!(binary instanceof Uint8Array)) throw new MidiError('invalid');
           midi = binary;
           readMidi(midi);
+          // Read abcjs's timing map without starting its separate animation clock.
+          timings = new library.TimingCallbacks(tune).noteTimings;
         } catch (error) {
           if (active) { setStatus('invalid'); setCheckError({ kind: error instanceof MidiError ? 'midi' : 'notation', detail: error instanceof MidiError ? error.reason : undefined }); }
           return;
@@ -73,7 +77,7 @@ export function ScoreEditor({ projectId, score, initialABC }: { projectId: strin
         try {
           const validation = dataOf(await api.POST('/projects/{project_id}/scores/validate', { params: { path: { project_id: projectId } }, body: { abc: captured.abc }, signal: controller.signal }));
           if (!active) return;
-          setChecked({ ...captured, host, midi, abcSha256: validation.abc_sha256 }); setStatus('valid');
+          setChecked({ ...captured, host, midi, timings, abcSha256: validation.abc_sha256 }); setStatus('valid');
           check(captured.abc);
         } catch (error) {
           if (!active) return;
@@ -86,6 +90,20 @@ export function ScoreEditor({ projectId, score, initialABC }: { projectId: strin
   }, [projectId, draft.abc, draft.revision, attempt]);
 
   useEffect(() => { if (checked) notation.current?.replaceChildren(checked.host); }, [checked]);
+
+  useEffect(() => {
+    const host = checked?.host;
+    const clear = () => host?.querySelectorAll('.highlight').forEach(element => element.classList.remove('highlight'));
+    function sync(playback: ScorePlayback) {
+      clear();
+      if (!current || !checked || !playback?.playing || playback.projectId !== projectId || playback.abcSha256 !== checked.abcSha256) return;
+      const event = checked.timings.filter(item => item.milliseconds <= playback.time * 1000).at(-1);
+      if (event?.type === 'event') event.elements?.flat().forEach(element => element?.classList.add('highlight'));
+    }
+    sync(scorePlayback());
+    const unsubscribe = subscribeScorePlayback(sync);
+    return () => { unsubscribe(); clear(); };
+  }, [checked, current, projectId]);
 
   const save = useMutation({
     mutationFn: async ({ intent }: SaveRequest) => {
@@ -111,7 +129,7 @@ export function ScoreEditor({ projectId, score, initialABC }: { projectId: strin
     },
   });
   function saveCurrent() {
-    if (!current || !checked || save.isPending || recoveryId.current) return;
+    if (!current || !checked || save.isPending || save.isError || recoveryId.current) return;
     if (score && checked.abc === initialABC) {
       select({ abc: checked.abc, source_score_id: score.id, parent_version_id: parentId, revision: checked.revision, abcSha256: checked.abcSha256 });
       return;
@@ -122,7 +140,7 @@ export function ScoreEditor({ projectId, score, initialABC }: { projectId: strin
     if (!current || !checked) return;
     try {
       const audio = auditionMidi(checked.midi);
-      selectPlayerScore({ kind: 'score', projectId, id: `${checked.abcSha256}:${crypto.randomUUID()}`, label: `${t.draft} MIDI · r${checked.revision}`, revision: checked.revision, ...audio });
+      selectPlayerScore({ kind: 'score', projectId, id: `${checked.abcSha256}:${crypto.randomUUID()}`, label: `${t.draft} MIDI · r${checked.revision}`, revision: checked.revision, abcSha256: checked.abcSha256, ...audio });
       setMediaError(null);
     } catch { setMediaError(t.mediaError); }
   }
@@ -132,7 +150,7 @@ export function ScoreEditor({ projectId, score, initialABC }: { projectId: strin
   }
   const error = checkError?.kind === 'headers' ? t.headers : checkError?.kind === 'native' ? t.nativeError : checkError?.kind === 'network' ? t.transportError
     : checkError?.kind === 'midi' ? checkError.detail === 'limit' ? t.limitMidi : checkError.detail === 'empty' ? t.emptyMidi : t.mediaError : t.renderFailed;
-  const canSave = current && !save.isPending && !recoveryId.current && (!score || versions.isSuccess);
+  const canSave = current && !save.isPending && !save.isError && !recoveryId.current && (!score || versions.isSuccess);
   return <><div className="score-editor-heading"><h2>{t.title}</h2><p className="hint">{t.intro}</p></div><div className="workspace-grid score-editor">
     <section className="surface"><div className="section-heading"><h3>{t.draft}</h3><span className="tag" role="status">{t[status]}</span></div>
       <p className="hint">{t.help}</p><label className="visually-hidden" htmlFor="abc-draft">{t.label}</label><textarea id="abc-draft" aria-label={t.label} className="abc-editor" value={draft.abc} spellCheck={false} onChange={event => edit(event.target.value)} />

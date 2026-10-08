@@ -5,7 +5,7 @@ import type RegionsPlugin from 'wavesurfer.js/dist/plugins/regions.esm.js';
 import { api, dataOf } from '../../lib/api';
 import { assetOptions } from '../assets/queries';
 import { useMessages, usePreferences } from '../preferences/Preferences';
-import { playerSelection, subscribePlayerSelection } from './index';
+import { playerSelection, publishScorePlayback, subscribePlayerSelection, type PlayerScoreSelection } from './index';
 import { playerMessages } from './messages';
 import './player.css';
 
@@ -38,6 +38,7 @@ export function Player() {
   const { theme } = usePreferences();
   const container = useRef<HTMLDivElement>(null);
   const media = useRef<HTMLAudioElement>(null);
+  const loadedScore = useRef<PlayerScoreSelection | null>(null);
   const regions = useRef<RegionsPlugin | null>(null);
   const loadQueue = useRef(Promise.resolve());
   const bounded = useRef(false);
@@ -60,6 +61,20 @@ export function Player() {
   const content = useQuery({ queryKey: ['projects', projectId, 'assets', assetId, 'playback-content'], enabled: isAsset,
     queryFn: async ({ signal }) => dataOf(await api.GET('/projects/{project_id}/assets/{asset_id}/content', { params: { path: { project_id: projectId, asset_id: assetId } }, parseAs: 'blob', signal })),
     staleTime: Infinity, gcTime: 60_000, retry: false });
+
+  useEffect(() => {
+    const element = media.current;
+    if (!element) return;
+    function sync() {
+      const score = loadedScore.current, current = playerSelection();
+      publishScorePlayback(score && current?.kind === 'score' && current.id === score.id && element
+        ? { projectId: score.projectId, abcSha256: score.abcSha256, time: element.currentTime, playing: !element.paused && !element.ended }
+        : null);
+    }
+    const events = ['timeupdate', 'play', 'pause', 'seeking', 'seeked', 'ended', 'emptied', 'error'];
+    events.forEach(name => element.addEventListener(name, sync));
+    return () => { events.forEach(name => element.removeEventListener(name, sync)); publishScorePlayback(null); };
+  }, []);
 
   useEffect(() => {
     let disposed = false;
@@ -89,6 +104,7 @@ export function Player() {
 
   useEffect(() => {
     bounded.current = false;
+    loadedScore.current = null; publishScorePlayback(null);
     wave?.pause(); setReady(false); setFailed(false); setPlaying(false); setTime(0); setDuration(0);
     regions.current?.clearRegions();
   }, [wave, projectId, selectionId]);
@@ -108,12 +124,13 @@ export function Player() {
         if (!length || !Number.isFinite(length)) throw new Error('Audio duration is unavailable');
         await wave.loadBlob(blob, undefined, length);
         if (disposed) return;
+        loadedScore.current = score;
         setDuration(length); setReady(true); setFailed(false);
         regions.current?.clearRegions();
         regions.current?.addRegion({ id: 'listening', start: 0, end: Math.min(10, length), color: 'color-mix(in srgb, var(--accent) 20%, transparent)', drag: true, resize: true, minLength: Math.min(0.1, length) });
         setStart('0'); setEnd(String(Math.min(10, length))); setRegionInvalid(false);
         if (score) await wave.play();
-      } catch { if (!disposed) { setFailed(true); setReady(false); } }
+      } catch { if (!disposed) { loadedScore.current = null; publishScorePlayback(null); setFailed(true); setReady(false); } }
     });
     return () => { disposed = true; };
   }, [wave, content.data, asset.data, selection]);

@@ -152,3 +152,30 @@ Root owns final non-author Standards/Spec review, registered final-head CI,
 browser comparison with #39, integration/publication and the separate real
 GPU gate. Shared 8188 and the owned #39 preview 18072 were not changed.
 Swagger recording was not used.
+
+## Independent review repairs
+
+The public `e8add13` review probe committed a Score but dropped its response.
+Clicking the unchanged primary save then created a fresh id and duplicate
+ABC. The new browser regression reproduced the enabled-button failure.
+The primary action now waits while saving is unconfirmed; the error action
+recovers the same frozen id and ABC before another explicit intent is allowed.
+Editing remains available, including newer dirty text during recovery.
+
+The missing approved playback visualization is restored using abcjs's public
+timing map and the existing Player's actual loaded Score hash/media clock.
+It starts no second clock or audio owner. Only matching current notation is
+highlighted; pause, end, dirty edits and other Score audio clear highlights.
+The browser test first observed zero highlights, then passed visible color
+and note advancement, public pause/seek/end controls and mismatch recovery.
+It uses observable SVG output and polling, with no hard sleeps, fixed glyph
+ids or private React/store reads.
+
+The three affected Score browser cases pass in 39.3 seconds. Web/browser
+strict checks pass. The actual API-restart gate passes in 14.2 seconds and
+keeps exactly the original five business mutations and ordered URL list
+across restart. Only this Project's exact POST `/scores/validate` route is
+observed separately as a CPU read-only check. No product/test timeout,
+assertion or skip budget was relaxed. Raw red/green logs and original failure
+traces remain in `.scratch/40-score-editor/review-repair/`; owned browser API
+and Web shutdown receipts report graceful completion.
