@@ -1,6 +1,6 @@
 # Generate and save a song through the application API
 
-Generate playable Audio and an inspectable Score from style, lyrics, and seed, or pass explicitly selected ABC to GenerateFromScore. A successful generation creates a Candidate; explicit save creates a Version. This is an optional API guide; scores in the formal Web remain read-only. Default fake mode uses original CPU fixtures and cannot prove model quality.
+Generate playable Audio and an inspectable Score from style, lyrics, and seed, or pass explicitly selected ABC to GenerateFromScore. A successful generation creates a Candidate; explicit save creates a Version. This is an optional API guide; the formal Web supports [inspecting, editing and selecting Scores](../learn/edit-score.en.md), or [starting Cover from Reference Audio](../learn/cover.en.md). Default fake mode uses original CPU fixtures and cannot prove model quality.
 
 ## Start the independent API
 

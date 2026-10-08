@@ -1,4 +1,4 @@
-# 可检查的 melody Cover API
+# 可检查的 Cover API
 
 按[创作教程](../learn/cover.md)先得到一份明确选定的、已保存的转谱或编辑 Score。下面的 HTTP 路径都属于 FastAPI；客户端类型与本页生成参考共用 Pydantic/OpenAPI。API 环境无需 Torch；真实转谱和生成仍需当前已就绪的单 GPU Runtime。
 
@@ -14,17 +14,17 @@
 
 独立保存已检查的编辑到 `/scores`，取得真实新 Score id。Cover要求请求 `abc` 与此不可覆盖 Score 的实际文件逐字一致。
 
-`POST /projects/{project_id}/cover-inputs/validate` 接受 `abc` 与 `mode="melody"`；只做CPU检查，不创建持久对象或推理任务。返回原文hash、`effective_abc`及其hash、转换、adapter/parser、mode_transform_version1.0.0与原和弦数量。检查并试听这份有效输入后再明确提交。适配移除精确识别的内部控制标记、保护裸谱section，并仅从解析音乐行去掉和弦；两个声部与音乐事件保留。
+`POST /projects/{project_id}/cover-inputs/validate` 接受 `abc` 与 `mode="melody"` 或 `"full"`；只做CPU检查，不创建持久对象或推理任务。返回原文hash、`effective_abc`及其hash、转换、adapter/parser、mode_transform_version1.0.0、原和弦数量及 `warnings`。适配移除精确识别的内部控制标记、保护裸谱section；melody 仅从解析音乐行去和弦，full 保留已写出的和弦。两个声部与音乐事件保留。full 无和弦时返回 `full_without_written_chords`：输入合法但没有显式和声提示，仍可检查、明确选定并提交 full。
 
-`POST /projects/{project_id}/jobs/cover` 的 CoverCreate 包含 Generate/GFS的 style、lyrics、seed、max_seconds35、abc、source_score_id、parent_version_id，以及 reference_asset_id、mode、effective_abc_sha256、mode_transform_version。mode本次仅支持melody。hash/revision必须等于刚才实际选定的有效输入；应用不会静默换成另一份。
+`POST /projects/{project_id}/jobs/cover` 的 CoverCreate 包含 Generate/GFS的 style、lyrics、seed、max_seconds35、abc、source_score_id、parent_version_id，以及 reference_asset_id、mode、effective_abc_sha256、mode_transform_version。mode 支持 melody/full。hash/revision必须等于刚才实际选定的有效输入；应用不会静默换成另一份。
 
 选定 Score链必须属于同一 Project，关联该 Reference，并最终指向它已完成的 Transcribe Job。parent必须是该 Reference实际source Version，或上传参考的null；任意同项目parent不能代替来源。换参考、source Score或草稿后重新检查选定，即使文本相同。
 
 ## 运行、检查与显式保存 {#result}
 
-提交返回202 JobRead/operation Cover。原有 Job HTTP/WS、取消与重试路径继续使用同一串行队列。`/runtime/capabilities` 的 Cover `supported_modes` 来自当前真实cot枚举与注册模式；melody缺失、观测过期、版本或模型不可用时在提交前拒绝，没有full/Generate回退。
+提交返回202 JobRead/operation Cover。原有 Job HTTP/WS、取消与重试路径继续使用同一串行队列。`/runtime/capabilities` 的 Cover `supported_modes` 来自当前真实cot枚举与注册模式的交集。只有full时可明确提交full，只有melody时可明确提交melody；无可用模式、选定模式缺失、观测过期、版本或模型不可用时拒绝，没有模式/Generate回退。
 
-Job/Candidate保存原始请求，provenance保存 actual `cot=melody`、original/effective ABC与hash/revision，以及 reference→原始转谱→保存编辑的来源链。返回 Score必须匹配冻结effective hash。音频经完整FLAC解码与应用导入后才产生 Candidate；明确 `/versions` 保存继承冻结parent，旧记录和文件不变。
+Job/Candidate保存原始请求，provenance保存与 mode 一致的 actual `cot=melody` 或 `cot=full`、original/effective ABC与hash/revision，以及 reference→原始转谱→保存编辑的来源链。新任务使用 Cover registry2.0.0；已交付1.0.0的定义及历史快照保留，重启使用原冻结proof。返回 Score必须匹配冻结effective hash。音频经完整FLAC解码与应用导入后才产生 Candidate；明确 `/versions` 保存继承冻结parent，旧记录和文件不变。
 
 ## 失败与未知回执 {#recover}
 

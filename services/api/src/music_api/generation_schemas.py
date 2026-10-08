@@ -22,7 +22,7 @@ class GenerateFromScoreCreate(GenerateCreate):
 
 
 class CoverCreate(GenerateFromScoreCreate):
-    mode: Literal["melody"] = Field(description="Explicit supported Cover mode; full is delivered separately after melody acceptance.")
+    mode: Literal["melody", "full"] = Field(description="Explicit Cover mode: melody omits written chord symbols; full retains them. Both keep the two musical voices.")
     reference_asset_id: UUID
     effective_abc_sha256: str = Field(pattern=r"^[0-9a-f]{64}$", description="Hash of the effective ABC the creator inspected and selected.")
     mode_transform_version: Literal["1.0.0"]

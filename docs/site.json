@@ -143,8 +143,8 @@
         "en": "Give a reference phrase another accompaniment"
       },
       "labels": {
-        "zh-cn": "melody 改编玩法",
-        "en": "Melody Cover ideas"
+        "zh-cn": "两种改编玩法",
+        "en": "Melody and full Cover ideas"
       },
       "sources": {
         "zh-cn": "docs/learn/cover.md",
@@ -387,8 +387,8 @@
       "group": "technical",
       "path": "cover-api",
       "titles": {
-        "zh-cn": "可检查的 melody Cover API",
-        "en": "Inspectable melody Cover API"
+        "zh-cn": "可检查的 Cover API",
+        "en": "Inspectable Cover API"
       },
       "labels": {
         "zh-cn": "改编 API 与来源",

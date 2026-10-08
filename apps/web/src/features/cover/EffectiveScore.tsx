@@ -4,11 +4,12 @@ import { loadABCJS } from '../scores/abcjs';
 import { auditionMidi, downloadMidi, readMidi } from '../scores/midi';
 import { scorePlayback, selectPlayerScore, subscribeScorePlayback, type ScorePlayback } from '../player';
 import { useMessages } from '../preferences/Preferences';
-import { coverMessages } from './messages';
+import { coverMessages, coverModeText } from './messages';
+import type { CoverMode } from './selection';
 
 type Rendered = { abc: string; host: HTMLDivElement; midi: Uint8Array; timings: NoteTimingEvent[] };
-export function EffectiveScore({ projectId, abc, hash, revision, current, selected, onSelect }: {
-  projectId: string; abc: string; hash: string; revision: number; current: boolean; selected: boolean; onSelect: () => void;
+export function EffectiveScore({ projectId, abc, hash, mode, revision, current, selected, onSelect }: {
+  projectId: string; abc: string; hash: string; mode: CoverMode; revision: number; current: boolean; selected: boolean; onSelect: () => void;
 }) {
   const t = useMessages(coverMessages), notation = useRef<HTMLDivElement>(null);
   const [rendered, setRendered] = useState<Rendered | null>(null), [error, setError] = useState(false);
@@ -39,10 +40,10 @@ export function EffectiveScore({ projectId, abc, hash, revision, current, select
   }, [rendered, ready, projectId, hash]);
   function audition() {
     if (!ready || !rendered) return;
-    try { selectPlayerScore({ kind: 'score', projectId, id: `${hash}:${crypto.randomUUID()}`, label: `${t.effectiveABC} · melody`, revision, abcSha256: hash, ...auditionMidi(rendered.midi) }); } catch { setError(true); }
+    try { selectPlayerScore({ kind: 'score', projectId, id: `${hash}:${crypto.randomUUID()}`, label: `${t.effectiveABC} · ${mode}`, revision, abcSha256: hash, ...auditionMidi(rendered.midi) }); } catch { setError(true); }
   }
-  return <><div className="score-notation" role="img" aria-label={t.effectiveNotation} ref={notation} /><div className="score-actions">
+  return <><div className="score-notation" role="img" aria-label={coverModeText(t.effectiveNotation, mode)} ref={notation} /><div className="score-actions">
     <button type="button" disabled={!ready} onClick={audition}>{t.auditionEffective}</button><button type="button" disabled={!ready} onClick={() => { if (rendered) { try { downloadMidi(rendered.midi, revision); } catch { setError(true); } } }}>{t.exportEffective}</button>
-    <button type="button" className="primary" disabled={!ready || selected} onClick={onSelect}>{selected ? t.selectedEffective : t.selectEffective}</button></div>
+    <button type="button" className="primary" disabled={!ready || selected} onClick={onSelect}>{coverModeText(selected ? t.selectedEffective : t.selectEffective, mode)}</button></div>
     <p className="hint">{t.midiHelp}</p>{error ? <p className="error-box" role="alert">{t.renderFailed}</p> : null}</>;
 }

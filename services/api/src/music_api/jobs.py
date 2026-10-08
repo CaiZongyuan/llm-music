@@ -245,6 +245,7 @@ class JobService:
             from music_api.cover import cover_snapshot
             with self.database.sessions() as session:
                 provenance.update(cover_snapshot(session, self.storage, project_id, inputs))
+            provenance["settings"] = dict(self.registry.settings(operation), cot=inputs["mode"])
         job = Job(id=str(uuid4()), project_id=str(project_id), operation=operation, inputs=deepcopy(inputs), provenance=provenance,
                   runtime_mode=self.runtime.mode, attempt_id=str(uuid4()), status="queued", phase="preparing", progress=None, submission_state="pending")
         with self.database.sessions() as session:

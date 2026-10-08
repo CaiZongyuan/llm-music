@@ -1,6 +1,6 @@
 # 通过应用 API 生成并保存歌曲
 
-通过 style、lyrics 和 seed 生成可试听 Audio 与可检查 Score，或把明确选定的 ABC 交给 GenerateFromScore。生成成功得到 Candidate；明确保存后才得到 Version。这是按需使用的 API 指南；正式 Web 的乐谱仍为只读。默认 fake 模式使用原始 CPU 夹具，不能证明模型效果。
+通过 style、lyrics 和 seed 生成可试听 Audio 与可检查 Score，或把明确选定的 ABC 交给 GenerateFromScore。生成成功得到 Candidate；明确保存后才得到 Version。这是按需使用的 API 指南；正式 Web 已支持[检查、编辑并选定乐谱](../learn/edit-score.md)，也可从[参考音频开始改编](../learn/cover.md)。默认 fake 模式使用原始 CPU 夹具，不能证明模型效果。
 
 ## 启动独立 API
 
