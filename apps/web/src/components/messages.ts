@@ -1,7 +1,7 @@
 import { defineMessages } from '../features/preferences/Preferences';
 
 export const shellMessages = defineMessages({
-  brand: '声间', library: '我的项目', jobs: '创作任务', projects: '创作项目', local: '本地创作，按你的节奏',
+  brand: '声间', library: '我的项目', jobs: '创作任务', runtime: '运行状态', settings: '使用设置', projects: '创作项目', local: '本地创作，按你的节奏',
   tagline: '从一点灵感，走到一段喜欢的音乐。', language: '语言', light: '亮色模式', dark: '暗色模式',
   skip: '跳到工作区', openNav: '切换项目导航', home: '返回我的项目', missing: '找不到这个页面',
   missingBody: '这个地址没有对应的工作区。回到项目列表，继续你的创作。',
@@ -12,7 +12,7 @@ export const shellMessages = defineMessages({
   unconfirmed: '保存结果尚未确认。先重新读取项目或素材，确认是否已保存，再决定是否重试。',
   code: '问题代码', identity: '记录标识',
 }, {
-  brand: 'Shengjian', library: 'My projects', jobs: 'Creative jobs', projects: 'Creative projects', local: 'Local creation, at your pace',
+  brand: 'Shengjian', library: 'My projects', jobs: 'Creative jobs', runtime: 'Runtime', settings: 'Settings', projects: 'Creative projects', local: 'Local creation, at your pace',
   tagline: 'From a small idea to a piece of music you love.', language: 'Language', light: 'Light mode', dark: 'Dark mode',
   skip: 'Skip to workspace', openNav: 'Toggle project navigation', home: 'Back to my projects', missing: 'Page not found',
   missingBody: 'This address has no workspace. Return to your projects to keep creating.',
