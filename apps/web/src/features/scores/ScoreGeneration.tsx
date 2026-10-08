@@ -23,7 +23,7 @@ const messages = defineMessages({ title: '从选定 Score 重新生成', help: '
     unknown: 'Submission is unconfirmed', recover: 'The captured inputs remain. Read project jobs and inspect the actual submitted content first; generation is never sent again automatically.', readJobs: 'Read project jobs', inspectJob: 'Open this job', emptyJobs: 'No generation job was read. Confirm the original request before deciding on another attempt.', newAttempt: 'Start another explicit attempt after checking', duplicate: 'Another attempt may coexist with the unconfirmed request. Inspect the original jobs first.', frozen: 'This job uses the Score and origin captured at submission. Further edits do not change it.', sending: 'Waiting for the application to acknowledge this submission.', previous: 'Previously completed Candidate', previousHelp: 'This is not a new result of the running or failed Job. The earlier Candidate remains available to listen and save.' });
 
 function rejectedBeforeJob(error: unknown) {
-  return error instanceof ApiFailure && (error.status < 500 || ['model_missing', 'capability_missing', 'runtime_unavailable', 'runtime_observation_stale', 'runtime_evidence_stale', 'model_evidence_stale'].includes(error.detail?.code ?? ''));
+  return error instanceof ApiFailure && error.status >= 400 && (error.status < 500 || ['model_missing', 'capability_missing', 'runtime_unavailable', 'runtime_observation_stale', 'runtime_evidence_stale', 'model_evidence_stale'].includes(error.detail?.code ?? ''));
 }
 
 export function ScoreGeneration({ projectId }: { projectId: string }) {
@@ -47,7 +47,15 @@ export function ScoreGeneration({ projectId }: { projectId: string }) {
   const jobs = useQuery({ ...projectJobsOptions(projectId), enabled: false, refetchInterval: false });
   function openJob(id: string) { void navigate({ to: '.', search: { jobId: id } }); }
   const submit = useMutation({ retry: false,
-    mutationFn: async ({ body }: ScoreSubmission) => dataOf(await api.POST('/projects/{project_id}/jobs/generate-from-score', { params: { path: { project_id: projectId } }, body })),
+    mutationFn: async ({ body }: ScoreSubmission) => {
+      const result = await api.POST('/projects/{project_id}/jobs/generate-from-score', { params: { path: { project_id: projectId } }, body });
+      const job = dataOf(result);
+      // A successful status alone does not identify the accepted work. Guard
+      // application identity before writing Query or acknowledging this intent.
+      if (!job || typeof job.id !== 'string' || !/^[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12}$/i.test(job.id)
+          || job.project_id !== projectId || job.operation !== 'GenerateFromScore') throw new ApiFailure(result.response.status);
+      return job;
+    },
     onSuccess: async (job, intent) => {
       await cacheSubmittedJob(cache, job);
       if (scoreSubmission(projectId)?.id !== intent.id) return;

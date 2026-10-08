@@ -311,6 +311,56 @@ test('a lost initial generation acknowledgement survives reload and recovers the
   await info.attach('lost-generation-ack-recovered-job', { body: JSON.stringify({ writes, accepted, jobs }, null, 2), contentType: 'application/json' });
 });
 
+for (const acknowledgement of ['empty body', 'missing Job identity'] as const) {
+  test(`a committed Job with a successful ${acknowledgement} acknowledgement retains its frozen input for readback`, async ({ page, baseURL }, info) => {
+    const { api, project, score, original } = await withParent(baseURL);
+    const selected = await selectEdited(page, project.id, score.id);
+    await fillGeneration(page);
+    const writes: unknown[] = [];
+    let accepted!: JobRead;
+    const generateURL = `**/api/projects/${project.id}/jobs/generate-from-score`;
+    await page.route(generateURL, async route => {
+      writes.push(route.request().postDataJSON());
+      const response = await route.fetch();
+      expect(response.status()).toBe(202);
+      accepted = await response.json();
+      const body = acknowledgement === 'empty body' ? '' : '{}';
+      await route.fulfill({ status: 202, headers: { ...response.headers(), 'content-type': 'application/json', 'content-length': String(body.length) }, body });
+    });
+    const responded = page.waitForResponse(response => response.request().method() === 'POST' && response.url().endsWith('/jobs/generate-from-score'));
+    await page.getByRole('button', { name: 'Generate from selected Score', exact: true }).click();
+    await responded;
+    const expected = { abc: EDITED_ABC, source_score_id: selected, parent_version_id: original.id, style: STYLE, lyrics: LYRICS, seed: Number(SEED), max_seconds: 35 };
+    expect(accepted.inputs).toEqual(expected);
+    expect(received(await api.GET('/projects/{project_id}/jobs/{job_id}', { params: { path: { project_id: project.id, job_id: accepted.id } } })).inputs).toEqual(expected);
+    const recovery = page.locator('.submission-recovery');
+    await expect(recovery).toContainText('Submission is unconfirmed');
+    await expect(page.getByRole('button', { name: 'Generate from selected Score', exact: true })).toBeDisabled();
+    await page.getByRole('textbox', { name: 'ABC Score text', exact: true }).fill(NEXT_ABC);
+    await page.getByRole('textbox', { name: 'Music style', exact: true }).fill('later text cannot replace the captured intent');
+    await page.reload();
+    await expect(recovery).toContainText('Submission is unconfirmed');
+    await expect(page.getByRole('button', { name: 'Generate from selected Score', exact: true })).toBeDisabled();
+    await recovery.getByText('Submitted inputs', { exact: true }).click();
+    await expect(recovery.locator('[data-submitted-abc]')).toHaveText(EDITED_ABC);
+    await expect(recovery.getByText(STYLE, { exact: true })).toBeVisible();
+    await expect(recovery.getByRole('link', { name: 'Inspect submitted source Score', exact: true })).toHaveAttribute('href', `/projects/${project.id}/scores/${selected}`);
+    await expect(recovery.getByRole('link', { name: original.name, exact: true })).toHaveAttribute('href', `/projects/${project.id}/versions/${original.id}`);
+    await recovery.getByRole('button', { name: 'Read project jobs', exact: true }).click();
+    await recovery.getByRole('button').filter({ hasText: accepted.id }).click();
+    await expect(page.locator('.score-regeneration .job-monitor')).toHaveAttribute('data-job-id', accepted.id);
+    await expect(page.locator('.candidate-detail .record-details code').filter({ hasText: accepted.id })).toHaveCount(1);
+    await page.reload();
+    await expect(page.locator('.score-regeneration .job-monitor')).toHaveAttribute('data-job-id', accepted.id);
+    expect(writes).toEqual([expected]);
+    const jobs = received(await api.GET('/projects/{project_id}/jobs', { params: { path: { project_id: project.id } } }));
+    expect(jobs).toHaveLength(2);
+    expect(jobs.find(value => value.id === accepted.id)?.inputs).toEqual(expected);
+    expect(received(await api.GET('/projects/{project_id}/versions', { params: { path: { project_id: project.id } } }))).toEqual([original]);
+    await info.attach('successful-unusable-acknowledgement-readback', { body: JSON.stringify({ acknowledgement, writes, accepted, jobs, original }, null, 2), contentType: 'application/json' });
+  });
+}
+
 test('an unconfirmed generation with no committed Job requires explicit Jobs readback and a new user submission', async ({ page, baseURL }) => {
   const { api, project, score } = await seed(baseURL);
   await selectEdited(page, project.id, score.id);

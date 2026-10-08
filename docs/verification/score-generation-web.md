@@ -128,3 +128,33 @@ final-head CI, approved-preview comparison, the fresh real browser→API→GPU
 actual integration. Historical #41 real native evidence is valid for that API
 attempt and is not reported as this Web gate. #42 remains open until Root
 verifies actual delivery.
+
+## Independent review repair: successful unusable acknowledgement
+
+The independent Spec review of registered candidate `6da9fbb` created a real
+Job, then returned its successful 202 status with an empty body. SDK 0.17.0
+returned no data; the broad HTTP-status classifier incorrectly cleared the
+captured intent. Two focused public regressions reproduced absent recovery
+for empty 202 and successful `{}` after confirming actual Job inputs with a
+non-null source parent.
+
+The classifier now clears intent only for a confirmed HTTP error rejection.
+Before cache or acknowledgement, a generated JobRead must supply a canonical
+application UUID, the current Project and GenerateFromScore operation. Missing
+successful data or unusable identity remains unconfirmed and requires explicit
+Job readback. No production API/schema or full duplicate response schema was
+added.
+
+The malformed-identity case and existing network-loss/no-Job explicit-attempt
+cases passed in the focused four-case run. The empty-body test initially
+waited on Playwright Response.finished() until the unchanged sixty-second test
+budget, although its screenshot already showed correct unconfirmed recovery
+and blocked primary action. That completion wait was replaced with response
+headers plus the existing recovery DOM/public-Job predicates. Its isolated
+rerun passed in 11.3 seconds (case5.5s). Both new variants retain exact captured
+ABC/source/non-null parent after reload, open the actual Job via explicit
+readback and send exactly one new POST. All original assertions and budgets
+remain; the full suite was not repeated. Web and browser strict checks pass.
+Raw red/green and bounded oracle-failure facts remain in
+`.scratch/42-success-ack-*`; final-head CI and Root's separate diagnosis of the
+earlier CI readback failure remain delivery work, not a local success claim.
