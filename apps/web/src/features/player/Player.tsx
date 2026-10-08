@@ -4,8 +4,9 @@ import type WaveSurfer from 'wavesurfer.js';
 import type RegionsPlugin from 'wavesurfer.js/dist/plugins/regions.esm.js';
 import { api, dataOf } from '../../lib/api';
 import { assetOptions } from '../assets/queries';
+import { versionsOptions } from '../versions/queries';
 import { useMessages, usePreferences } from '../preferences/Preferences';
-import { playerSelection, publishScorePlayback, subscribePlayerSelection, type PlayerScoreSelection } from './index';
+import { playerSelection, publishScorePlayback, selectPlayerCompare, subscribePlayerSelection, type PlayerScoreSelection } from './index';
 import { playerMessages } from './messages';
 import './player.css';
 
@@ -54,9 +55,12 @@ export function Player() {
   const [end, setEnd] = useState('0');
   const [regionInvalid, setRegionInvalid] = useState(false);
   const projectId = selection?.projectId ?? '';
-  const assetId = selection?.kind === 'score' ? '' : selection?.assetId ?? '';
+  const compare = selection?.kind === 'compare' ? selection : null;
+  const versions = useQuery({ ...versionsOptions(projectId), enabled: Boolean(compare) });
+  const version = compare ? versions.data?.find(value => value.id === compare.pair[compare.pair.side] && value.project_id === projectId) : null;
+  const assetId = selection?.kind === 'score' ? '' : selection?.kind === 'compare' ? version?.audio_asset_id ?? '' : selection?.assetId ?? '';
   const selectionId = selection?.kind === 'score' ? selection.id : assetId;
-  const isAsset = Boolean(selection && selection.kind !== 'score');
+  const isAsset = Boolean(selection && selection.kind !== 'score' && assetId);
   const asset = useQuery({ ...assetOptions(projectId, assetId), enabled: isAsset });
   const content = useQuery({ queryKey: ['projects', projectId, 'assets', assetId, 'playback-content'], enabled: isAsset,
     queryFn: async ({ signal }) => dataOf(await api.GET('/projects/{project_id}/assets/{asset_id}/content', { params: { path: { project_id: projectId, asset_id: assetId } }, parseAs: 'blob', signal })),
@@ -160,7 +164,8 @@ export function Player() {
 
   return <footer id="persistent-player" className="continuous-player" aria-label={t.player}>
     <audio ref={media} hidden preload="metadata" />
-    <div className="player-title"><strong>{selection?.label ?? t.empty}</strong><small>{selection?.kind === 'score' ? `${t.scoreTone} · r${selection.revision}` : selection ? asset.data?.kind === 'reference_audio' ? t.source : t.player : t.emptyHelp}</small></div>
+    <div className="player-title"><strong>{compare ? `${compare.pair.side.toUpperCase()} · ${version?.name ?? t.chooseVersion}` : selection && selection.kind !== 'compare' ? selection.label : t.empty}</strong><small>{selection?.kind === 'score' ? `${t.scoreTone} · r${selection.revision}` : selection ? asset.data?.kind === 'reference_audio' ? t.source : t.player : t.emptyHelp}</small>
+      {compare ? <div className="feature-actions"><button type="button" onClick={() => selectPlayerCompare(projectId, { ...compare.pair, side: 'a' })}>{t.switchA}</button><button type="button" disabled={!compare.pair.b} onClick={() => selectPlayerCompare(projectId, { ...compare.pair, side: 'b' })}>{t.switchB}</button></div> : null}</div>
     <div className="player-main"><button type="button" disabled={!selection || !ready || failed} onClick={() => playing ? wave?.pause() : void play()} aria-label={playing ? t.pause : t.play}>{playing ? 'Ⅱ' : '▶'}</button>
       <div className="wave-container" style={{ visibility: ready ? 'visible' : 'hidden' }} ref={container} /><output aria-label={t.clock}>{clock(time)} / {clock(duration)}</output>
       <label className="seek-label"><span className="visually-hidden">{t.seek}</span><input type="range" aria-label={t.seek} min={0} max={duration || 0} step={0.1} value={time} disabled={!selection || !ready} onChange={event => { bounded.current = false; wave?.setTime(Number(event.target.value)); }} /></label>

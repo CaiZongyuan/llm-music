@@ -1,6 +1,8 @@
 export type PlayerAssetSelection = { kind?: 'asset'; projectId: string; assetId: string; label: string };
 export type PlayerScoreSelection = { kind: 'score'; projectId: string; id: string; label: string; revision: number; abcSha256: string; blob: Blob; durationSeconds: number };
-export type PlayerSelection = PlayerAssetSelection | PlayerScoreSelection;
+export type ComparePair = { a: string; b: string | null; side: 'a' | 'b' };
+export type PlayerCompareSelection = { kind: 'compare'; projectId: string; pair: ComparePair };
+export type PlayerSelection = PlayerAssetSelection | PlayerScoreSelection | PlayerCompareSelection;
 export type ScorePlayback = { projectId: string; abcSha256: string; time: number; playing: boolean } | null;
 
 // Local selection intent only. Asset metadata and bytes remain owned by Query/API.
@@ -10,7 +12,7 @@ let playback: ScorePlayback = null;
 const playbackListeners = new Set<(value: ScorePlayback) => void>();
 
 export function selectPlayerAsset(next: PlayerAssetSelection): void {
-  if (selection?.kind !== 'score' && selection?.projectId === next.projectId && selection.assetId === next.assetId) return;
+  if (selection?.kind !== 'score' && selection?.kind !== 'compare' && selection?.projectId === next.projectId && selection.assetId === next.assetId) return;
   selection = next;
   publishScorePlayback(null);
   listeners.forEach(listener => listener());
@@ -23,6 +25,11 @@ export function selectPlayerScore(next: PlayerScoreSelection): void {
 }
 
 export function playerSelection(): PlayerSelection | null { return selection; }
+export function selectPlayerCompare(projectId: string, pair: ComparePair): void {
+  selection = { kind: 'compare', projectId, pair: Object.freeze({ ...pair }) };
+  publishScorePlayback(null);
+  listeners.forEach(listener => listener());
+}
 export function subscribePlayerSelection(listener: () => void): () => void {
   listeners.add(listener);
   return () => { listeners.delete(listener); };
