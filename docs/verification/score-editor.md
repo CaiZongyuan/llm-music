@@ -141,6 +141,13 @@ the opened Score's saved original.
 The root `pnpm test:web:score` entrypoint is registered in the existing
 Windows Web workbench CI, including its browser and ownership artifacts.
 
+The first registered API CI job reached its ten-minute job limit after a
+cold locked installation took 5m53s, including the 30.3 MiB av wheel download.
+Its pytest phase had completed 127 cases in 213.27 seconds; the suite was
+incomplete. The orchestration job now allows fifteen minutes for installation
+plus full coverage. Product/test timeouts, assertions and skip rules are
+unchanged; successful final-head CI is still required.
+
 Root owns final non-author Standards/Spec review, registered final-head CI,
 browser comparison with #39, integration/publication and the separate real
 GPU gate. Shared 8188 and the owned #39 preview 18072 were not changed.
