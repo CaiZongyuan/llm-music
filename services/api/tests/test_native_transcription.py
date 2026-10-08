@@ -9,15 +9,16 @@ from evidence_fixture import bound_evidence, write_registry_fixture
 from music_api.config import Settings
 from music_api.main import create_app
 from music_api.workflow_registry import WorkflowRegistry
-from test_transcription import ABC, reference_audio, terminal
+from test_transcription import reference_audio, terminal
 
 
-NATIVE_EXTENSION = '''
+# This HTTP peer owns its declared wire bytes independently of Fake Runtime.
+NATIVE_ABC = b"X:1\nM:4/4\nL:1/4\nK:C\nC D E F |\n"
+NATIVE_EXTENSION = "abc = " + repr(NATIVE_ABC.decode("utf-8")) + "\n" + '''
 import base64
 from email.parser import BytesParser
 from email.policy import default
 native = {}
-abc = "X:1\\nM:4/4\\nL:1/4\\nK:C\\nC D E F |\\n"
 midi = b'MThd\\x00\\x00\\x00\\x06\\x00\\x00\\x00\\x01\\x01\\xe0MTrk\\x00\\x00\\x00\\x0d\\x00\\x90\\x3c\\x40\\x83\\x60\\x80\\x3c\\x00\\x00\\xff\\x2f\\x00'
 class NativeHandler(Handler):
     def reply(self, payload):
@@ -66,7 +67,7 @@ def test_native_http_transcription_imports_both_outputs_through_the_application(
             assert submitted.status_code == 202, submitted.text
             job = terminal(client, base + "/jobs/" + submitted.json()["id"])
             assert job["status"] == "completed", job
-            assert client.get(base + "/assets/" + job["result"]["abc_asset_id"] + "/content").content == ABC
+            assert client.get(base + "/assets/" + job["result"]["abc_asset_id"] + "/content").content == NATIVE_ABC
             midi = client.get(base + "/assets/" + job["result"]["midi_asset_id"] + "/content").content
             assert midi[:14] == b"MThd\x00\x00\x00\x06\x00\x00\x00\x01\x01\xe0"
             assert "native-1" not in str(job)

@@ -141,3 +141,43 @@ The 35-second profile does not establish long-song quality or performance.
 
 Public guides: [中文](../guides/generate-save-api.md#selected-score) /
 [English](../guides/generate-save-api.en.md#selected-score).
+
+## Independent review and CI repair
+
+Hosted CI on delivery head `58d2fa3cc5140fd4765523683f3ff83577a1f773`
+collected 187 cases: 184 passed and three Native HTTP peer byte assertions
+failed. The independent peer still declared its original single-voice wire
+bytes, while those tests imported the new CPU Fake ABC expectation. The peer
+now owns `NATIVE_ABC` and serializes that declaration into its source; its
+Native and cancellation consumers use that same declared input as the byte
+oracle. Peer data, MIDI, result identities, cancellation ownership, recovery
+and survivor assertions are unchanged. The exact three failures were
+reproduced locally; all ten checks in the two affected Native/cancellation
+files then passed in 20.21 seconds. The original hosted and local failures
+remain retained, with no timeout, retry or skip changes.
+
+An independent public ASGI probe also demonstrated that Runtime metadata
+could replace frozen workflow/settings while the selected ABC hash remained
+correct. Shared result import now retains every previously recorded
+application provenance key, allowing Runtime observations only to add
+unretained keys. Actual `result_validation` comes from the current result's
+validated Score facts. Current adapters still add execution duration, cache
+and timing scope; CPU fixtures still add their identified validation scope.
+Those facts reach the existing generic Job/Candidate/Version readers.
+
+The original non-author probe was reproduced with an assertion for correct
+behavior, failed on replaced workflow/settings, and passed after repair.
+Two public operation regressions inject conflicting workflow, settings,
+runtime/plugin/model revisions, hashes and selected-Score metadata, while
+also supplying new observations and a conflicting validation annotation.
+Both Generate and GenerateFromScore preserve the accepted snapshot, actual
+validation, Candidate, explicit Version and reopened data. All 42 affected
+generation/transcription/import/save/native/reopen cases passed in 50.81
+seconds. Strict mypy still passes 51 sources. The owned parser stub now
+describes the upstream note lists accurately; the 337-line vendored parser
+remains unchanged.
+
+Repair logs are in `.scratch/41-final-checks/peer-abc-{red,green}.log`,
+`provenance-{frozen-fields-red,green}.log` and
+`provenance-probe-{red,green}.log` in the author worktree. Root refreshes
+independent review and final-head hosted CI before real GPU acceptance.

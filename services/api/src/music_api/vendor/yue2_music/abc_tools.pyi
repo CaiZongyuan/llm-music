@@ -1,7 +1,7 @@
 from fractions import Fraction
 
 class Voice:
-    notes: list[tuple[Fraction, int, Fraction]]
+    notes: list[list[Fraction | int]]
     time: Fraction
     bars: list[tuple[Fraction, Fraction, tuple[int, int]]]
 
