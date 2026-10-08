@@ -1,0 +1,7 @@
+{
+  "name": "version-compare-interaction-preview",
+  "private": true,
+  "type": "module",
+  "scripts": { "start": "node serve.mjs" },
+  "dependencies": { "wavesurfer.js": "7.12.1" }
+}
