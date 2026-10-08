@@ -1,0 +1,124 @@
+{
+  "source_commit": "0a047fe748e83a11c027c997dfe5ae325e8bc6d0",
+  "final_source_commit": "9cae62727fcf101b21068e830bfa7b6678c6d426",
+  "native": {
+    "passed": true,
+    "recorded_at": "2026-10-08T14:13:50.794005+00:00",
+    "executions": {
+      "transcribed": {
+        "job_id": "8edad40d-f7ed-4452-b0ea-e783e079107f",
+        "native_prompt_id": "dd2cab0a-187e-430a-8004-cbf13badbf56",
+        "core_cached": false,
+        "execution_seconds": 6.404,
+        "options": {
+          "cot": "full",
+          "max_seconds": 0,
+          "keep_model_loaded": false,
+          "device": "cuda:0",
+          "attention_backend": "sdpa",
+          "download": "off",
+          "quantization": "bf16",
+          "offload": "on",
+          "low_vram": false,
+          "vae": "standard",
+          "vocals_only": false
+        }
+      },
+      "completed": {
+        "job_id": "8384bb29-7303-4776-bb39-ef7d6eee3da2",
+        "native_prompt_id": "bc3dc8eb-9b72-440c-ae9f-6af96941f116",
+        "core_cached": false,
+        "execution_seconds": 35.236,
+        "options": {
+          "cot": "melody",
+          "max_seconds": 35,
+          "keep_model_loaded": false,
+          "quantization": "bf16",
+          "offload": "on",
+          "low_vram": false,
+          "vae": "standard",
+          "device": "cuda:0",
+          "attention_backend": "sdpa",
+          "download": "off",
+          "cfg_scale": 0,
+          "ode_steps": 32,
+          "abc_temperature": 0.7,
+          "abc_top_p": 0.9,
+          "abc_top_k": 30,
+          "temperature": 1,
+          "top_p": 0.95,
+          "top_k": 100,
+          "repetition_penalty": 1.2,
+          "transpose": 0,
+          "vocals_only": false
+        }
+      }
+    },
+    "expected_effective_sha256": "7134abbde2bb8130b8bd574c9a44ea910cb963281e458bab1eae25cb86fc488e",
+    "actual_score_input_matches": true,
+    "reference_pcm_equals_actual_source_first16s": true,
+    "reference_frames": 768000,
+    "decoded_seconds": 34.998666666666665,
+    "sample_rate": 48000,
+    "channels": 2,
+    "peak_native_units": 28314,
+    "rms_native_units": 3440.886715081525,
+    "audio_sha256": "4d5118a5418ad9fb2d607a81de20b8ee965386cc1bfa1624335c32486c652700",
+    "version": "32689856-a811-441a-81d8-b9abc9d55468",
+    "parent_version": "cc4298f6-33e2-4e9c-9cdd-66700f83a683",
+    "native_device_observation": [
+      {
+        "name": "cuda:0 NVIDIA GeForce RTX 3070 Ti Laptop GPU : cudaMallocAsync",
+        "type": "cuda",
+        "index": 0,
+        "vram_total": 8589410304,
+        "vram_free": 6960447488,
+        "torch_vram_total": 1006632960,
+        "torch_vram_free": 732954624
+      }
+    ],
+    "scope": "Actual uncached native graphs, full audio decode, exact stereo PCM reference and true parent. Device counters are a post-execution observation, not a measured peak. No subjective or acoustic melody fidelity claim."
+  },
+  "restart": {
+    "passed": true,
+    "recorded_at": "2026-10-08T14:17:16.967Z",
+    "first_pid": 8360,
+    "next_pid": 63196,
+    "first_birth": 1791466884.2937365,
+    "next_birth": 1791468936.0186276,
+    "records_equal": true,
+    "asset_bytes_equal": true,
+    "reference_origin_equal": true,
+    "saved_edit_readable": true,
+    "assets_checked": 17,
+    "posts": [],
+    "validation_posts_only": true,
+    "no_persistent_write": true,
+    "no_resubmission": true,
+    "scope": "Actual graceful FastAPI restart and fresh browser reload; persisted Cover origin/intermediates/Candidate/Version and all Assets restored, protected native Runtime retained"
+  },
+  "audio": {
+    "recorded_at": "2026-10-08T14:53:44.251298+00:00",
+    "file": "melody-cover.mp3",
+    "bytes": 561068,
+    "sha256": "557a933bc217976dac521f0699ac78e9762b58148793dd350a8b810170befa5f",
+    "decoded_seconds": 34.998666666666665,
+    "codec": "MP3 stereo48k128kbps software",
+    "original_sha256": "4d5118a5418ad9fb2d607a81de20b8ee965386cc1bfa1624335c32486c652700",
+    "original_unchanged": true,
+    "source_commit": "0a047fe748e83a11c027c997dfe5ae325e8bc6d0",
+    "job_id": "8384bb29-7303-4776-bb39-ef7d6eee3da2"
+  },
+  "video": {
+    "codec": "VP9 CRF40 software",
+    "bytes": 1136121,
+    "sha256": "e54892284b543c9203c4a48ed903a9eafcceec535564e2df36df9b522f832187",
+    "frames": 1070,
+    "last_frame_seconds": 42.76,
+    "width": 1080,
+    "height": 720,
+    "full_decode": true,
+    "audio": false
+  },
+  "compatibility": "The final source narrows two frontend list-query cancellations. Runtime/API/workflow/inputs are unchanged; the actual native sample and restart evidence are reused, with deterministic recovery/upload browser regressions on the correction."
+}

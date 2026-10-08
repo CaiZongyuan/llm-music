@@ -1,0 +1,11 @@
+# Real melody Cover review evidence
+
+[Compressed frontend recording](melody-cover.webm) · [Generated music](melody-cover.mp3). The recording is silent; play the MP3 separately. No Swagger recording.
+
+The actual production Web used FastAPI and the protected native ComfyUI/YuE2 GPU. A saved Version's first16 seconds became an independently verified stereo48k PCM16 Reference; its decoded bytes equal the source audio's first768000 frames. Separate native Transcribe completed uncached in6.404s. The creator changed the first sounding Ins phrase G4→A4, saved/selects an immutable Score, inspected chordless melody ABC/MIDI, then submitted one Cover.
+
+Native Cover executed cot=melody with the exact selected effective hash7134abbde2bb8130b8bd574c9a44ea910cb963281e458bab1eae25cb86fc488e, without a cached core, in35.236s. Those timings span native execution_start to execution_success and include workflow overhead. Complete FLAC and MP3 decode confirmed34.998667s, stereo48k, nonzero finite audio. Style is intimate indie folk; seed2026440001. Both native symbolic voices are preserved. This does not prove exact acoustic notes, original voice, or arrangement fidelity.
+
+Candidate eae6c580-bfc8-4e63-a05e-df15eaedb445 was explicitly saved as Version32689856-a811-441a-81d8-b9abc9d55468 with true parentcc4298f6-33e2-4e9c-9cdd-66700f83a683. A real graceful FastAPI8360→63196 restart plus fresh browser reload restored every record and17 Asset hashes with no new POSTs. Source Version/Audio/Score bytes remain unchanged. One additional equal saved intermediate from a recorder correction is retained; only one Transcribe and one Cover inference ran.
+
+The sample was generated at0a047fe748e83a11c027c997dfe5ae325e8bc6d0. Final9cae62727fcf101b21068e830bfa7b6678c6d426 narrows two frontend list-query cancellation scopes; API, workflow and musical input did not change. The corrected recovery/upload paths have deterministic original2red→2green browser evidence. Original media stays local unchanged; VP9 software compression (1136121 bytes) and stereo128kbps MP3 (561068 bytes) are fully decoded review copies. Device counters in verification.json are post-execution observations, not measured peak VRAM.
