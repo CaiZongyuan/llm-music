@@ -114,6 +114,9 @@ class Launcher:
         self.stop_config = dict(stop_file=str(self.folder / "stop"), stop_token=self.session)
         self.receipt.update(self.stop_config)
         self.lock = self.state / "startup.lock"
+        self.evidence_slot = self.state / f"runtime-evidence-{args.runtime_port}.json"
+        self.native_binding = None
+        self.native_receipt = None
 
     def acquire(self) -> None:
         self.state.mkdir(parents=True, exist_ok=True)
@@ -136,9 +139,15 @@ class Launcher:
     def expected(self, role: str, port: int) -> dict:
         value = dict(service=role, root=str(ROOT), mode=self.args.mode, port=port)
         if role == "api":
+            evidence_path = self.evidence_slot if self.args.mode == "comfyui" else None
+            if self.args.mode != "comfyui" and self.args.runtime_evidence:
+                evidence_path = self.args.runtime_evidence.resolve()
             value.update(data_dir=str(self.args.data_dir.resolve()), runtime_url=self.args.runtime_url,
-                         runtime_evidence=str(self.args.runtime_evidence.resolve()) if self.args.runtime_evidence else None,
+                         runtime_evidence=str(evidence_path) if evidence_path else None,
                          python_environment=str(environment(ROOT / "services/api")))
+            if self.args.mode == "comfyui":
+                value["runtime_configuration"] = {name: str(getattr(self.args, name).resolve()) for name in
+                                                   ["runtime_project", "runtime_root", "models_root", "runtime_state_root"]}
         elif role == "web":
             value.update(api_url=f"http://127.0.0.1:{self.args.api_port}")
         else:
@@ -192,6 +201,8 @@ class Launcher:
         role = expected["service"]
         config = dict(expected, stop_file=str(self.folder / f"{role}-stop"), stop_token=self.session,
                       owner_file=str(self.folder / f"{role}-owner.json"), stopped_file=str(self.folder / f"{role}-stopped.json"))
+        if role == "api" and self.args.mode == "comfyui":
+            config["native_binding"] = self.native_binding
         config_path = self.folder / f"{role}-config.json"
         write_json(config_path, config)
         env = dict(os.environ, PYTHONUTF8="1", MUSIC_DEV_SESSION=self.session)
@@ -227,6 +238,8 @@ class Launcher:
                     pid = candidates.pop()
                 process = identity(pid)
                 record = dict(identity=expected, signature=signature(expected), process=process, owner_file=config["owner_file"], session=self.session)
+                if role == "api" and self.args.mode == "comfyui":
+                    record["native_binding"] = self.native_binding
                 if live_service(record, expected):
                     self.wait_ready(role, record, deadline)
                     write_json(self.record_path(role, expected["port"]), record)
@@ -258,11 +271,16 @@ class Launcher:
             # Only collect for a native listener started by this session.
             args.runtime_evidence = self.folder / "runtime-evidence.json"
             write_json(args.runtime_evidence, bounded_collect(args.runtime_url, record["process"]["pid"], requirements, deadline - time.monotonic()).model_dump(mode="json"))
-        evidence = read_runtime_evidence(args.runtime_evidence, runtime_url=args.runtime_url, now=datetime.now(timezone.utc), max_age_seconds=300, requirements=requirements)
+        input_path = args.runtime_evidence or self.evidence_slot
+        if not input_path.is_file() or input_path.stat().st_size > 131072:
+            raise LaunchError("Native owner evidence unavailable or oversized. Supply a fresh matching --runtime-evidence; no reused service was changed.")
+        snapshot = self.folder / "runtime-evidence-input.json"
+        snapshot.write_bytes(input_path.read_bytes())
+        evidence = read_runtime_evidence(snapshot, runtime_url=args.runtime_url, now=datetime.now(timezone.utc), max_age_seconds=300, requirements=requirements)
         problems = list(evidence.reasons) + [code for model in evidence.models if model.state != "ready" for code in model.reasons]
         if not evidence.binding_verified or problems:
             raise LaunchError(f"Native owner/model evidence refused: {', '.join(problems) or 'model verification unavailable'}. Obtain a fresh collector receipt for the exact listener and model root; no reused process was changed.")
-        receipt = RuntimeReceipt.model_validate_json(args.runtime_evidence.read_bytes())
+        receipt = RuntimeReceipt.model_validate_json(snapshot.read_bytes())
         if receipt.runtime_root.resolve() != args.runtime_root.resolve() or receipt.models_root.resolve() != args.models_root.resolve():
             raise LaunchError("Native receipt runtime/model directories differ from requested paths. Use matching paths; no reused process was changed.")
         process = psutil.Process(receipt.process.pid)
@@ -282,8 +300,13 @@ class Launcher:
                 raise LaunchError(f"Runtime project {filename} differs from this repository's pinned environment; no reused process was changed.")
         check_environment(args.runtime_project)
         binding = interpreter_origin(receipt.process.pid, args.runtime_project)
+        self.native_binding = dict(process=binding["listener"], runtime_project=binding["project"],
+                                   lock_sha256=binding["lock_sha256"])
+        self.native_receipt = read_json(snapshot)
+        self.receipt["native_evidence_source"] = dict(path=str(input_path.resolve()), snapshot=str(snapshot),
+                                                     checked_at=self.native_receipt["checked_at"])
         if record is None:
-            self.receipt["services"].append(dict(identity=dict(service="runtime", port=args.runtime_port, runtime_root=str(receipt.runtime_root), models_root=str(receipt.models_root)), process=identity(receipt.process.pid), owned=False, evidence=str(args.runtime_evidence), environment_binding=binding))
+            self.receipt["services"].append(dict(identity=dict(service="runtime", port=args.runtime_port, runtime_root=str(receipt.runtime_root), models_root=str(receipt.models_root)), process=identity(receipt.process.pid), owned=False, evidence=str(input_path), environment_binding=binding))
         else:
             for service in self.receipt["services"]:
                 if service["process"]["pid"] == receipt.process.pid:
@@ -306,6 +329,12 @@ class Launcher:
                 else:
                     native = self.start(self.expected("runtime", self.args.runtime_port), deadline)
                     self.native_evidence(native, deadline)
+                if api is not None and api.get("native_binding") != self.native_binding:
+                    raise LaunchError("Existing API native binding differs or is unproved. Ask its original owner to restart against the verified Runtime; no reused service or active receipt was changed.")
+                # Product ports/configuration and the live native proof now match.
+                # Publish real verified source timestamps unchanged; the immutable
+                # input snapshot stays in this session even after a later refresh.
+                write_json(self.evidence_slot, self.native_receipt)
             if api is None:
                 api = self.start(self.expected("api", self.args.api_port), deadline)
             else:
