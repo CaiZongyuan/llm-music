@@ -14,6 +14,7 @@ Creator tutorials focus on results. Consult preparation, Doctor, API, and develo
 
 - [Upload formats, budgets, and Asset recovery](../guides/api-project-audio.en.md)
 - [Web Job cancellation, explicit retry and reconnect recovery](../guides/web-jobs.en.md)
+- [Web readiness, models and read-only settings](../guides/web-runtime.en.md)
 - [Transcription profiles and ABC/MIDI results](../guides/api-transcription.en.md)
 - [Cancellation, explicit retry, and errors](../guides/api-cancel-retry.en.md)
 - [Live phases and the same Job after disconnect](../guides/api-job-events.en.md)

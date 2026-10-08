@@ -13,7 +13,7 @@ async function availablePort(): Promise<number> {
   try {
     await new Promise<void>((fulfill, reject) => { reservation.once('error', reject); reservation.listen(candidate, '127.0.0.1', fulfill); });
   } catch (error) {
-    if (error instanceof Error && 'code' in error && error.code === 'EADDRINUSE') return availablePort();
+    if (error instanceof Error && 'code' in error && (error.code === 'EADDRINUSE' || error.code === 'EACCES')) return availablePort();
     throw error;
   }
   const address = reservation.address();

@@ -1,0 +1,19 @@
+.runtime-page .surface { min-width:0; }
+.runtime-page .workspace-grid { align-items:start; }
+.runtime-page .facts { grid-template-columns:minmax(100px, .8fr) minmax(0, 1.2fr); }
+.runtime-page dd,.runtime-page p,.runtime-page small { overflow-wrap:anywhere; }
+.runtime-page .runtime-metric { padding:12px 0; border-bottom:1px solid var(--line); }
+.runtime-page .runtime-metric:last-child { border-bottom:0; }
+.runtime-page .runtime-observation { margin-top:5px; }
+.runtime-page .runtime-observation details { margin-top:2px; }
+.runtime-page .runtime-observation summary { font-size:.7rem; color:var(--muted); }
+.runtime-page .runtime-reasons { padding-left:20px; font-size:.82rem; line-height:1.6; }
+.runtime-page .runtime-reasons li { margin-bottom:10px; }
+.runtime-page details { margin-top:14px; }
+.runtime-page summary { cursor:pointer; font-size:.82rem; color:var(--accent); }
+.runtime-page details .facts { margin-top:18px; }
+.runtime-page .runtime-model { border-top:1px solid var(--line); padding:18px 0; }
+.runtime-page .runtime-model h3 { margin-bottom:8px; }
+.runtime-page .runtime-setting { padding:16px 0; border-bottom:1px solid var(--line); }
+.runtime-page .runtime-setting .facts { margin-bottom:0; }
+.runtime-page .runtime-links { display:flex; gap:10px; flex-wrap:wrap; margin-top:16px; }

@@ -14,6 +14,7 @@
 
 - [上传格式、文件预算与素材恢复](../guides/api-project-audio.md)
 - [Web 任务取消、明确重试与断线恢复](../guides/web-jobs.md)
+- [Web 创作准备、模型与只读设置](../guides/web-runtime.md)
 - [转谱输入范围与 ABC/MIDI 结果](../guides/api-transcription.md)
 - [取消、明确重试与错误处理](../guides/api-cancel-retry.md)
 - [实时阶段、断开后读取同一 Job](../guides/api-job-events.md)
