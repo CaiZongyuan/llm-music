@@ -47,7 +47,7 @@ pnpm install --frozen-lockfile
 uv run --project services/api --frozen --no-sync python -m pytest services/api/tests/test_score_editing.py -q
 pnpm web:check
 pnpm test:browser:check
-pnpm --filter @llm-music/browser-tests exec playwright test --config score.playwright.config.ts
+pnpm test:web:score
 pnpm client:check
 pnpm test:client
 pnpm docs:check
@@ -137,6 +137,9 @@ the older saved selection remains inspectable. #42 should use its actual
 source Score id and retained parent, and freeze the submission again.
 Unsaved draft text remains in this page session across tabs; reload reads
 the opened Score's saved original.
+
+The root `pnpm test:web:score` entrypoint is registered in the existing
+Windows Web workbench CI, including its browser and ownership artifacts.
 
 Root owns final non-author Standards/Spec review, registered final-head CI,
 browser comparison with #39, integration/publication and the separate real

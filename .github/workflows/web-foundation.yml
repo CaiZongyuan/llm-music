@@ -69,6 +69,8 @@ jobs:
         run: pnpm test:web:generation -- generation-recovery.controlled.ts
       - name: Exercise Runtime observations, model states and read-only settings recovery
         run: pnpm test:web:runtime
+      - name: Exercise current ABC notation, MIDI audition, immutable saves and recovery
+        run: pnpm test:web:score
       - name: Restore both creator journeys and persisted entities after an API process restart
         run: pnpm test:web:gate
       - name: Bound failed shutdown and retain owned-child cleanup receipts
