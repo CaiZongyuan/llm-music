@@ -99,7 +99,7 @@ api-affected (no collection), api-affected-final, legacy-old-api-failure,
 legacy-0006-isolated, mypy, client-generate/check, web-check and docs-check/build.
 Pinned-source preparation is Root `.scratch/p4-development/45-fresh-preparation.md`.
 
-## Remaining delivery
+## Browser repair and independent verification
 
 The independent first full browser tracer completed literal full/chord MIDI,
 Job/Candidate/audio/source/parent/save/reload checks, then failed the original
@@ -125,11 +125,35 @@ raw red/green logs, results, geometry and retained red screenshot/trace remain
 in that evidence directory. Native/GPU was not called. The shared-reader CSS
 delta leaves valid API/native/codec/source/recovery evidence unchanged.
 
-Root's independent browser tester owns only `cover.controlled.ts` and
+Root's independent browser tester changed only `cover.controlled.ts` and
 `cover-fixtures.ts`, preserving the shipped21 cases/held-Origin regressions and
-adding bounded full/mode/ACK/failure facts. Primary author has handed off the
-exclusive isolated CPU/browser execution window; actual browser results are
-pending at this record.
+adding bounded full/mode/ACK/failure facts. Final registered browser TypeScript
+check passed. The focused11 cases passed in89.738062s. The complete registered
+suite actually collected31 cases: **31 passed**, zero skipped/unexpected/flaky/
+errors, in241.459132s. The prepared31 estimate is superseded by actual discovery.
+Existing60s case/10s expect budgets and retries0 remain unchanged.
+
+The complete run used fresh production assets and the real FastAPI HTTP/WS/
+SQLite/files application with an identified CPU Runtime. It verifies literal
+chorded full ABC/MIDI with both voices/rest-only Vocal, true origin/parent,
+Candidate/playback/explicit Version/reload/unchanged old bytes, legal chordless
+full warning/submit, both asymmetric enum removals and absence of both modes,
+mode changes away/back with equal ABC and held old validation, frozen committed
+full ACK through later edits/reload, full cancellation/retry and OOM/wrong Score/
+import failure. It retains the existing source/ACK/Player and held-Origin cases.
+These CPU facts do not establish actual native inference or acoustic fidelity.
+
+Tested source was96c15b8 plus precisely the two tester files. Their filesystem
+SHA256 values are `62c6a81db891aa4c233b2134c650dc839516b8eb8cf3591a98b4d89d546c21c3`
+for `cover.controlled.ts` and
+`0905a2c25b76951d54e9f41bb5d9821fd48e0f5da3bf4f9a11a75ba94c5d3a29`
+for `cover-fixtures.ts`. Raw JSON/logs and resource/source identity remain in
+worktree `.scratch/45-browser-all.*` and `.scratch/45-browser-all-resources.json`.
+Final API53096:33190/Web11424:21894 both have graceful receipts and no remaining
+PID/listener at2026-10-08T16:21:53.3501288Z. Tester and primary are STOP-WRITE;
+the exclusive CPU/browser window has returned to Root.
+
+## Remaining delivery
 
 Root owns independent Standards/Spec review, applicable final-head CI, the actual
 formal-browser/full Native GPU sample, complete audio decode/Player, true-parent
