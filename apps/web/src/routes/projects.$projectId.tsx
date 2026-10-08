@@ -4,6 +4,7 @@ import { projectOptions } from '../features/projects/queries';
 import { useMessages } from '../features/preferences/Preferences';
 import { projectMessages } from '../features/projects/messages';
 import { ErrorNotice, Loading } from '../components/States';
+import { CompareRestore } from '../features/player/CompareRestore';
 
 function ProjectWorkspace() {
   const { projectId } = Route.useParams();
@@ -12,7 +13,7 @@ function ProjectWorkspace() {
   if (project.isError) return <><ErrorNotice error={project.error} onRetry={() => void project.refetch()} /><Link className="button" to="/">{t.home}</Link></>;
   return <><div className="page-heading"><span className="eyebrow">A PLACE FOR YOUR MUSIC</span>{project.data
     ? <><h1>{project.data.name}</h1><p>{project.data.description || t.unnamed}</p><details className="record-details"><summary>{t.record}</summary><code>{project.data.id}</code></details></> : <Loading />}</div>
-    <nav className="tabs" aria-label={t.workspace}>
+    <CompareRestore projectId={projectId} /><nav className="tabs" aria-label={t.workspace}>
       <Link to="/projects/$projectId/generate" params={{ projectId }} activeProps={{ className: 'active' }}>{t.generate}</Link>
       <Link to="/projects/$projectId" params={{ projectId }} activeOptions={{ exact: true }} activeProps={{ className: 'active' }}>{t.assets}</Link>
       <Link to="/projects/$projectId/transcribe" params={{ projectId }} activeProps={{ className: 'active' }}>{t.transcribe}</Link>

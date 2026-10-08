@@ -18,6 +18,8 @@ Reopen existing projects from the list. Changing interface language leaves your 
 
 The currently verified transcription input is16 seconds of PCM16, mono24 kHz or stereo48 kHz. The upload budget is64 MiB/600 seconds; it does not promise inference for longer audio. After uploading, open [Reference transcription](web-transcribe.en.md) to inspect the score and download ABC/MIDI. You can also open [Music generation](web-generation.en.md) to create a Candidate from style and lyrics, listen, then explicitly save a Version. The persistent Player keeps the current audio across workspace navigation.
 
+To compare works, select two saved Versions from the same Project in “Versions”, then use the player's A/B buttons and common listening region. Music continues while inspecting Score or lyrics. The [comparison guide](web-generation.en.md#compare) explains absolute seconds, shorter endings and recovery. Reloading in the same Project can restore valid A/B choices, paused at0, without position or region.
+
 ## Choose language and theme {#preferences}
 
 The top language control offers 中文 and English. The light/dark button changes workspace colors. Navigation and refresh preserve these preferences. Switching keeps entered notes, the selected file and the current project identity. If browser storage is disabled, preferences still work in the current page; refresh may restore the defaults.
