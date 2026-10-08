@@ -64,7 +64,7 @@ def write_registry_fixture(root: Path, requirements: RuntimeRequirements) -> Non
     }), encoding="utf-8")
     (runtime / "models.json").write_text(json.dumps({"models": [asdict(model) for model in requirements.models]}), encoding="utf-8")
     repository = Path(__file__).resolve().parents[3]
-    for relative in ["runtime/comfyui/workflows/transcribe-sheetsage2/v1", "workflows/generate", "workflows/generate-from-score/v1"]:
+    for relative in ["runtime/comfyui/workflows/transcribe-sheetsage2/v1", "workflows/generate", "workflows/generate-from-score/v1", "workflows/cover/v1"]:
         target = root / relative
         target.mkdir(parents=True, exist_ok=True)
         for name in ["manifest.json", "workflow.json"]:

@@ -63,6 +63,7 @@ class WorkflowRegistry:
             "Transcribe": self.root / "runtime/comfyui/workflows/transcribe-sheetsage2/v1",
             "Generate": self.root / "workflows/generate",
             "GenerateFromScore": self.root / "workflows/generate-from-score/v1",
+            "Cover": self.root / "workflows/cover/v1",
         }
         self._workflows: dict[Operation, WorkflowDefinition] = {}
         for operation, directory in paths.items():

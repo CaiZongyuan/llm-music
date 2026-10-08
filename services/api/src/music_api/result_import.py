@@ -73,8 +73,17 @@ def import_result(database: Database, storage: Storage, job_id: str, materials: 
                 session.add(asset)
                 assets[material.role] = asset
             session.flush()
+            parent = None
+            if job.operation == "Transcribe" and "reference_origin" in job.inputs:
+                from music_api.reference_audio import ReferenceOriginRead, reference_origin
+                reference = session.get(Asset, str(job.inputs["reference_asset_id"]))
+                origin = reference_origin(session, reference) if reference is not None and reference.project_id == job.project_id else None
+                if origin is None or ReferenceOriginRead.model_validate(origin).model_dump(mode="json") != job.inputs["reference_origin"]:
+                    raise DomainError(409, "reference_origin_invalid", "Transcription source differs from its frozen Reference origin.", "Restore the original source relation before importing this result.")
+                parent = origin.source_version_id
             score = Score(id=str(uuid4()), project_id=job.project_id, job_id=job.id, abc_asset_id=assets["abc"].id,
-                          source_reference_asset_id=str(job.inputs["reference_asset_id"]) if job.operation == "Transcribe" else None)
+                          source_reference_asset_id=str(job.inputs["reference_asset_id"]) if job.operation == "Transcribe" else None,
+                          parent_version_id=parent)
             session.add(score)
             for role, asset in assets.items():
                 session.add(JobResult(id=str(uuid4()), job_id=job.id, asset_id=asset.id, role=role))

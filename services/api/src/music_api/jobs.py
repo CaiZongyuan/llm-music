@@ -36,6 +36,7 @@ OPERATION_PHASES: dict[Operation, tuple[str, ...]] = {
     "Transcribe": ("loading_model", "transcribing"),
     "Generate": ("loading_model", "planning_score", "generating_semantic", "synthesizing", "decoding_audio"),
     "GenerateFromScore": ("loading_model", "generating_semantic", "synthesizing", "decoding_audio"),
+    "Cover": ("loading_model", "generating_semantic", "synthesizing", "decoding_audio"),
 }
 
 
@@ -224,6 +225,8 @@ class JobService:
         capability = next(item for item in self.runtime.capabilities(observation) if item.operation == operation)
         if not capability.ready:
             raise DomainError(503, capability.reasons[0], "The requested Runtime capability is not currently ready.", "Inspect current Runtime/model evidence before submitting.")
+        if operation == "Cover" and inputs.get("mode") not in capability.supported_modes:
+            raise DomainError(503, "capability_missing", "The selected Cover mode is not supported by the observed Runtime.", "Keep the Score and recheck this mode; no alternate mode is submitted.")
         workflow = self.registry.workflow(operation)
         requirements = self.registry.requirements()
         provenance: dict[str, object] = dict(runtime_kind=self.runtime.mode, workflow_id=workflow.id, workflow_version=workflow.version,
@@ -238,6 +241,10 @@ class JobService:
             from music_api.score_input import selected_score_validation
             provenance["selected_score"] = dict(source_score_id=inputs["source_score_id"], parent_version_id=inputs["parent_version_id"],
                                                  **selected_score_validation(str(inputs["abc"])))
+        if operation == "Cover":
+            from music_api.cover import cover_snapshot
+            with self.database.sessions() as session:
+                provenance.update(cover_snapshot(session, self.storage, project_id, inputs))
         job = Job(id=str(uuid4()), project_id=str(project_id), operation=operation, inputs=deepcopy(inputs), provenance=provenance,
                   runtime_mode=self.runtime.mode, attempt_id=str(uuid4()), status="queued", phase="preparing", progress=None, submission_state="pending")
         with self.database.sessions() as session:

@@ -10,9 +10,9 @@ type Operation = components['schemas']['CapabilityRead']['operation'];
 function expiresAt(observation: components['schemas']['DiagnosticSource']) {
   return observation.observed_at ? Date.parse(observation.observed_at) + observation.max_age_seconds * 1000 : NaN;
 }
-export function operationReady(data: CapabilitiesRead | undefined, operation: Operation): boolean {
+export function operationReady(data: CapabilitiesRead | undefined, operation: Operation, mode?: 'melody' | 'full'): boolean {
   const capability = data?.capabilities.find(value => value.operation === operation);
-  return Boolean(capability?.ready && capability.observation.freshness === 'fresh' && expiresAt(capability.observation) > Date.now());
+  return Boolean(capability?.ready && (!mode || capability.supported_modes?.includes(mode)) && capability.observation.freshness === 'fresh' && expiresAt(capability.observation) > Date.now());
 }
 export function capabilitiesOptions() {
   return queryOptions({
@@ -26,12 +26,12 @@ export function capabilitiesOptions() {
     },
   });
 }
-export function CapabilityReadiness({ operation }: { operation: Operation }) {
+export function CapabilityReadiness({ operation, mode }: { operation: Operation; mode?: 'melody' | 'full' }) {
   const t = useMessages(capabilityMessages);
   const query = useQuery(capabilitiesOptions());
   const capability = query.data?.capabilities.find(value => value.operation === operation);
   const codes = capability?.reasons.map(reason => reason.code) ?? [];
-  const ready = !query.isError && operationReady(query.data, operation);
+  const ready = !query.isError && operationReady(query.data, operation, mode);
   const message = codes.some(code => code.includes('unavailable')) ? t.unavailable
     : codes.some(code => code.includes('stale')) || capability?.observation.freshness === 'stale' ? t.stale
     : codes.length ? t.missing : t.unknown;

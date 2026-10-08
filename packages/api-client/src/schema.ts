@@ -412,6 +412,74 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/projects/{project_id}/reference-audio/from-version": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create Reference */
+        post: operations["create_reference_projects__project_id__reference_audio_from_version_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/projects/{project_id}/assets/{asset_id}/reference-origin": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read Reference Origin */
+        get: operations["read_reference_origin_projects__project_id__assets__asset_id__reference_origin_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/projects/{project_id}/cover-inputs/validate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Validate Cover */
+        post: operations["validate_cover_projects__project_id__cover_inputs_validate_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/projects/{project_id}/jobs/cover": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create Cover */
+        post: operations["create_cover_projects__project_id__jobs_cover_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -432,7 +500,7 @@ export interface components {
              * Operation
              * @enum {string}
              */
-            operation: "Transcribe" | "Generate" | "GenerateFromScore";
+            operation: "Transcribe" | "Generate" | "GenerateFromScore" | "Cover";
             /**
              * Status
              * @enum {string}
@@ -553,7 +621,7 @@ export interface components {
              */
             score_id: string;
             /** Inputs */
-            inputs: components["schemas"]["GenerateFromScoreCreate"] | components["schemas"]["GenerateCreate"];
+            inputs: components["schemas"]["CoverCreate"] | components["schemas"]["GenerateFromScoreCreate"] | components["schemas"]["GenerateCreate"];
             /** Provenance */
             provenance: {
                 [key: string]: unknown;
@@ -589,7 +657,7 @@ export interface components {
              * Operation
              * @enum {string}
              */
-            operation: "Transcribe" | "Generate" | "GenerateFromScore";
+            operation: "Transcribe" | "Generate" | "GenerateFromScore" | "Cover";
             /** Required Models */
             required_models: string[];
             /** Ready */
@@ -597,6 +665,11 @@ export interface components {
             observation: components["schemas"]["DiagnosticSource"];
             /** Reasons */
             reasons: components["schemas"]["DiagnosticReason"][];
+            /**
+             * Supported Modes
+             * @description Observed and declared Cover modes; empty for non-Cover or missing mode choices.
+             */
+            supported_modes?: ("melody" | "full")[];
         };
         /** CodeRegistryRead */
         CodeRegistryRead: {
@@ -613,6 +686,91 @@ export interface components {
             license_source: string | null;
             /** Registry Source */
             registry_source: string;
+        };
+        /** CoverCreate */
+        CoverCreate: {
+            /** Style */
+            style: string;
+            /** Lyrics */
+            lyrics: string;
+            /** Seed */
+            seed: number;
+            /**
+             * Max Seconds
+             * @default 35
+             * @constant
+             */
+            max_seconds?: 35;
+            /**
+             * Abc
+             * @description Explicitly selected ABC; copied exactly into the Job input snapshot.
+             */
+            abc: string;
+            /**
+             * Source Score Id
+             * Format: uuid
+             * @description Existing source Score in this Project; edited ABC may differ from its original Asset.
+             */
+            source_score_id: string;
+            /**
+             * Parent Version Id
+             * @description Optional same-Project Version owning the source Score or retained as its explicit editing parent; retained on Version save.
+             */
+            parent_version_id?: string | null;
+            /**
+             * Mode
+             * @description Explicit supported Cover mode; full is delivered separately after melody acceptance.
+             * @constant
+             */
+            mode: "melody";
+            /**
+             * Reference Asset Id
+             * Format: uuid
+             */
+            reference_asset_id: string;
+            /**
+             * Effective Abc Sha256
+             * @description Hash of the effective ABC the creator inspected and selected.
+             */
+            effective_abc_sha256: string;
+            /**
+             * Mode Transform Version
+             * @constant
+             */
+            mode_transform_version: "1.0.0";
+        };
+        /** CoverInputValidate */
+        CoverInputValidate: {
+            /** Abc */
+            abc: string;
+            /**
+             * Mode
+             * @constant
+             */
+            mode: "melody";
+        };
+        /** CoverValidationRead */
+        CoverValidationRead: {
+            /** Note Count */
+            note_count: number;
+            /** Abc Sha256 */
+            abc_sha256: string;
+            /** Effective Abc Sha256 */
+            effective_abc_sha256: string;
+            /** Transformations */
+            transformations: string[];
+            /** Adapter Version */
+            adapter_version: string;
+            /** Parser */
+            parser: string;
+            /** Effective Abc */
+            effective_abc: string;
+            /** Mode */
+            mode: string;
+            /** Mode Transform Version */
+            mode_transform_version: string;
+            /** Source Chord Count */
+            source_chord_count: number;
         };
         /** DiagnosticReason */
         DiagnosticReason: {
@@ -808,7 +966,7 @@ export interface components {
              * Operation
              * @enum {string}
              */
-            operation: "Transcribe" | "Generate" | "GenerateFromScore";
+            operation: "Transcribe" | "Generate" | "GenerateFromScore" | "Cover";
             /**
              * Status
              * @enum {string}
@@ -965,6 +1123,34 @@ export interface components {
              */
             created_at: string;
         };
+        /** ReferenceOriginRead */
+        ReferenceOriginRead: {
+            /**
+             * Reference Asset Id
+             * Format: uuid
+             */
+            reference_asset_id: string;
+            /**
+             * Source Version Id
+             * Format: uuid
+             */
+            source_version_id: string;
+            /**
+             * Source Asset Id
+             * Format: uuid
+             */
+            source_asset_id: string;
+            /** Source Sha256 */
+            source_sha256: string;
+            /** Start Frame */
+            start_frame: number;
+            /** Frame Count */
+            frame_count: number;
+            /** Sample Rate */
+            sample_rate: number;
+            /** Derivation Version */
+            derivation_version: string;
+        };
         /** RuntimeHealthRead */
         RuntimeHealthRead: {
             /**
@@ -1113,7 +1299,7 @@ export interface components {
              */
             score_id: string;
             /** Inputs */
-            inputs: components["schemas"]["GenerateFromScoreCreate"] | components["schemas"]["GenerateCreate"];
+            inputs: components["schemas"]["CoverCreate"] | components["schemas"]["GenerateFromScoreCreate"] | components["schemas"]["GenerateCreate"];
             /** Provenance */
             provenance: {
                 [key: string]: unknown;
@@ -1136,6 +1322,20 @@ export interface components {
             name: string;
             /** Parent Version Id */
             parent_version_id: string | null;
+        };
+        /** VersionReferenceCreate */
+        VersionReferenceCreate: {
+            /**
+             * Source Version Id
+             * Format: uuid
+             */
+            source_version_id: string;
+            /**
+             * Save Id
+             * Format: uuid
+             * @description Immutable Reference save intent. Identical replay returns the same first16s PCM WAV.
+             */
+            save_id?: string;
         };
         /** VersionSave */
         VersionSave: {
@@ -2678,6 +2878,260 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["VersionRead"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    create_reference_projects__project_id__reference_audio_from_version_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["VersionReferenceCreate"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AssetRead"];
+                };
+            };
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AssetRead"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    read_reference_origin_projects__project_id__assets__asset_id__reference_origin_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+                asset_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReferenceOriginRead"] | null;
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    validate_cover_projects__project_id__cover_inputs_validate_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CoverInputValidate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CoverValidationRead"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    create_cover_projects__project_id__jobs_cover_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CoverCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JobRead"];
                 };
             };
             /** @description Not Found */

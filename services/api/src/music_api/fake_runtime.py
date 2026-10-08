@@ -43,19 +43,22 @@ class FakeInferenceRuntime:
     def health(self) -> RuntimeObservation:
         nodes = frozenset(node for operation in self.results.keys() | self.result_factories.keys() for node in self.registry.workflow(operation).required_nodes)
         return RuntimeObservation("fake", "Identified CPU Runtime fixtures", datetime.now(timezone.utc), True, registered_nodes=nodes,
-                                  node_inputs={"YuE2GenerateSong": {"score_abc": "STRING"}} if "GenerateFromScore" in self.results.keys() | self.result_factories.keys() else {})
+                                  node_inputs={"YuE2GenerateSong": {"score_abc": "STRING"}} if {"GenerateFromScore", "Cover"} & (self.results.keys() | self.result_factories.keys()) else {},
+                                  node_enum_choices={"YuE2Options": {"cot": ("full", "melody", "off")}})
 
     def capabilities(self, observation: RuntimeObservation | None = None) -> tuple[CapabilityObservation, ...]:
         value = observation or self.health()
         capabilities = tuple(evaluate_readiness(value, self.registry.requirements(), self.registry.workflow(operation), now=datetime.now(timezone.utc), max_age_seconds=self.max_age_seconds)
                              for operation in OPERATIONS)
         return tuple(item if item.operation in self.results.keys() | self.result_factories.keys() else
-                     replace(item, ready=False, reasons=tuple(dict.fromkeys((*item.reasons, "capability_missing")))) for item in capabilities)
+                     replace(item, ready=False, supported_modes=(), reasons=tuple(dict.fromkeys((*item.reasons, "capability_missing")))) for item in capabilities)
 
     def submit(self, request: RuntimeRequest) -> SubmissionReceipt:
         capability = next(item for item in self.capabilities() if item.operation == request.operation)
         if not capability.ready:
             return SubmissionReceipt("rejected", code="capability_missing", message="The requested fake fixture is unavailable.")
+        if request.operation == "Cover" and request.inputs.get("mode") not in capability.supported_modes:
+            return SubmissionReceipt("rejected", code="capability_missing", message="Selected fake Cover mode is unavailable.")
         handle = str(uuid4())
         if request.operation in self.result_factories:
             self.results[request.operation] = self.result_factories[request.operation]()
@@ -65,6 +68,11 @@ class FakeInferenceRuntime:
             abc = effective_score_abc(str(request.inputs["abc"]))[0]
             result = replace(result, artifacts=tuple(replace(artifact, data=abc.encode("utf-8")) if artifact.role == "abc" else artifact
                                                      for artifact in result.artifacts), score_validation=selected_score_validation(abc))
+        if request.operation == "Cover":
+            from music_api.cover import cover_score_validation
+            checked = cover_score_validation(str(request.inputs["abc"]), str(request.inputs["mode"]))
+            result = replace(result, artifacts=tuple(replace(artifact, data=str(checked["effective_abc"]).encode("utf-8")) if artifact.role == "abc" else artifact
+                                                     for artifact in result.artifacts), score_validation=checked)
         self._results[handle] = result
         self._requests[handle] = (request, time.monotonic())
         if self.output_dir is not None:

@@ -1,0 +1,60 @@
+{
+  "1": {
+    "class_type": "YuE2Options",
+    "inputs": {
+      "cot": "melody",
+      "max_seconds": 35,
+      "keep_model_loaded": false,
+      "quantization": "bf16",
+      "offload": "on",
+      "low_vram": false,
+      "vae": "standard",
+      "device": "cuda:0",
+      "attention_backend": "sdpa",
+      "download": "off",
+      "cfg_scale": 0,
+      "ode_steps": 32,
+      "abc_temperature": 0.7,
+      "abc_top_p": 0.9,
+      "abc_top_k": 30,
+      "temperature": 1,
+      "top_p": 0.95,
+      "top_k": 100,
+      "repetition_penalty": 1.2,
+      "transpose": 0,
+      "vocals_only": false
+    }
+  },
+  "2": {
+    "class_type": "YuE2GenerateSong",
+    "inputs": {
+      "style": "__STYLE__",
+      "lyrics": "__LYRICS__",
+      "seed": 2026100701,
+      "options": [
+        "1",
+        0
+      ],
+      "score_abc": "__ABC__"
+    }
+  },
+  "3": {
+    "class_type": "SaveAudio",
+    "inputs": {
+      "audio": [
+        "2",
+        0
+      ],
+      "filename_prefix": "p0/generate/fixed"
+    }
+  },
+  "4": {
+    "class_type": "PreviewAny",
+    "inputs": {
+      "source": [
+        "2",
+        1
+      ]
+    }
+  }
+}

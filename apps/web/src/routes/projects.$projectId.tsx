@@ -16,6 +16,7 @@ function ProjectWorkspace() {
       <Link to="/projects/$projectId/generate" params={{ projectId }} activeProps={{ className: 'active' }}>{t.generate}</Link>
       <Link to="/projects/$projectId" params={{ projectId }} activeOptions={{ exact: true }} activeProps={{ className: 'active' }}>{t.assets}</Link>
       <Link to="/projects/$projectId/transcribe" params={{ projectId }} activeProps={{ className: 'active' }}>{t.transcribe}</Link>
+      <Link to="/projects/$projectId/cover" params={{ projectId }} activeProps={{ className: 'active' }}>{t.cover}</Link>
       <Link to="/projects/$projectId/scores" params={{ projectId }} activeProps={{ className: 'active' }}>{t.scores}</Link>
       <Link to="/projects/$projectId/lyrics" params={{ projectId }} activeProps={{ className: 'active' }}>{t.lyrics}</Link>
       <Link to="/projects/$projectId/versions" params={{ projectId }} activeProps={{ className: 'active' }}>{t.versions}</Link>
