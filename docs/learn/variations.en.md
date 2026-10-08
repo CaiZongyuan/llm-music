@@ -2,7 +2,7 @@ Continue Morning song. Keep the original recipe and change one dimension. Hear t
 
 ## Continue from your first piece {#start}
 
-<p>Keep the first chapter's Project id, original lyrics, style, seed <code>2026192201</code>, and downloaded audio. Listen again and write one question: do I want more space in the arrangement, a lyric line that sings better, or another random starting point?</p><p>These changes generate new short fragments; they do not edit the earlier audio. There is no integrated A/B player yet. Listen one at a time in your own player. The same seed does not guarantee identical bytes across models, environments, or versions.</p>
+<p>Keep the first chapter's Project id, original lyrics, style, seed <code>2026192201</code>, and saved Morning Version. Listen again and write one question: do I want more space in the arrangement, a lyric line that sings better, or another random starting point?</p><p>These changes generate new short fragments; they do not edit the earlier audio. In the same Project's “Versions”, select two saved works and compare them in the continuous A/B player. The same seed does not guarantee identical bytes across models, environments, or versions.</p>
 
 ## 1. Choose a question worth listening for {#recipes}
 
@@ -35,6 +35,17 @@ Continue Morning song. Keep the original recipe and change one dimension. Hear t
 | Change seed only | Original style, complete lyrics, 35-second setting | A melody or structure that suits you better in another result; one difference is not a stable rule. |
 
 <p>Hear the whole piece first, then focus on your question. Record a short preference such as “B has clearer vocals; A has a more natural ending.” Keep the original result instead of comparing from memory.</p>
+
+## Compare two works in one player {#compare}
+
+1. In “Versions”, inspect the original Morning Version and another Version you explicitly saved. Select them as “Version A” and “Version B”, then choose “Use this pair”. Unsaved Candidates are not comparison choices; with one Version, choose “Listen to A only”.
+2. Wait for the audio, then press “Play”. Use “Switch to A” and “Switch to B” to hear the same instant. Switching while paused at12 seconds keeps12 seconds; switching during playback continues when the target is ready. This preserves absolute seconds, without aligning beats, lyrics or phrases.
+3. Expand “Common listening region” and try a start of2 seconds and end of4 seconds. Choose “Set region”, then “Play region”. It plays once and pauses at4 seconds. Drag or resize the waveform region within the range both clips contain. A manual seek cancels this bounded playback.
+4. Open “Score” or “Lyrics and inputs” to inspect the selected saved record while listening continues. Explicitly auditioning a Candidate, Reference Audio or draft MIDI changes the source. Choose “Return to comparison” in the player to resume A/B, starting paused at0.
+
+When a target is shorter than the current position, it stops paused at its actual end. Returning to the longer work stays paused. After a natural end, explicitly press “Play” to hear it from the start. A new pair starts paused at0; if the old region does not fit its common range, set a new one when prompted. The region is not silently shortened.
+
+Reload restores only Version choices and the A/B side that remain valid in this Project, paused at0, without position or region. When choice storage is unavailable, comparison still works for this session; reload recovery is not guaranteed. Keep the works when audio or Version reads fail: choose “Reread audio” or “Reread versions”; restore a missing original Audio/ABC file first. One available Version can still play alone. Recovery does not generate or save new work.
 
 ## 3. Try the next Candidate in the same Project {#run}
 
@@ -74,7 +85,7 @@ Choose one question and submit one of these commands each time. Use a new direct
 
 ## 4. Choose the one you want to keep {#save}
 
-<p>Compare downloaded audio and ABC, then choose a Candidate in the same Project. Name the change, such as “Morning · seed 02.” You can use a Version from the first chapter as parent to record the starting point. That relationship is creative provenance, not a local audio edit.</p>
+<p>Listen to the new Candidate and inspect its ABC, then save a Version in the same Project if you like it. Name the change, such as “Morning · seed 02.” After saving, select it and the original Morning Version as A/B, listen again and record your preference. You can use a Version from the first chapter as parent to record the starting point. That relationship is creative provenance, not a local audio edit.</p>
 
 <p>You can leave every Candidate unsaved if none is right yet. Finished generation is not a finished creative choice.</p>
 

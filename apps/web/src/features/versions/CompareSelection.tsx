@@ -1,13 +1,14 @@
 import { useState } from 'react';
 import type { components } from '@llm-music/api-client';
-import { selectPlayerCompare } from '../player';
+import { compareChoice, selectPlayerCompare } from '../player';
 import { useMessages } from '../preferences/Preferences';
 import { playerMessages } from '../player/messages';
 
 export function CompareSelection({ projectId, versions }: { projectId: string; versions: components['schemas']['VersionRead'][] }) {
   const t = useMessages(playerMessages);
-  const [a, setA] = useState(versions[0]?.id ?? '');
-  const [b, setB] = useState(versions[1]?.id ?? '');
+  const stored = compareChoice(projectId).pair;
+  const [a, setA] = useState(stored?.a ?? versions[0]?.id ?? '');
+  const [b, setB] = useState(stored?.b ?? versions[1]?.id ?? '');
   const [invalid, setInvalid] = useState(false);
   function apply() {
     const first = versions.find(value => value.id === a && value.project_id === projectId && value.audio_asset_id);
