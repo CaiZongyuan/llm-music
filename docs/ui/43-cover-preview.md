@@ -5,7 +5,13 @@
 - Owner：`/root/cover_preview_developer`；branch `p4/43-cover-preview`；worktree `.worktrees/43-cover-preview`。
 - 预览：[cover-v1](../previews/cover-v1/README.md)，<http://127.0.0.1:18084/llm-music/cover-preview/>。
 - 初版实际冻结源码：`05c21da8d9a6025c4ffe4ece2fe292447234fbf9`，文档补充 head `49266221ea78980dd3107ce08c2b5103881fc30f`；下方记录独立审阅后的最小来源身份修复，最终 SHA 由交接 freeze receipt 指向。
-- 状态：可运行候选，等待 Root 独立审阅和用户对本次 Cover 流程的具体确认；不实施正式 #44/#45。
+- 状态：用户已认可最终候选 `23645dac6e53a57fc5a137ef577c145fc972c142`，可以继续正式 #44/#45。
+
+## 用户确认与后续授权
+
+2026-10-08，用户针对最终 Cover 交互预览回答“可以”。确认包括参考音频、中间谱检查和编辑、明确选择 melody/full 有效输入、新风格、Candidate 与派生版本；同时确认现有 Version 转为真实 16 秒 WAV Reference 并建立可信来源和父关系的正式方向。Root 已完成实际浏览器操作及两位非作者的 Standards/Spec 审查，来源身份反例修复已通过。
+
+用户随后明确指示：“后续不用我确认了，你快速开发玩吧”。后续开发复用已确认体验和最新纠正，预览与浏览器验证继续作为开发证据，不再等待新的用户确认。这条会话授权优先于票据中的再次确认要求，不改变功能验收、持久数据保护和真实 GPU 验证标准。
 
 ## 要确认的体验
 
@@ -40,9 +46,9 @@ mode 改变保留草稿与旧选择，须重新明确选定；有效 ABC 可展�
 
 自有 Node PID `47140`，birth `1791458868.978`，parent `29216`，exec session `22179`，实际 command 为此 worktree 的 `docs/previews/cover-v1/serve.mjs`，仅监听 `127.0.0.1:18084`。HTTP200和CSP已读回；旧18032、18072均无监听。共享8188未操作。Root独立审阅及用户确认期间保留该服务，停止前再次核对PID、birth、脚本、端口。
 
-已读回修复候选源码、实际端口owner与文件hash：app `83d9b587614e56480363c4bf04491083dc295c224b34f17a2dd6bfd14f61dd67`（初版 `98de2082fc0f6c2a2f29b0a54fe124894f4facb0d316b4666cd569bdd490a601`），index `906c2fdb0a5d09f5588ec66e675a7c54f78815199c8fa42f2559bbe59cdf13a2`，styles `00b83e9124387365b1ee715dc43b90887285b342481fe97a6294efabc402da8c`，serve `1679c9838abae34d94683d449afad3b206b7f57352bbf38357e550de15504e6b`。后续确认记录须指向实际服务源码。用户尚未确认本次 #43 Cover；旧布局确认与 #39 的“认可，继续正式实现”不替代本票新流程确认。
+已读回修复候选源码、实际端口owner与文件hash：app `83d9b587614e56480363c4bf04491083dc295c224b34f17a2dd6bfd14f61dd67`（初版 `98de2082fc0f6c2a2f29b0a54fe124894f4facb0d316b4666cd569bdd490a601`），index `906c2fdb0a5d09f5588ec66e675a7c54f78815199c8fa42f2559bbe59cdf13a2`，styles `00b83e9124387365b1ee715dc43b90887285b342481fe97a6294efabc402da8c`，serve `1679c9838abae34d94683d449afad3b206b7f57352bbf38357e550de15504e6b`。当前确认对应最终修复候选；旧布局与 #39 记录作为已确认设计来源保留。
 
-正式交接额外 seam：历史V1选项模拟将已生成的V1音频用作新Reference，与固定V1来源形成派生parent；当前正式Transcribe只接上传Reference，生成FLAC与Reference/Version来源关系尚未实现，现有Score编辑parent也不允许任意附加V1。Root 决定正式 #44 受控提取 Version.audioAsset 的当前支持 16 秒 WAVE 参考，记录真实 sourceVersion/sourceAsset、片段区间及 hash，由该实际关系支撑 parent；不是任意 parent 输入或通用转码平台。本地上传 Reference parent=null。此方向尚待本次具体预览确认，未单独获得正式实现批准；完整历史试听不声称实际提取片段。
+正式交接额外 seam：历史V1选项模拟将已生成的V1音频用作新Reference，与固定V1来源形成派生parent；当前正式Transcribe只接上传Reference，生成FLAC与Reference/Version来源关系尚未实现，现有Score编辑parent也不允许任意附加V1。已确认正式 #44 受控提取 Version.audioAsset 的当前支持 16 秒 WAVE 参考，记录真实 sourceVersion/sourceAsset、片段区间及 hash，由该实际关系支撑 parent；不是任意 parent 输入或通用转码平台。本地上传 Reference parent=null。预览完整历史试听不声称已经实际提取片段。
 
 ## 独立审阅来源身份修复
 
