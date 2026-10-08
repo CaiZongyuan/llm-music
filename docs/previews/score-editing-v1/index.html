@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>声间 · Score 编辑预览</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="abcjs.js" defer></script>
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <a class="skip" href="#workspace" data-t="skip">跳到工作区</a>
+  <div class="banner"><span data-t="banner">隔离交互预览 · 生成与保存只在内存模拟；谱面与 MIDI 来自当前 ABC。</span><button id="scenarios-open" data-t="checkStates">检查其他状态</button></div>
+  <div class="shell">
+    <aside class="sidebar">
+      <div class="brand"><span>♫</span><div>声间<small>LOCAL MUSIC WORKBENCH</small></div></div>
+      <nav aria-label="项目导航"><div data-t="library">▦ 我的项目</div><div data-t="jobs">≋ 任务</div><div data-t="runtime">◉ 运行状态</div><div data-t="settings">⚙ 使用设置</div></nav>
+      <small class="side-title" data-t="project">创作项目</small><div class="project active" data-t="projectName">雨后的散步</div>
+      <small class="side-title" data-t="savedVersions">已保存版本</small><div id="version-nav"></div>
+      <small class="side-bottom" data-t="local">本地创作，按你的节奏<br>短片段 · 先试听，再保留</small>
+    </aside>
+    <div class="main-shell">
+      <header><span data-t="breadcrumb">我的项目 / 雨后的散步</span><div class="preferences"><button id="language">English</button><button id="theme" data-t="dark">暗色</button></div></header>
+      <main id="workspace" tabindex="-1">
+        <p class="eyebrow" data-t="eyebrow">SCORE WORKSPACE</p><h1 data-t="title">让下一次创作听见你的修改</h1>
+        <p class="intro" data-t="question">试着改几个音符，听一听，再明确选定用于重新生成的 Score。继续编辑时，已提交输入和旧版本会保持原样。</p>
+        <div class="tabs" role="tablist"><button role="tab" data-tab="score" class="active" aria-selected="true" data-t="scoreTab">乐谱</button><button role="tab" data-tab="lyrics" aria-selected="false" data-t="lyricsTab">歌词</button><button role="tab" data-tab="versions" aria-selected="false" data-t="versionsTab">版本</button></div>
+        <section id="score-view">
+          <div id="empty-score" class="surface empty" hidden><h2 data-t="noScore">还没有 Score</h2><p data-t="noScoreHelp">先生成或转谱得到乐谱。在此预览中，可打开独立示例开始编辑。</p><button id="load-sample" class="primary" data-t="openExample">打开示例 Score</button></div>
+          <div id="editor-content">
+            <div class="editor-grid">
+              <section class="surface"><div class="section-heading"><h2 data-t="draft">ABC 草稿</h2><span id="draft-state" class="tag"></span></div><p class="hint" data-t="draftHelp">修改下面的 C D E F，观察旋律变化。文本不会改写已保存版本。</p><label for="abc" class="sr-only" data-t="abcLabel">ABC 乐谱文本</label><textarea id="abc" rows="12" spellcheck="false" maxlength="20000"></textarea><div class="actions"><button id="validate" data-t="validate">更新谱面</button><button id="restore" data-t="restore">恢复原版本到草稿</button></div><div id="editor-message" role="status" aria-live="polite"></div><div id="abc-errors" class="error" role="alert" hidden></div></section>
+              <section class="surface notation-panel"><div class="section-heading"><h2 data-t="notation">谱面与试听</h2><span id="notation-state" class="tag"></span></div><p id="notation-caption" class="hint"></p><div id="notation" aria-label="Score notation"></div><div class="actions"><button id="play-score" data-t="playScore">试听草稿 MIDI</button><button id="export-midi" data-t="export">导出草稿 MIDI</button><button id="select-score" class="primary" data-t="select">选定此 Score</button></div><small data-t="synthHelp">试听使用由当前 MIDI 音符合成的简单音色，用来检查音高和节奏。</small><div id="score-action-error" class="error" role="alert" hidden></div></section>
+            </div>
+            <section class="surface selected"><div><h2 data-t="selected">用于下一次生成的 Score</h2><div id="selected-summary"></div></div><details><summary data-t="selectedText">查看选定 ABC 快照</summary><pre id="selected-abc"></pre></details></section>
+            <div class="generation-grid">
+              <section class="surface"><h2 data-t="regenerate">从选定 Score 重新生成</h2><p class="hint" data-t="regenerateHelp">先选定有效草稿，再让相同旋律尝试另一种风格。此处只演示任务和保存流程。</p><label><span data-t="style">风格</span><textarea id="style" rows="2">gentle folk pop, acoustic guitar, warm piano, 96 BPM</textarea></label><label><span data-t="lyrics">歌词</span><textarea id="lyrics" rows="3">[Verse]
+Rain has left the streets a little brighter
+Every step begins a quiet song</textarea></label><div class="field-row"><label><span data-t="seed">Seed</span><input id="seed" type="number" min="0" max="9007199254740991" value="39"></label><div><small data-t="length">短片段基线</small><strong>35 s</strong></div></div><button id="generate" class="primary" data-t="generate">从选定 Score 生成</button><p id="generate-help" class="hint"></p><div id="submit-error" class="error" role="alert" hidden></div></section>
+              <section class="surface"><h2 data-t="result">试听与保留</h2><div id="job"></div><div id="candidate"></div></section>
+            </div>
+          </div>
+        </section>
+        <section id="lyrics-view" class="surface" hidden><h2 data-t="lyricsTab">歌词</h2><p data-t="lyricsHelp">当前创作草稿；切换页面不会中断底部试听。</p><pre id="lyrics-copy"></pre></section>
+        <section id="versions-view" hidden><h2 data-t="savedVersions">已保存版本</h2><p data-t="versionsHelp">只有明确保存的 Candidate 会出现在这里。点击“查看快照”检查父版本与实际提交的 ABC。</p><div id="versions-list"></div></section>
+      </main>
+    </div>
+  </div>
+  <section class="player" aria-label="持续音频播放器"><div><strong id="track-name" data-t="playerEmpty">选择一段音乐开始试听</strong><small id="track-source" data-t="playerHelp">草稿 MIDI、候选与已保存版本都在这里播放</small></div><button id="play" aria-label="播放" disabled>▶</button><div class="transport"><div class="times"><span id="elapsed">0:00</span><span id="duration">0:00</span></div><input id="seek" type="range" min="0" max="1" step="0.01" value="0" aria-label="音频定位" disabled><span id="player-error" role="alert"></span></div><audio id="audio" preload="metadata"></audio></section>
+  <dialog id="save-dialog"><form id="save-form"><h2 data-t="saveTitle">保留这次创作</h2><p id="save-parent"></p><label><span data-t="versionName">版本名称</span><input id="version-name" required maxlength="200" value="雨后 · 新旋律"></label><div id="save-error" class="error" role="alert" hidden></div><div class="actions"><button id="save-submit" class="primary" type="submit" data-t="save">保存为新版本</button><button type="button" id="save-close" data-t="close">关闭</button></div></form></dialog>
+  <dialog id="scenarios"><h2 data-t="stateTitle">隔离预览的状态检查</h2><p data-t="stateHelp">下次失败只影响对应动作；文本、选定快照和旧版本仍保留。刷新会重置本页内存。</p><div class="scenario-grid"><button data-scenario="reset" data-t="reset">重新开始</button><button data-scenario="empty" data-t="noScore">还没有 Score</button><button data-scenario="invalid" data-t="invalidScenario">无效 ABC</button><button data-scenario="loading" data-t="loadingScenario">重新读取 Score</button><button data-scenario="preview" data-t="previewFail">下次谱面失败</button><button data-scenario="playback" data-t="playbackFail">下次试听失败</button><button data-scenario="export" data-t="exportFail">下次导出失败</button><button data-scenario="generation" data-t="generationFail">下次生成失败</button><button data-scenario="save" data-t="saveFail">下次保存失败</button><button data-scenario="hold" data-t="hold">暂停任务，继续编辑</button><button data-scenario="complete" data-t="complete">继续并完成任务</button><button data-scenario="cancel-race" data-t="cancelRace">取消时刚好完成</button></div><p id="scenario-message" role="status"></p><button id="scenarios-close" data-t="close">关闭</button></dialog>
+  <dialog id="snapshot-dialog"><h2 id="snapshot-title"></h2><div id="snapshot-details"></div><pre id="snapshot-text"></pre><button id="snapshot-close" data-t="close">关闭</button></dialog>
+  <div id="toast" role="status" aria-live="polite"></div>
+</body>
+</html>

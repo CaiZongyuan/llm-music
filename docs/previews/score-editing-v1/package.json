@@ -1,0 +1,11 @@
+{
+  "name": "score-editing-preview",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node serve.mjs"
+  },
+  "dependencies": {
+    "abcjs": "6.7.1"
+  }
+}
