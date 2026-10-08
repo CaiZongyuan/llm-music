@@ -18,7 +18,7 @@
 
 ## 作者验证
 
-2026-10-08，作者先使用隔离 `score39-developer` agent-browser Chromium session，再使用独立 acceptDownloads Chromium context 从公开 UI 执行 34 条结果事实。浏览器使用软件渲染，桌面 1440 × 960、窄屏 390 × 844。一次性核验脚本和原始事实保留在本 worktree 的 `.scratch/39-score-preview/`，不新增产品测试。
+2026-10-08，作者先使用隔离 `score39-developer` agent-browser Chromium session，再使用独立 acceptDownloads Chromium context 从公开 UI 执行 34 条结果事实。下表对应初始单声部样本冻结 `42da2b8ee687026cd6db720858cbe925fb9ced37`；其事实与媒体完整保留，双声部修正后的受影响重验另列于表后。浏览器使用软件渲染，桌面 1440 × 960、窄屏 390 × 844。一次性核验脚本和原始事实保留在本 worktree 的 `.scratch/39-score-preview/`，不新增产品测试。
 
 | 范围 | 实际证据 |
 | --- | --- |
@@ -35,6 +35,16 @@
 初轮发现并修复了 detached abcjs 响应式容器样式丢失导致谱面溢出、中文亮色标签缺译；均重新实际核验。PowerShell 原生 CLI 对复杂 JS 引号的传递导致一次等待超时，改用 Base64 / 已观察定位；检查脚本的依赖相对路径和预估音符数先写错，改为正确工作区入口与实际 22 个音符。CSP `connect-src 'none'` 正确阻止核验脚本 fetch Blob，改用浏览器原生 Blob 下载提取试听 WAV，未放宽产品 CSP。原始失败记录保留，未改写成全部首轮成功。
 
 有范围的简化检查涵盖本票全部新增源码及既有布局/谱面入口：保留纯内存 snapshot 模型与媒体副作用边界；复用一套 Player、一个 MIDI 派生路径和历史音频，不新增 production client/schema、重复样本二进制或测试框架。解析警告通过文本处理进入错误区，不插入第三方警告 HTML。最后修改后 34 条浏览器事实再次通过，语法检查与独立媒体检查通过。独立标准/规格审阅由 Root 执行。
+
+### GenerateFromScore 示例衔接修正
+
+Root 随后指出正式 #41 的锁定解析器采用 Vocal / Ins 双声部结构，不能用默认会被该入口拒绝的普通单声部示例演示重新生成。预览只修正 `SAMPLE`：空 T、原生 Vocal→Ins 定义与 `% verse`，Vocal 为四小节 `z8`，Ins 保留原 22 音符、节拍与 96 BPM；没有重写旋律或暴露内部元数据处理操作。
+
+原样和改成 G–A–B–C 的样本均由 #41 的 `music_api.vendor.yue2_music.abc_tools.parse_abc` 标准库入口实际通过；解析器 SHA256 为 `537b91721e10b13dddd2fd515b998c9ace2348eac4add53571f3405608c13b04`。两声部时间网格相同，各 16 个四分音符、10 s；Vocal 0 个 note、Ins 22 个 note。未发 native POST、加载模型或操作 GPU。ABC 原样 SHA256 `2b10907ef2bc5139d937353ae85bb53c6eb28bfacca6339a95e300bdd9537cef`，修改后 `9bc657c778c3473d6d9669b85944bab2ecd40a02d30934bdd64033524da11ac9`。
+
+本修正另有 **11 条受影响浏览器事实通过，0 page errors**：双声部真实谱面/编辑、原生 MIDI、实际 MIDI 试听、明确选定、编辑中冻结提交 ABC 与 parent、Candidate 显式保存与原 V1 不变、1440 px 谱面容器范围和 390 px 无横向溢出。两份新 MIDI 均 345 B / 22 个 note-on；原样 SHA256 `9c83856f9755159addf87bed986cec813e73935196e08cc9f9e0e245c2e5f6be`，修改后 `935c9d8ac7da5b31e40998535f2559d89ffd9f47e0277507bc5eb6e5e137788d`。首音高、独立波形频率与 10.2 s 试听保持原有证据结果。其他失败状态逻辑没有改动，复用上面的 34 条事实。第一次衔接核验仅因 Windows 核验文件写成 CRLF、浏览器 textarea 读回 LF 导致文本断言失败；改核验文件为 LF 后通过，原失败保留。
+
+新原始记录为 `native-source-facts.json`、`facts-native-sample.json`、`media-facts.json` 与 `native-desktop-light.png` / `native-mobile-dark-en.png`。旧证据以 `*-42da2b8-*` 和原 WebM 保留；新冻结提交与 served 文件 hash 由 `freeze.json` 读回。此处没有将标准库结构检查报告为推理验收。
 
 ## 服务所有权与交接
 

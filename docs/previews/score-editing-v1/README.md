@@ -15,7 +15,7 @@ pnpm --dir docs/previews/score-editing-v1 run start
 
 ## 尝试一条创作路径
 
-1. 在“雨后的散步”中，将 `C D E F G2 E2` 改成 `G A B c d2 B2`。谱面会重新检查；“更新谱面”也可立即重试。
+1. 在“雨后的散步”中，将 Ins 旋律的 `C D E F G2 E2` 改成 `G A B c d2 B2`。谱面会重新检查；“更新谱面”也可立即重试。示例保留 Vocal 的等长休止，先专注修改旋律。
 2. 试听草稿 MIDI，再导出它。试听用简单音色检查音高与节奏；每次输出来自当前有效草稿。
 3. 点击“选定此 Score”。选定 ABC 和父版本冻结；展开快照可检查文本。
 4. 调整风格、歌词或 seed，点击“从选定 Score 生成”。这是模拟 GenerateFromScore。输入快照在点击时冻结，任务只显示阶段和未知进度。
@@ -38,6 +38,8 @@ pnpm --dir docs/previews/score-editing-v1 run start
 ## 真实与模拟边界
 
 真实本地行为：abcjs 6.7.1 解析与 SVG 谱面、从有效 ABC 派生的 Standard MIDI 文件、该 MIDI 音符转换出的 PCM WAV 试听、播放器媒体时钟、seek 与原生下载。试听音色是简单正弦合成；此预览限制为一首 ABC、120 秒和 10,000 个音符以内。解析警告会阻止当前草稿选定与新提交；这不是对所有 Runtime ABC 支持范围的声明。
+
+初始示例采用已验证的 Vocal / Ins 双声部结构；96 BPM、四小节、Ins 22 个音符、Vocal 等长休止。原样与上述修改后的示例均通过 #41 的锁定标准库 ABC 解析器，音乐本体为 10 s，试听附带 0.2 s 尾段。这只核对示例可衔接性，不代替实际推理或任意 ABC 的支持证明。
 
 模拟行为：Project、Score 身份、Job、阶段、失败、Candidate 与 Version 只在页面内存中。模拟 payload 是原型领域数据，不是第二份生产 API 类型。正式客户端仍须从 FastAPI/Pydantic/OpenAPI 生成；正式 GenerateFromScore 的支持边界由对应 API/Runtime 票据验证。
 
