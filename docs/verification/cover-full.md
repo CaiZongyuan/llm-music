@@ -155,6 +155,31 @@ the exclusive CPU/browser window has returned to Root.
 
 ## Remaining delivery
 
+Final9ba push Web CI failed the unchanged P2 restart gate, while same-head PR
+Web passed. The original trace identifies a test navigation precondition:
+after the Generate tab click, URL changes before the previous Score form is
+removed. At6744.387ms the Music style fill targets `score-regeneration`; at
+6755.477ms the new ordinary Generate form appears with empty style. Lyrics and
+seed then target the new form. Its required style remains empty, and original
+trace/network/API/retained SQLite show no Generate POST or Job. This is separate
+from the old0006 shutdown observation and does not show a runtime/transport
+failure. The ignored facts/timeline note is Root
+`.scratch/p4-development/45-ci-navigation-diagnosis.md`; original CI artifacts
+are preserved there under `45-ci-failure/`.
+
+The narrow test-only repair waits for the ordinary “Generate a music clip”
+button/form to be visible after tab navigation and before filling input. It
+changes only `p2-recovery.gate.ts`; the shared helper, product source, original
+Candidate10000ms predicate, counts, restart assertions and retries0 remain.
+One focused original P2 gate passed1/1 in13.563248s at9ba plus that precondition:
+real API40556→8012 restart on29786, both creator journeys,2 Jobs/1 Version,
+unchanged persisted records/download bytes and no resubmission. API generations
+0/1, controller and production Web all have graceful receipts and independent
+PID/listener absence in worktree `.scratch/45-evidence/p2-navigation-resources.json`;
+JSON/log/complete public restart receipt are retained beside it. No additional
+matrix or native run was performed. Existing31 Cover and native evidence remain
+valid; Root owns changed-head review/CI/integration.
+
 Root owns independent Standards/Spec review, applicable final-head CI, the actual
 formal-browser/full Native GPU sample, complete audio decode/Player, true-parent
 explicit Version, restart/refresh/old-byte proof, compressed media, final merge
