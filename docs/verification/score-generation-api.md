@@ -85,8 +85,8 @@ enforcement afterward. Earlier migrations are unchanged.
 New fake Generate and Transcribe ABC use the native two-voice structure with
 the same eight/four note melodies and five/two-second symbolic durations.
 Existing stored Assets are not rewritten. Transcription MIDI bytes and the
-independent four timed pitch assertions are unchanged. The only old browser
-ABC literal and Node consumer note syntax assertion were updated. All six
+independent four timed pitch assertions are unchanged. Old browser and API
+ABC literals and the Node consumer note syntax assertion were updated. All six
 production-preview transcription browser checks pass, including Chinese/
 English, light/dark, notation, native downloads, refresh and failure recovery.
 Owned browser API and Web processes have successful graceful stop receipts
@@ -103,7 +103,17 @@ Astro reports no errors, and the static artifact contains 60 HTML pages with
 guide section registration; `docs/site.json` now registers `selected-score`
 for both languages.
 
-Final API and affected simplification logs are retained under
+The full API run collected 186 cases before the last bounded delta: 183 passed
+and three public transcription byte assertions exposed an old independent
+single-voice fixture literal. Those paths completed successfully but returned
+the new native representation. The expected literal was updated; its focused
+transcription checks preserve the original complete-result, lost-acknowledgement,
+readback-loss, original bytes and result-identity assertions. The final
+simplification delta also passed 33 affected HTTP/save/native/reopen/example
+cases in 48.34 seconds. The full log is retained as a failed run, not relabeled
+as green. Final-head hosted CI remains Root's check.
+
+API and affected simplification logs are retained under
 `.scratch/41-final-checks/`. Root owns independent final review, final-head
 CI, real GPU acceptance, main integration and public Pages readback.
 
