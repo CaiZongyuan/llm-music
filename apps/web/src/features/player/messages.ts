@@ -1,6 +1,7 @@
 import { defineMessages } from '../preferences/Preferences';
 
 export const playerMessages = defineMessages({
+  recovering: '正在重新载入原音频，恢复选定的位置…',
   returnCompare: '返回比较', commonRegion: '共同试听片段', candidate: '未保存候选', savedVersion: '已保存版本', ended: '已到末端 · 暂停',
   pairLost: '版本选择已失效。请重新选择已保存版本。', pairReadFailed: '无法确认比较版本。恢复原 Audio/ABC 文件后重新读取；已有历史保留。',
   storageWarning: '选择存储不可用；本次仍可比较，刷新恢复不保证。', refreshRule: '刷新只恢复仍有效的版本选择与 A/B 侧，从 0 秒暂停；播放位置和片段不保留。',
@@ -13,6 +14,7 @@ export const playerMessages = defineMessages({
   seek: '播放位置（秒）', region: '试听片段', start: '片段起点（秒）', end: '片段终点（秒）', apply: '设置片段', playRegion: '播放片段',
   invalidRegion: '起点必须小于终点，且片段须在音频时长内。', selected: '已选片段', clock: '播放时间', fake: 'CPU 测试音调', source: '原始音频',
 }, {
+  recovering: 'Reloading the original audio at the position you chose…',
   returnCompare: 'Return to comparison', commonRegion: 'Common listening region', candidate: 'Unsaved candidate', savedVersion: 'Saved version', ended: 'At the end · Paused',
   pairLost: 'Pair choices are unavailable. Choose saved versions again.', pairReadFailed: 'Comparison versions could not be confirmed. Restore original Audio/ABC files and reread; existing history remains.',
   storageWarning: 'Choice storage is unavailable. You can compare now; reload recovery is not guaranteed.', refreshRule: 'Reload restores only still-valid Version choices and the A/B side, paused at 0. Position and region are not retained.',

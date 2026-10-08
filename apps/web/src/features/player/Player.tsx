@@ -14,6 +14,7 @@ import './player.css';
 const waveModuleUrl = new URL('../../../node_modules/wavesurfer.js/dist/wavesurfer.esm.js', import.meta.url).href;
 const regionsModuleUrl = new URL('../../../node_modules/wavesurfer.js/dist/plugins/regions.esm.js', import.meta.url).href;
 type ListeningRegion = { start: number; end: number };
+type SeekIntent = { key: string; source: string; time: number; playing: boolean; bounded: boolean; reloaded: boolean };
 
 function clock(seconds: number) {
   const total = Math.max(0, Math.floor(seconds));
@@ -60,7 +61,8 @@ export function Player() {
   const t = useMessages(playerMessages), { theme } = usePreferences();
   const container = useRef<HTMLDivElement>(null), media = useRef<HTMLAudioElement>(null);
   const waveRef = useRef<WaveSurfer | null>(null), regions = useRef<RegionsPlugin | null>(null);
-  const loaded = useRef<{ key: string; source: string; score: PlayerScoreSelection | null } | null>(null);
+  const loaded = useRef<{ key: string; source: string; score: PlayerScoreSelection | null; duration: number; flac: boolean } | null>(null);
+  const seekIntent = useRef<SeekIntent | null>(null);
   const previous = useRef<PlayerSelection | null>(null);
   const intent = useRef({ time: 0, playing: false, bounded: false });
   const region = useRef<ListeningRegion | null>(null), limit = useRef(0);
@@ -73,6 +75,7 @@ export function Player() {
   const [start, setStart] = useState('0'), [end, setEnd] = useState('0');
   const [regionInvalid, setRegionInvalid] = useState(false), [regionReset, setRegionReset] = useState(false);
   const [hasRegion, setHasRegion] = useState(false);
+  const [reloadAttempt, setReloadAttempt] = useState(0), [recovering, setRecovering] = useState(false);
   const versions = useQuery({ ...versionsOptions(projectId), enabled: Boolean(compare) });
   const version = compare ? versions.data?.find(value => value.id === compare.pair[compare.pair.side] && value.project_id === projectId && value.audio_asset_id) : null;
   const other = compare?.pair.b ? versions.data?.find(value => value.id === compare.pair[compare.pair.side === 'a' ? 'b' : 'a'] && value.project_id === projectId && value.audio_asset_id) : null;
@@ -101,7 +104,25 @@ export function Player() {
   }
   function failPlayback() {
     intent.current.playing = false; intent.current.bounded = false; loaded.current = null;
-    publishScorePlayback(null); waveRef.current?.pause(); setReady(false); setPlaying(false); setContinuation(false); setFailed(true);
+    publishScorePlayback(null); waveRef.current?.pause(); setReady(false); setPlaying(false); setContinuation(false); setRecovering(false); setFailed(true);
+  }
+  function stopAtRegionEnd(element: HTMLAudioElement) {
+    if (!intent.current.bounded || !region.current || element.currentTime < region.current.end) return;
+    intent.current.bounded = false; intent.current.playing = false;
+    element.pause(); waveRef.current?.setTime(region.current.end);
+  }
+  function recoverSeek(element: HTMLAudioElement, request: SeekIntent | null, length: number, flac: boolean) {
+    const error = element.error;
+    if (!flac || !request || request.key !== playerMediaKey(playerSelection()) || request.source !== element.currentSrc
+      || request.reloaded || request.time < 0 || request.time > length
+      || error?.code !== 2 || !error.message.includes('demuxer seek failed')) return false;
+    // Each explicit seek has one reload budget; original bytes and the native element are retained.
+    request.reloaded = true;
+    intent.current = { time: request.time, playing: request.playing, bounded: request.bounded };
+    loaded.current = null; publishScorePlayback(null); waveRef.current?.pause();
+    setReady(false); setFailed(false); setPlaying(false); setContinuation(request.playing); setTime(request.time);
+    setRecovering(true); setReloadAttempt(attempt => attempt + 1);
+    return true;
   }
   useEffect(() => {
     const element = media.current;
@@ -110,15 +131,17 @@ export function Player() {
     function sync(event: Event) {
       if (!owned() || !element) { if (event.type === 'play') element?.pause(); return; }
       if (!intent.current.playing && !element.paused) { element.pause(); return; }
-      if (intent.current.bounded && region.current && element.currentTime >= region.current.end) {
-        intent.current.bounded = false; intent.current.playing = false; element.pause(); waveRef.current?.setTime(region.current.end);
-      }
+      stopAtRegionEnd(element);
+      if (event.type === 'seeked' && !element.seeking && !element.error && seekIntent.current?.source === element.currentSrc) seekIntent.current = null;
       intent.current.time = element.currentTime; intent.current.playing = !element.paused && !element.ended;
       setTime(element.currentTime); setPlaying(intent.current.playing); setContinuation(false);
       const score = loaded.current?.score;
       publishScorePlayback(score ? { projectId: score.projectId, abcSha256: score.abcSha256, time: element.currentTime, playing: intent.current.playing } : null);
     }
-    function errored() { if (owned()) failPlayback(); }
+    function errored() {
+      if (!owned() || !element) return;
+      if (!recoverSeek(element, seekIntent.current, loaded.current?.duration ?? 0, loaded.current?.flac ?? false)) failPlayback();
+    }
     const events = ['timeupdate', 'play', 'pause', 'seeking', 'seeked', 'ended'];
     events.forEach(name => element.addEventListener(name, sync)); element.addEventListener('error', errored);
     return () => { events.forEach(name => element.removeEventListener(name, sync)); element.removeEventListener('error', errored); publishScorePlayback(null); };
@@ -135,11 +158,7 @@ export function Player() {
         const element = media.current;
         if (!element || loaded.current?.key !== playerMediaKey(playerSelection()) || loaded.current.source !== element.currentSrc) return;
         // An SDK event can retain the previous end during a native seek. The audio element owns time.
-        const value = element.currentTime;
-        setTime(value);
-        if (intent.current.bounded && region.current && value >= region.current.end) {
-          intent.current.bounded = false; intent.current.playing = false; instance?.pause(); instance?.setTime(region.current.end);
-        }
+        stopAtRegionEnd(element); setTime(element.currentTime);
       });
       instance.on('interaction', () => { intent.current.bounded = false; });
       regionPlugin.on('region-update', () => { intent.current.bounded = false; });
@@ -160,7 +179,7 @@ export function Player() {
     intent.current = continuing ? { time: wasReady ? media.current?.currentTime ?? 0 : intent.current.time, playing: wasReady ? Boolean(media.current && !media.current.paused && !media.current.ended) : intent.current.playing, bounded: intent.current.bounded }
       : { time: 0, playing: selection?.kind === 'score', bounded: false };
     if (!compare || earlier?.kind !== 'compare' || earlier.projectId !== projectId) { region.current = null; setHasRegion(false); setStart('0'); setEnd('0'); setRegionReset(false); setRegionInvalid(false); }
-    previous.current = selection; loaded.current = null; publishScorePlayback(null); wave?.pause(); regions.current?.clearRegions();
+    previous.current = selection; loaded.current = null; seekIntent.current = null; setRecovering(false); publishScorePlayback(null); wave?.pause(); regions.current?.clearRegions();
     setReady(false); setFailed(false); setPlaying(false); setContinuation(intent.current.playing); setTime(intent.current.time); setDuration(0);
   }, [wave, key]);
   useEffect(() => {
@@ -182,11 +201,15 @@ export function Player() {
       if (!owned() || !media.current) return;
       loaded.current = null; wave.pause(); setReady(false);
       try {
+        const request = seekIntent.current;
+        const reloading = request?.key === key && request.reloaded && request.source === media.current.currentSrc;
+        if (reloading) media.current.load();
         // A validated duration bypasses corrupt files' missing metadata; actual bytes are still decoded.
-        await wave.loadBlob(blob, undefined, knownLength);
+        else await wave.loadBlob(blob, undefined, knownLength);
         if (!owned()) return;
         await playableMedia(media.current);
         if (!owned()) return;
+        if (reloading && media.current.currentTime !== 0) throw new Error('Native audio reload did not reset playback');
         const length = media.current.duration;
         let position = 0;
         // A seek made while loading wins over the earlier captured position.
@@ -198,32 +221,50 @@ export function Player() {
           if (Math.min(intent.current.time, length) === position) break;
         }
         if (!owned()) return;
-        intent.current.time = position; loaded.current = { key, source: media.current.currentSrc, score };
-        setTime(position); setDuration(length); setReady(true); setFailed(false);
+        intent.current.time = position; loaded.current = { key, source: media.current.currentSrc, score, duration: length, flac: !score && asset.data?.format === 'flac' };
+        if (seekIntent.current?.key === key && seekIntent.current.reloaded) seekIntent.current.source = media.current.currentSrc;
+        setTime(position); setDuration(length); setReady(true); setFailed(false); setRecovering(false);
         if (!compare && !region.current) { region.current = { start: 0, end: Math.min(10, length) }; setStart('0'); setEnd(String(region.current.end)); }
         if (!compare?.pair.b) limit.current = length;
         if (region.current && limit.current > 0 && !validRegion(region.current, limit.current)) { region.current = null; intent.current.bounded = false; setRegionReset(true); }
         showRegion();
         if (intent.current.playing) { await wave.play(); if (owned() && !intent.current.playing) wave.pause(); }
-      } catch { if (owned()) failPlayback(); }
+      } catch {
+        if (owned() && media.current && !recoverSeek(media.current, seekIntent.current, knownLength, !score && asset.data?.format === 'flac')) failPlayback();
+      }
     });
     return () => { disposed = true; };
-  }, [wave, key, content.data, knownLength, comparisonValid, readFailed]);
+  }, [wave, key, content.data, knownLength, comparisonValid, readFailed, reloadAttempt]);
   useEffect(() => { wave?.setOptions(waveColors()); }, [wave, theme]);
 
-  function pause() { intent.current.playing = false; intent.current.bounded = false; wave?.pause(); setPlaying(false); setContinuation(false); }
+  function pause() {
+    intent.current.playing = false; intent.current.bounded = false;
+    if (seekIntent.current?.key === key) { seekIntent.current.playing = false; seekIntent.current.bounded = false; }
+    wave?.pause(); setPlaying(false); setContinuation(false);
+  }
+  function moveMedia(value: number) {
+    if (!wave || !loaded.current) return;
+    seekIntent.current = { key, source: loaded.current.source, time: value, playing: intent.current.playing, bounded: intent.current.bounded, reloaded: false };
+    intent.current.time = value; wave.setTime(value);
+  }
   async function play(regionOnly = false) {
-    if (!wave || !currentReady) return;
+    if (!wave || !loaded.current || loaded.current.key !== key || loaded.current.source !== media.current?.currentSrc) return;
     if (regionOnly && (!region.current || !validRegion(region.current, limit.current))) { setRegionInvalid(true); return; }
     intent.current.bounded = regionOnly; intent.current.playing = true;
-    if (regionOnly && region.current) wave.setTime(region.current.start);
-    else if (media.current?.ended || (media.current?.currentTime ?? 0) >= duration) wave.setTime(0);
-    try { await wave.play(); if (playerMediaKey(playerSelection()) === key && !intent.current.playing) wave.pause(); }
-    catch { if (playerMediaKey(playerSelection()) === key) failPlayback(); }
+    if (regionOnly && region.current) moveMedia(region.current.start);
+    else if (media.current?.ended || (media.current?.currentTime ?? 0) >= duration) moveMedia(0);
+    const receipt = loaded.current;
+    try { await wave.play(); if (playerMediaKey(playerSelection()) === key && loaded.current === receipt && !intent.current.playing) wave.pause(); }
+    catch { if (playerMediaKey(playerSelection()) === key && loaded.current === receipt) failPlayback(); }
   }
   function seek(value: number) {
-    intent.current.bounded = false; intent.current.time = Math.max(0, Math.min(value, currentReady ? duration : knownLength));
-    if (currentReady) wave?.setTime(intent.current.time);
+    const element = media.current, receipt = loaded.current;
+    if (!element || playerMediaKey(playerSelection()) !== key) return;
+    const readyNow = receipt?.key === key && receipt.source === element.currentSrc;
+    intent.current.bounded = false; intent.current.time = Math.max(0, Math.min(value, readyNow ? receipt.duration : knownLength));
+    // Native errors invalidate the receipt before React paints; capture the next real input anyway.
+    seekIntent.current = { key, source: element.currentSrc, time: intent.current.time, playing: intent.current.playing, bounded: false, reloaded: false };
+    if (readyNow && !element.error) wave?.setTime(intent.current.time);
     setTime(intent.current.time);
   }
   function applyRegion() {
@@ -232,7 +273,7 @@ export function Player() {
     region.current = proposed; intent.current.bounded = false; setRegionInvalid(false); setRegionReset(false); showRegion();
   }
   function reread() {
-    pause(); loaded.current = null; setReady(false); setFailed(false);
+    pause(); loaded.current = null; seekIntent.current = null; setReady(false); setFailed(false); setRecovering(false);
     if (!wave || selection?.kind === 'score') { setInitializationFailed(false); setInitializationAttempt(attempt => attempt + 1); }
     if (compare) { void versions.refetch(); if (other) void otherAsset.refetch(); }
     if (isAsset) { void content.refetch(); void asset.refetch(); }
@@ -252,7 +293,7 @@ export function Player() {
       <div className="wave-container" style={{ visibility: currentReady ? 'visible' : 'hidden' }} ref={container} /><output aria-label={t.clock}>{clock(time)} / {clock(currentReady ? duration : knownLength)}</output>
       <label className="seek-label"><span className="visually-hidden">{t.seek}</span><input type="range" aria-label={t.seek} min={0} max={currentReady ? duration : knownLength} step={0.1} value={time} disabled={!seekAvailable} onChange={event => seek(Number(event.target.value))} /></label>
     </div>
-    {controlsFailed ? <div className="player-error" role="alert"><span>{initializationFailed ? t.unavailable : pairMissing ? t.pairLost : compare && versions.isError ? t.pairReadFailed : t.failed}</span><button type="button" onClick={reread}>{t.retry}</button>{compare ? <Link to="/projects/$projectId/versions" params={{ projectId }}>{t.choosePair}</Link> : null}</div> : selection && !currentReady ? <small role="status">{t.loading}</small> : currentReady && time >= duration ? <small role="status">{t.ended}</small> : null}
+    {controlsFailed ? <div className="player-error" role="alert"><span>{initializationFailed ? t.unavailable : pairMissing ? t.pairLost : compare && versions.isError ? t.pairReadFailed : t.failed}</span><button type="button" onClick={reread}>{t.retry}</button>{compare ? <Link to="/projects/$projectId/versions" params={{ projectId }}>{t.choosePair}</Link> : null}</div> : selection && !currentReady ? <small role="status">{recovering ? t.recovering : t.loading}</small> : currentReady && time >= duration ? <small role="status">{t.ended}</small> : null}
     {compare && choice.notice === 'storage' ? <p className="player-notice" role="alert">{t.storageWarning}</p> : null}
     {compare ? <p className="player-notice">{t.refreshRule}</p> : null}
     {selection ? <details className="player-regions"><summary>{compare?.pair.b ? t.commonRegion : t.region}</summary><div className="region-fields"><label>{t.start}<input type="number" step="0.1" min="0" max={regionLimit} value={start} onChange={event => setStart(event.target.value)} /></label><label>{t.end}<input type="number" step="0.1" min="0" max={regionLimit} value={end} onChange={event => setEnd(event.target.value)} /></label><button type="button" disabled={!currentReady || !regionLimit} onClick={applyRegion}>{t.apply}</button><button type="button" disabled={!currentReady || !hasRegion || regionReset} onClick={() => void play(true)}>{t.playRegion}</button></div>{regionInvalid ? <p role="alert">{compare?.pair.b ? t.invalidCommonRegion : t.invalidRegion}</p> : null}{regionReset ? <p role="alert">{t.regionReset}</p> : null}<p className="field-help">{t.regionRule}</p></details> : null}
