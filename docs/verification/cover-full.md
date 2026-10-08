@@ -101,6 +101,30 @@ Pinned-source preparation is Root `.scratch/p4-development/45-fresh-preparation.
 
 ## Remaining delivery
 
+The independent first full browser tracer completed literal full/chord MIDI,
+Job/Candidate/audio/source/parent/save/reload checks, then failed the original
+zh-CN/dark390 document-width assertion:463px instead of390. Its screenshot,
+trace/log/result/resource packet are retained in worktree `.scratch/45-browser-*`.
+The author repeated this exact failing path with the tester's read-only geometry
+attachment: the64-character effective hash's `<small>` box ended at352px, but
+its text reached463.359375px with `overflow-wrap:normal`. Shared input-snapshot
+CSS wrapped paragraphs/links/preformatted ABC but omitted this hash element.
+
+The narrow repair adds `<small>` to that existing wrap rule. All64 hash
+characters remain visible; no clipping, hiding, viewport, budget or data change
+was made. Web build/strict check passes. The unchanged original full tracer and
+both cold390 melody language/theme cases passed3/3 in30.423s; the same hash text
+now ends at351.609375px, scrollWidth314px inside its314px content box, with
+`overflow-wrap:anywhere`. The document retains the original390px predicate.
+This is author repair validation, not an independent final full-suite claim.
+
+Red API54852:46758/Web57764:39366 and green API50604:28173/Web62360:22436 have
+graceful runner receipts plus independent PID/listener absence readback. Exact
+identities are authoritative in `.scratch/45-evidence/overflow-resources.json`;
+raw red/green logs, results, geometry and retained red screenshot/trace remain
+in that evidence directory. Native/GPU was not called. The shared-reader CSS
+delta leaves valid API/native/codec/source/recovery evidence unchanged.
+
 Root's independent browser tester owns only `cover.controlled.ts` and
 `cover-fixtures.ts`, preserving the shipped21 cases/held-Origin regressions and
 adding bounded full/mode/ACK/failure facts. Primary author has handed off the
