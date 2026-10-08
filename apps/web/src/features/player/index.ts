@@ -1,7 +1,7 @@
 export type PlayerAssetSelection = { kind?: 'asset'; projectId: string; assetId: string; label: string };
 export type PlayerScoreSelection = { kind: 'score'; projectId: string; id: string; label: string; revision: number; abcSha256: string; blob: Blob; durationSeconds: number };
 export type ComparePair = { a: string; b: string | null; side: 'a' | 'b' };
-export type PlayerCompareSelection = { kind: 'compare'; projectId: string; pair: ComparePair };
+export type PlayerCompareSelection = { kind: 'compare'; projectId: string; pair: ComparePair; preserveTime: boolean };
 export type PlayerSelection = PlayerAssetSelection | PlayerScoreSelection | PlayerCompareSelection;
 export type ScorePlayback = { projectId: string; abcSha256: string; time: number; playing: boolean } | null;
 
@@ -25,8 +25,9 @@ export function selectPlayerScore(next: PlayerScoreSelection): void {
 }
 
 export function playerSelection(): PlayerSelection | null { return selection; }
-export function selectPlayerCompare(projectId: string, pair: ComparePair): void {
-  selection = { kind: 'compare', projectId, pair: Object.freeze({ ...pair }) };
+export function selectPlayerCompare(projectId: string, pair: ComparePair, preserveTime = false): void {
+  if (preserveTime && selection?.kind === 'compare' && selection.projectId === projectId && selection.pair.a === pair.a && selection.pair.b === pair.b && selection.pair.side === pair.side) return;
+  selection = { kind: 'compare', projectId, pair: Object.freeze({ ...pair }), preserveTime };
   publishScorePlayback(null);
   listeners.forEach(listener => listener());
 }

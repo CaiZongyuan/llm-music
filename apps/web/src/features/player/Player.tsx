@@ -6,7 +6,7 @@ import { api, dataOf } from '../../lib/api';
 import { assetOptions } from '../assets/queries';
 import { versionsOptions } from '../versions/queries';
 import { useMessages, usePreferences } from '../preferences/Preferences';
-import { playerSelection, publishScorePlayback, selectPlayerCompare, subscribePlayerSelection, type PlayerScoreSelection } from './index';
+import { playerSelection, publishScorePlayback, selectPlayerCompare, subscribePlayerSelection, type PlayerScoreSelection, type PlayerSelection } from './index';
 import { playerMessages } from './messages';
 import './player.css';
 
@@ -33,6 +33,22 @@ function loadPlayerModules(attempt: number): Promise<[typeof import('wavesurfer.
   return Promise.all([import(/* @vite-ignore */ resource(waveModuleUrl)), import(/* @vite-ignore */ resource(regionsModuleUrl))]);
 }
 
+function playableMedia(element: HTMLAudioElement): Promise<void> {
+  const playable = () => element.readyState >= 2 && Number.isFinite(element.duration) && element.duration > 0;
+  if (element.error) return Promise.reject(new Error('Native audio cannot play'));
+  if (playable()) return Promise.resolve();
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => finish(new Error('Native audio did not become playable')), 5_000);
+    function finish(error?: Error) {
+      clearTimeout(timer); element.removeEventListener('loadeddata', loaded); element.removeEventListener('canplay', loaded); element.removeEventListener('error', failed);
+      if (error) reject(error); else resolve();
+    }
+    function loaded() { if (playable()) finish(); }
+    function failed() { finish(new Error('Native audio cannot play')); }
+    element.addEventListener('loadeddata', loaded); element.addEventListener('canplay', loaded); element.addEventListener('error', failed, { once: true });
+  });
+}
+
 export function Player() {
   const selection = useSyncExternalStore(subscribePlayerSelection, playerSelection);
   const t = useMessages(playerMessages);
@@ -42,6 +58,8 @@ export function Player() {
   const loadedScore = useRef<PlayerScoreSelection | null>(null);
   const regions = useRef<RegionsPlugin | null>(null);
   const loadQueue = useRef(Promise.resolve());
+  const previous = useRef<PlayerSelection | null>(null);
+  const intent = useRef({ time: 0, playing: false });
   const bounded = useRef(false);
   const [initializationAttempt, setInitializationAttempt] = useState(0);
   const [initializationFailed, setInitializationFailed] = useState(false);
@@ -107,11 +125,15 @@ export function Player() {
   }, [initializationAttempt]);
 
   useEffect(() => {
+    const earlier = previous.current;
+    const continuing = selection?.kind === 'compare' && selection.preserveTime && earlier?.kind === 'compare' && earlier.projectId === selection.projectId && earlier.pair.a === selection.pair.a && earlier.pair.b === selection.pair.b;
+    intent.current = continuing ? { time: ready ? media.current?.currentTime ?? 0 : intent.current.time, playing: ready ? Boolean(media.current && !media.current.paused && !media.current.ended) : intent.current.playing } : { time: 0, playing: false };
+    previous.current = selection;
     bounded.current = false;
     loadedScore.current = null; publishScorePlayback(null);
-    wave?.pause(); setReady(false); setFailed(false); setPlaying(false); setTime(0); setDuration(0);
+    wave?.pause(); setReady(false); setFailed(false); setPlaying(false); setTime(intent.current.time); setDuration(0);
     regions.current?.clearRegions();
-  }, [wave, projectId, selectionId]);
+  }, [wave, selection]);
 
   useEffect(() => {
     if (!wave || !selection) return;
@@ -127,13 +149,19 @@ export function Player() {
       try {
         if (!length || !Number.isFinite(length)) throw new Error('Audio duration is unavailable');
         await wave.loadBlob(blob, undefined, length);
+        if (media.current) await playableMedia(media.current);
         if (disposed) return;
+        const nativeDuration = media.current?.duration;
+        if (!nativeDuration || !Number.isFinite(nativeDuration)) throw new Error('Native duration is unavailable');
         loadedScore.current = score;
-        setDuration(length); setReady(true); setFailed(false);
+        const position = Math.min(intent.current.time, nativeDuration);
+        if (position >= nativeDuration) intent.current.playing = false;
+        wave.setTime(position);
+        setTime(position); setDuration(nativeDuration); setReady(true); setFailed(false);
         regions.current?.clearRegions();
-        regions.current?.addRegion({ id: 'listening', start: 0, end: Math.min(10, length), color: 'color-mix(in srgb, var(--accent) 20%, transparent)', drag: true, resize: true, minLength: Math.min(0.1, length) });
-        setStart('0'); setEnd(String(Math.min(10, length))); setRegionInvalid(false);
-        if (score) await wave.play();
+        regions.current?.addRegion({ id: 'listening', start: 0, end: Math.min(10, nativeDuration), color: 'color-mix(in srgb, var(--accent) 20%, transparent)', drag: true, resize: true, minLength: Math.min(0.1, nativeDuration) });
+        setStart('0'); setEnd(String(Math.min(10, nativeDuration))); setRegionInvalid(false);
+        if (score || intent.current.playing) await wave.play();
       } catch { if (!disposed) { loadedScore.current = null; publishScorePlayback(null); setFailed(true); setReady(false); } }
     });
     return () => { disposed = true; };
@@ -165,7 +193,7 @@ export function Player() {
   return <footer id="persistent-player" className="continuous-player" aria-label={t.player}>
     <audio ref={media} hidden preload="metadata" />
     <div className="player-title"><strong>{compare ? `${compare.pair.side.toUpperCase()} · ${version?.name ?? t.chooseVersion}` : selection && selection.kind !== 'compare' ? selection.label : t.empty}</strong><small>{selection?.kind === 'score' ? `${t.scoreTone} · r${selection.revision}` : selection ? asset.data?.kind === 'reference_audio' ? t.source : t.player : t.emptyHelp}</small>
-      {compare ? <div className="feature-actions"><button type="button" onClick={() => selectPlayerCompare(projectId, { ...compare.pair, side: 'a' })}>{t.switchA}</button><button type="button" disabled={!compare.pair.b} onClick={() => selectPlayerCompare(projectId, { ...compare.pair, side: 'b' })}>{t.switchB}</button></div> : null}</div>
+      {compare ? <div className="feature-actions"><button type="button" onClick={() => selectPlayerCompare(projectId, { ...compare.pair, side: 'a' }, true)}>{t.switchA}</button><button type="button" disabled={!compare.pair.b} onClick={() => selectPlayerCompare(projectId, { ...compare.pair, side: 'b' }, true)}>{t.switchB}</button></div> : null}</div>
     <div className="player-main"><button type="button" disabled={!selection || !ready || failed} onClick={() => playing ? wave?.pause() : void play()} aria-label={playing ? t.pause : t.play}>{playing ? 'Ⅱ' : '▶'}</button>
       <div className="wave-container" style={{ visibility: ready ? 'visible' : 'hidden' }} ref={container} /><output aria-label={t.clock}>{clock(time)} / {clock(duration)}</output>
       <label className="seek-label"><span className="visually-hidden">{t.seek}</span><input type="range" aria-label={t.seek} min={0} max={duration || 0} step={0.1} value={time} disabled={!selection || !ready} onChange={event => { bounded.current = false; wave?.setTime(Number(event.target.value)); }} /></label>
