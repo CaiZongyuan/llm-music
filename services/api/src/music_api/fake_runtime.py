@@ -14,7 +14,10 @@ from music_api.runtime_types import (OPERATIONS, CapabilityObservation, Operatio
 from music_api.workflow_registry import WorkflowRegistry
 
 
-ABC = b"X:1\nM:4/4\nL:1/4\nK:C\nC D E F |\n"
+ABC = (b'X:1\nT:\nM:4/4\nL:1/16\nQ:1/4=120\n'
+       b'V: Vocal clef=treble name="Vocal Melody" snm="Vocal"\n'
+       b'V: Ins clef=treble name="Ins Melody" snm="Inst."\n'
+       b'K:C\n% verse\nV: Vocal\nC4 D4 E4 F4 |\nV: Ins\nZ |\n')
 MIDI_EVENTS = b"\x00\xff\x51\x03\x07\xa1\x20" + b"".join(b"\x00\x90" + bytes([pitch, 64]) + b"\x83\x60\x80" + bytes([pitch, 0]) for pitch in [60, 62, 64, 65]) + b"\x00\xff\x2f\x00"
 MIDI = b"MThd" + struct.pack(">IHHH", 6, 0, 1, 480) + b"MTrk" + struct.pack(">I", len(MIDI_EVENTS)) + MIDI_EVENTS
 
@@ -34,16 +37,20 @@ class FakeInferenceRuntime:
             provenance={"runtime_kind": "fake", "validation_scope": "legal CPU fixture; no model inference"},
             score_validation={"valid": True, "note_count": 4, "duration_seconds": 2})}
         self._requests: dict[str, tuple[RuntimeRequest, float]] = {}
+        self._results: dict[str, RuntimeResult] = {}
         self._cancelled: set[str] = set()
 
     def health(self) -> RuntimeObservation:
         nodes = frozenset(node for operation in self.results.keys() | self.result_factories.keys() for node in self.registry.workflow(operation).required_nodes)
-        return RuntimeObservation("fake", "Identified CPU Runtime fixtures", datetime.now(timezone.utc), True, registered_nodes=nodes)
+        return RuntimeObservation("fake", "Identified CPU Runtime fixtures", datetime.now(timezone.utc), True, registered_nodes=nodes,
+                                  node_inputs={"YuE2GenerateSong": {"score_abc": "STRING"}} if "GenerateFromScore" in self.results.keys() | self.result_factories.keys() else {})
 
     def capabilities(self, observation: RuntimeObservation | None = None) -> tuple[CapabilityObservation, ...]:
         value = observation or self.health()
-        return tuple(evaluate_readiness(value, self.registry.requirements(), self.registry.workflow(operation), now=datetime.now(timezone.utc), max_age_seconds=self.max_age_seconds)
-                     for operation in OPERATIONS)
+        capabilities = tuple(evaluate_readiness(value, self.registry.requirements(), self.registry.workflow(operation), now=datetime.now(timezone.utc), max_age_seconds=self.max_age_seconds)
+                             for operation in OPERATIONS)
+        return tuple(item if item.operation in self.results.keys() | self.result_factories.keys() else
+                     replace(item, ready=False, reasons=tuple(dict.fromkeys((*item.reasons, "capability_missing")))) for item in capabilities)
 
     def submit(self, request: RuntimeRequest) -> SubmissionReceipt:
         capability = next(item for item in self.capabilities() if item.operation == request.operation)
@@ -52,11 +59,18 @@ class FakeInferenceRuntime:
         handle = str(uuid4())
         if request.operation in self.result_factories:
             self.results[request.operation] = self.result_factories[request.operation]()
+        result = self.results[request.operation]
+        if request.operation == "GenerateFromScore":
+            from music_api.score_input import effective_score_abc, selected_score_validation
+            abc = effective_score_abc(str(request.inputs["abc"]))[0]
+            result = replace(result, artifacts=tuple(replace(artifact, data=abc.encode("utf-8")) if artifact.role == "abc" else artifact
+                                                     for artifact in result.artifacts), score_validation=selected_score_validation(abc))
+        self._results[handle] = result
         self._requests[handle] = (request, time.monotonic())
         if self.output_dir is not None:
             folder = self.output_dir / handle
             folder.mkdir(parents=True)
-            for artifact in self.results[request.operation].artifacts:
+            for artifact in result.artifacts:
                 (folder / (artifact.role + "." + artifact.format)).write_bytes(artifact.data)
         return SubmissionReceipt("accepted", handle)
 
@@ -107,7 +121,7 @@ class FakeInferenceRuntime:
     def result(self, handle: str, operation: Operation) -> RuntimeResult:
         if self._requests[handle][0].operation != operation:
             raise ValueError("Fixture result does not match its operation")
-        result = self.results[operation]
+        result = self._results.get(handle, self.results[operation])
         if self.output_dir is None:
             return result
         artifacts = tuple(replace(artifact, data=(self.output_dir / handle / (artifact.role + "." + artifact.format)).read_bytes()) for artifact in result.artifacts)

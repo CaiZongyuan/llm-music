@@ -1,0 +1,69 @@
+{
+  "schema_version": 1,
+  "id": "generate-from-score-yue2",
+  "version": "1.0.0",
+  "operation": "GenerateFromScore",
+  "required_models": [
+    "yue2-bf16"
+  ],
+  "required_nodes": [
+    "YuE2Options",
+    "YuE2GenerateSong",
+    "SaveAudio",
+    "PreviewAny"
+  ],
+  "runtime_revision": "7a5dad695fe1cae25efcb2550530fb20ef68da3d",
+  "plugin_revision": "fc78df9dfb214f396aa281f5b03519cefff5b00a",
+  "input_mapping": {
+    "style": {
+      "node": "2",
+      "input": "style"
+    },
+    "lyrics": {
+      "node": "2",
+      "input": "lyrics"
+    },
+    "seed": {
+      "node": "2",
+      "input": "seed"
+    },
+    "max_seconds": {
+      "node": "1",
+      "input": "max_seconds"
+    },
+    "abc": {
+      "node": "2",
+      "input": "score_abc"
+    }
+  },
+  "output_mapping": {
+    "audio": {
+      "node": "3",
+      "key": "audio"
+    },
+    "score": {
+      "node": "4",
+      "key": "text"
+    }
+  },
+  "core_node": "2",
+  "settings_node": "1",
+  "audio_duration_seconds": {
+    "minimum": 30,
+    "maximum": 40
+  },
+  "notes": "Pinned score_abc input skips score planning. Exact ABC input and operation settings are retained; original G35 defaults and original lossless FLAC import are reused.",
+  "required_node_inputs": {
+    "YuE2GenerateSong": {
+      "score_abc": "STRING"
+    }
+  },
+  "score_adapter": {
+    "version": "1.0.0",
+    "rules": [
+      "remove_matching_native_words_markers",
+      "guard_bare_score_with_neutral_section_comment"
+    ],
+    "invariants": "Preserve all musical lines, voice order, notes, bar grid, meter, keys, tempo and chords; retain original and effective ABC separately."
+  }
+}

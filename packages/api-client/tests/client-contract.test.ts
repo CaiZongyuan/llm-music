@@ -4,7 +4,7 @@ import { readFile, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
-import { jobEventsUrl, type GenerateCreate, type JobRead } from '../src/index.js';
+import { jobEventsUrl, type GenerateCreate, type GenerateFromScoreCreate, type JobRead } from '../src/index.js';
 import { dataOf, events, referenceWav, sha256, startApi, terminal, waitFor, type OwnedApi } from './support.js';
 
 const generation: GenerateCreate = {
@@ -28,6 +28,49 @@ function resultId(job: JobRead, role: string): string {
   assert.ok(id, `Completed Job lacks ${role}`);
   return id;
 }
+
+test('generated client submits selected native ABC and retains its source parent on explicit save', async () => {
+  const api = await startApi();
+  try {
+    const project = dataOf(await api.client.POST('/projects', { body: { name: 'Selected morning melody' } }), 201);
+    const projectPath = { project_id: project.id };
+    const first = dataOf(await api.client.POST('/projects/{project_id}/jobs/generate', {
+      params: { path: projectPath }, body: { ...generation, seed: 2026411001 },
+    }), 202);
+    const planned = await terminal(api, project.id, first.id);
+    assert.equal(planned.status, 'completed');
+    const parent = dataOf(await api.client.POST('/projects/{project_id}/versions', {
+      params: { path: projectPath }, body: { candidate_id: resultId(planned, 'candidate_id'), name: 'Original melody' },
+    }), 201);
+    const original = await inspectAsset(api, project.id, resultId(planned, 'abc_asset_id'));
+    const abc = Buffer.from(original.bytes).toString().replace('D4', 'F4');
+    const selected: GenerateFromScoreCreate = {
+      ...generation, seed: 2026411002, abc, source_score_id: parent.score_id, parent_version_id: parent.id,
+    };
+    const response = dataOf(await api.client.POST('/projects/{project_id}/jobs/generate-from-score', {
+      params: { path: projectPath }, body: selected,
+    }), 202);
+    const subscription = await events(api, project.id, response.id);
+    const job = await terminal(api, project.id, response.id);
+    assert.equal(job.status, 'completed');
+    assert.equal(job.operation, 'GenerateFromScore');
+    assert.deepEqual(job.inputs, selected);
+    await waitFor(() => subscription.messages, values => values.some(value => value.job.status === 'completed'), 'selected Score completion event');
+    subscription.socket.close(); await subscription.closed;
+    const candidate = dataOf(await api.client.GET('/projects/{project_id}/candidates/{candidate_id}', {
+      params: { path: { ...projectPath, candidate_id: resultId(job, 'candidate_id') } },
+    }));
+    assert.deepEqual(candidate.inputs, selected);
+    assert.equal(Buffer.from((await inspectAsset(api, project.id, resultId(job, 'abc_asset_id'))).bytes).toString(), abc.trim());
+    assert.deepEqual(dataOf(await api.client.GET('/projects/{project_id}/versions', { params: { path: projectPath } })), [parent]);
+    const saved = dataOf(await api.client.POST('/projects/{project_id}/versions', {
+      params: { path: projectPath }, body: { candidate_id: candidate.id, name: 'Selected melody' },
+    }), 201);
+    assert.equal(saved.parent_version_id, parent.id);
+    assert.deepEqual(saved.inputs, selected);
+    assert.equal((await inspectAsset(api, project.id, original.asset.id)).sha256, original.sha256);
+  } finally { await api.stop(); }
+});
 
 test('native Node multipart, HTTP and WebSocket complete both loops and reopen selected data', async () => {
   const api = await startApi();
@@ -115,7 +158,7 @@ test('native Node multipart, HTTP and WebSocket complete both loops and reopen s
     const abc = await inspectAsset(api, project.id, score.abc_asset_id);
     const midi = await inspectAsset(api, project.id, resultId(transcribed, 'midi_asset_id'));
     assert.equal(abc.asset.media_type, 'text/vnd.abc');
-    assert.match(Buffer.from(abc.bytes).toString(), /C D E F/);
+    assert.match(Buffer.from(abc.bytes).toString(), /C4 D4 E4 F4/);
     assert.equal(midi.asset.media_type, 'audio/midi');
     assert.equal(Buffer.from(midi.bytes).subarray(0, 4).toString(), 'MThd');
     const assets = dataOf(await api.client.GET('/projects/{project_id}/assets', { params: { path: projectPath } }));

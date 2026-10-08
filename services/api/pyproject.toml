@@ -35,3 +35,4 @@ testpaths = ["tests"]
 [tool.mypy]
 python_version = "3.12"
 strict = true
+exclude = ["src/music_api/vendor/yue2_music/abc_tools.py"]

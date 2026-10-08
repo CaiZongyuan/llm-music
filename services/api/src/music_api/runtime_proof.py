@@ -5,7 +5,7 @@ import hashlib
 import json
 from typing import Mapping, cast
 
-from music_api.runtime_types import Operation, RuntimeMode, RuntimeRequest
+from music_api.runtime_types import OPERATIONS, Operation, RuntimeMode, RuntimeRequest
 from music_api.workflow_registry import WorkflowDefinition
 
 
@@ -41,7 +41,7 @@ def validate(request: RuntimeRequest, mode: RuntimeMode, endpoint: str) -> dict[
 
 def workflow_from(value: Mapping[str, object]) -> WorkflowDefinition:
     item = value["workflow"]
-    if not isinstance(item, dict) or item.get("operation") not in {"Transcribe", "Generate"}:
+    if not isinstance(item, dict) or item.get("operation") not in OPERATIONS:
         raise ValueError("Original workflow is unavailable")
     for key in ("manifest", "graph"):
         if not isinstance(item.get(key), dict):

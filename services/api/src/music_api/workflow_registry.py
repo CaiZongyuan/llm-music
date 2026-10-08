@@ -62,6 +62,7 @@ class WorkflowRegistry:
         paths: dict[Operation, Path] = {
             "Transcribe": self.root / "runtime/comfyui/workflows/transcribe-sheetsage2/v1",
             "Generate": self.root / "workflows/generate",
+            "GenerateFromScore": self.root / "workflows/generate-from-score/v1",
         }
         self._workflows: dict[Operation, WorkflowDefinition] = {}
         for operation, directory in paths.items():
@@ -71,6 +72,9 @@ class WorkflowRegistry:
                                                          strings(manifest["required_models"]), strings(manifest["required_nodes"]),
                                                          hashlib.sha256(manifest_path.read_bytes()).hexdigest(),
                                                          hashlib.sha256(definition_path.read_bytes()).hexdigest(), manifest, graph)
+        score_settings = self.settings("GenerateFromScore")
+        if score_settings.get("cot") not in {"full", "melody"} or score_settings.get("transpose") != 0:
+            raise ValueError("GenerateFromScore must retain a Score and preserve its selected pitches")
 
     def requirements(self) -> RuntimeRequirements:
         return self._requirements

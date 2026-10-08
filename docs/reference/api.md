@@ -3,6 +3,7 @@
 ## 先选一个用法入口 {#usage}
 
 - [生成、试听 Candidate 与明确保存 Version](../guides/generate-save-api.md)
+- [从选定 ABC 生成新 Candidate](../guides/generate-save-api.md#selected-score)
 - [参考音频转谱与导出 ABC/MIDI](../guides/api-transcription.md)
 - [TypeScript client 与完整受控示例](../guides/api-client.md)
 - [Job 事件与 HTTP 恢复](../guides/api-job-events.md)

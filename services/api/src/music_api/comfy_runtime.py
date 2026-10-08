@@ -108,6 +108,7 @@ class ComfyUIRuntime:
     def health(self) -> RuntimeObservation:
         stats: dict[str, object] | None = None
         nodes: frozenset[str] | None = None
+        node_inputs: dict[str, dict[str, str]] = {}
         inventory: dict[str, tuple[str, ...]] | None = None
         stats_at, nodes_at, inventory_at = None, None, None
         reasons: list[str] = []
@@ -124,6 +125,13 @@ class ComfyUIRuntime:
             if not isinstance(raw_nodes, dict):
                 raise ValueError("Native node facts are not a JSON object")
             nodes = frozenset(cast(dict[str, object], raw_nodes))
+            for name, descriptor in raw_nodes.items():
+                inputs = descriptor.get("input") if isinstance(descriptor, dict) else None
+                if not isinstance(inputs, dict):
+                    continue
+                node_inputs[name] = {field: specification[0] for group in ("required", "optional")
+                                     for field, specification in (inputs.get(group, {}).items() if isinstance(inputs.get(group), dict) else [])
+                                     if isinstance(specification, list) and specification and isinstance(specification[0], str)}
             nodes_at = datetime.now(timezone.utc)
         except (OSError, ValueError):
             reasons.append("capability_observation_unavailable")
@@ -141,7 +149,7 @@ class ComfyUIRuntime:
         attestation = read_runtime_evidence(self.settings.runtime_evidence_path, runtime_url=self.url, now=now,
                                            max_age_seconds=self.settings.diagnostics_max_age_seconds, requirements=self.registry.requirements())
         return RuntimeObservation("comfyui", self.url, now, stats is not None, stats, nodes, inventory,
-                                  stats_at, nodes_at, inventory_at, attestation, tuple(reasons))
+                                  stats_at, nodes_at, inventory_at, attestation, tuple(reasons), node_inputs)
 
     def capabilities(self, observation: RuntimeObservation | None = None) -> tuple[CapabilityObservation, ...]:
         value = observation or self.health()
@@ -162,6 +170,9 @@ class ComfyUIRuntime:
             cast(dict[str, object], graph[str(binding["node"])]["inputs"])[str(binding["input"])] = value
         else:
             values = dict(request.inputs, max_seconds=35)
+            if request.operation == "GenerateFromScore":
+                from music_api.score_input import effective_score_abc
+                values["abc"] = effective_score_abc(str(request.inputs["abc"]))[0]
             for name, binding in mapping.items():
                 cast(dict[str, object], graph[str(binding["node"])]["inputs"])[str(binding["input"])] = values[name]
             outputs = cast(dict[str, dict[str, object]], workflow.manifest["output_mapping"])

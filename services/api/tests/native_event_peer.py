@@ -3,6 +3,7 @@
 PEER_SOURCE = '''
 import asyncio, base64, json, os, socket, sys, threading
 from pathlib import Path
+from dataclasses import replace
 from fastapi import FastAPI, Request, Response, WebSocket, WebSocketDisconnect
 import uvicorn
 from music_api.fake_runtime import ABC, MIDI
@@ -18,6 +19,7 @@ payloads = {
     "/object_info": {name:{} for name in ["LoadAudio","YuE2Options","YuE2Transcribe","PreviewAny","YuE2GenerateSong","SaveAudio"]},
     "/models/checkpoints": [], "/models/audio_encoders": [],
 }
+payloads["/object_info"]["YuE2GenerateSong"] = {"input":{"optional":{"score_abc":["STRING",{}]}}}
 
 @app.get("/fixture/state")
 def state():
@@ -67,7 +69,16 @@ async def submit(request: Request):
     generate = "2" in value["prompt"]
     native[handle] = {"graph":value["prompt"],"client":value["client_id"],"core":"2" if generate else "transcribe",
                       "generate":generate,"complete":False,"result":generation_fixture() if generate else None}
+    if generate and "score_abc" in value["prompt"]["2"]["inputs"]:
+        selected = value["prompt"]["2"]["inputs"]["score_abc"]
+        original = native[handle]["result"]
+        native[handle]["result"] = replace(original, artifacts=tuple(replace(artifact,data=selected.encode()) if artifact.role == "abc" else artifact for artifact in original.artifacts))
     return {"prompt_id":handle}
+
+@app.get("/fixture/selected-inputs")
+def selected_inputs():
+    return [dict(abc=item["graph"]["2"]["inputs"]["score_abc"],style=item["graph"]["2"]["inputs"]["style"],lyrics=item["graph"]["2"]["inputs"]["lyrics"],seed=item["graph"]["2"]["inputs"]["seed"])
+            for item in native.values() if item["generate"] and "score_abc" in item["graph"]["2"]["inputs"]]
 
 def history(handle,item):
     result = item["result"]

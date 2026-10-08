@@ -3,6 +3,7 @@
 from contextlib import closing, contextmanager
 import importlib.util
 import json
+import os
 from pathlib import Path
 import socket
 import subprocess
@@ -18,13 +19,14 @@ from test_transcription import reference_audio
 
 
 @contextmanager
-def server(data_dir: Path, log_path: Path) -> Iterator[httpx.Client]:
+def server(data_dir: Path, log_path: Path, source_root: Path | None = None) -> Iterator[httpx.Client]:
     with socket.socket() as reservation:
         reservation.bind(("127.0.0.1", 0))
         port = reservation.getsockname()[1]
     with log_path.open("wb") as log:
         process = subprocess.Popen([sys.executable, str(Path(__file__).with_name("run_server.py")), str(data_dir), str(port)],
                                    stdin=subprocess.PIPE, stdout=log, stderr=log,
+                                   env={**os.environ, "MUSIC_API_RUNTIME_MODE": "fake", **({"PYTHONPATH": str(source_root)} if source_root else {})},
                                    creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
         try:
             with httpx.Client(base_url=f"http://127.0.0.1:{port}", timeout=2) as client:

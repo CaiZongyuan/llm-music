@@ -9,7 +9,10 @@ import numpy as np
 from music_api.runtime_types import RuntimeArtifact, RuntimeResult
 
 
-ABC = b"X:1\nT:Fake morning\nM:4/4\nL:1/4\nQ:1/4=96\nK:C\nC D E G | G E D C |\n"
+ABC = (b'X:1\nT:\nM:4/4\nL:1/16\nQ:1/4=96\n'
+       b'V: Vocal clef=treble name="Vocal Melody" snm="Vocal"\n'
+       b'V: Ins clef=treble name="Ins Melody" snm="Inst."\n'
+       b'K:C\n% verse\nV: Vocal\n"C"C4 D4 E4 G4 | G4 E4 D4 C4 |\nV: Ins\nZ2 |\n')
 
 
 def flac_fixture() -> bytes:

@@ -10,7 +10,7 @@ import httpx
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Generate an unsaved Candidate or explicitly save one as a Version.")
-    parser.add_argument("command", choices=["generate", "save"])
+    parser.add_argument("command", choices=["generate", "from-score", "save"])
     parser.add_argument("--url", default="http://127.0.0.1:8000")
     parser.add_argument("--project-id")
     parser.add_argument("--style")
@@ -20,23 +20,29 @@ def main() -> None:
     parser.add_argument("--candidate-id")
     parser.add_argument("--name")
     parser.add_argument("--parent-version-id")
+    parser.add_argument("--source-score-id")
+    parser.add_argument("--abc-file", type=Path)
     args = parser.parse_args()
-    if args.command == "generate" and (not args.style or not args.lyrics_file or not args.output_dir):
-        parser.error("generate requires --style, --lyrics-file, and --output-dir")
+    if args.command in {"generate", "from-score"} and (not args.style or not args.lyrics_file or not args.output_dir):
+        parser.error("generation requires --style, --lyrics-file, and --output-dir")
+    if args.command == "from-score" and (not args.project_id or not args.source_score_id or not args.abc_file):
+        parser.error("from-score requires --project-id, --source-score-id, and --abc-file")
     if args.command == "save" and (not args.project_id or not args.candidate_id or not args.name):
         parser.error("save requires --project-id, --candidate-id, and --name")
-    if args.command == "generate" and args.output_dir.exists():
+    if args.command in {"generate", "from-score"} and args.output_dir.exists():
         parser.error("use a new output directory to preserve previous downloads")
     with httpx.Client(base_url=args.url, timeout=15) as client:
         project_id = args.project_id
-        if args.command == "generate":
+        if args.command in {"generate", "from-score"}:
             if project_id is None:
                 response = client.post("/projects", json={"name": "Morning song"})
                 response.raise_for_status()
                 project_id = response.json()["id"]
             base = "/projects/" + project_id
             inputs = {"style": args.style, "lyrics": args.lyrics_file.read_text(encoding="utf-8"), "seed": args.seed}
-            response = client.post(base + "/jobs/generate", json=inputs)
+            if args.command == "from-score":
+                inputs.update(abc=args.abc_file.read_text(encoding="utf-8"), source_score_id=args.source_score_id, parent_version_id=args.parent_version_id)
+            response = client.post(base + "/jobs/" + ("generate-from-score" if args.command == "from-score" else "generate"), json=inputs)
             response.raise_for_status()
             job_id = response.json()["id"]
             deadline = time.monotonic() + 180

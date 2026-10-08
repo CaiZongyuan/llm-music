@@ -26,7 +26,7 @@ export function JobStatus({ job }: { job: JobRead }) {
     {job.status === 'completed' ? <p>{t.result}</p> : null}
     {job.status === 'completed' && job.result ? <div className="job-result-links">
       {job.result.score_id ? <JobLink href={`/projects/${encodeURIComponent(job.project_id)}/scores/${encodeURIComponent(job.result.score_id)}`}>{t.inspectScore}</JobLink> : null}
-      {job.operation === 'Generate' && job.result.candidate_id ? <JobLink href={`/projects/${encodeURIComponent(job.project_id)}/generate?jobId=${encodeURIComponent(job.id)}`}>{t.inspectMusic}</JobLink> : null}
+      {job.operation !== 'Transcribe' && job.result.candidate_id ? <JobLink href={`/projects/${encodeURIComponent(job.project_id)}/generate?jobId=${encodeURIComponent(job.id)}`}>{t.inspectMusic}</JobLink> : null}
     </div> : null}
     {typeof job.provenance.retry_of_job_id === 'string' ? <small>{t.retryOf}: <code>{job.provenance.retry_of_job_id}</code></small> : null}
     <small className="record-id">{t.identity}: {job.id}</small>

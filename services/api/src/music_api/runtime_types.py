@@ -7,8 +7,8 @@ from typing import Callable, Literal, Mapping, Protocol
 from uuid import UUID
 
 
-Operation = Literal["Transcribe", "Generate"]
-OPERATIONS: tuple[Operation, ...] = ("Transcribe", "Generate")
+Operation = Literal["Transcribe", "Generate", "GenerateFromScore"]
+OPERATIONS: tuple[Operation, ...] = ("Transcribe", "Generate", "GenerateFromScore")
 RuntimeMode = Literal["fake", "comfyui"]
 JobState = Literal["queued", "running", "completed", "failed", "cancelled"]
 ArtifactRole = Literal["abc", "midi", "audio"]
@@ -86,6 +86,7 @@ class RuntimeObservation:
     model_inventory_observed_at: datetime | None = None
     attestation: RuntimeAttestation | None = None
     reasons: tuple[str, ...] = ()
+    node_inputs: Mapping[str, Mapping[str, str]] | None = None
 
 
 @dataclass(frozen=True)

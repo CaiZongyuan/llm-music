@@ -6,6 +6,8 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints
 
+from music_api.runtime_types import Operation
+
 
 class ProjectCreate(BaseModel):
     model_config = ConfigDict(extra="forbid")
@@ -55,7 +57,7 @@ class TranscribeCreate(BaseModel):
 class JobRead(BaseModel):
     id: UUID
     project_id: UUID
-    operation: Literal["Transcribe", "Generate"]
+    operation: Operation
     status: Literal["queued", "running", "completed", "failed", "cancelled"]
     phase: str | None
     progress: float | None = Field(default=None, ge=0, le=1, allow_inf_nan=False)

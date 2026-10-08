@@ -23,7 +23,7 @@ from music_api.runtime_types import RuntimeObservation, RuntimeRequest, RuntimeS
 
 class ClientFixtureRuntime(FakeInferenceRuntime):
     def __init__(self, run_dir: Path, unavailable: bool) -> None:
-        super().__init__(result_factories={"Generate": generation_fixture})
+        super().__init__(result_factories={"Generate": generation_fixture, "GenerateFromScore": generation_fixture})
         self.run_dir, self.unavailable = run_dir, unavailable
         self.requests: dict[str, RuntimeRequest] = {}
         self.failed_once = False
