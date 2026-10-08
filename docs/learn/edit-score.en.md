@@ -2,7 +2,7 @@ Continue the Morning song Project and pick one melody change. Edit a few notes, 
 
 ## 1. Find a starting point {#start}
 
-<p>Choose “Inspect score” from an existing Candidate or Version, or open a record in the Project's scores tab. “Saved original and files” retains the original ABC and downloads. Editing a Version's Score retains that Version as its parent origin.</p><p>If you have no Score, choose “Open example Score”. It is an independent four-bar melody at 96 BPM: 22 notes in Ins, with matching rests in Vocal. Opening it does not save an Asset, submit generation or create a Version.</p>
+<p>Choose “Inspect score” from an existing Candidate or Version, or open a record in the Project's scores tab. “Saved original and files” retains the original ABC and downloads. To start from a particular saved Version, choose its “Continue from this version” action. Ordinary Score viewing retains the Score's existing origin.</p><p>If you have no Score, choose “Open example Score”. It is an independent four-bar melody at 96 BPM: 22 notes in Ins, with matching rests in Vocal. Opening it does not save an Asset, submit generation or create a Version.</p>
 
 <details class="creator-supplement"><summary>The complete example ABC</summary>
 
@@ -30,7 +30,9 @@ Continue the Morning song Project and pick one melody change. Edit a few notes, 
 4. The new result is a Candidate. Choose “Listen to this music” and inspect the voice, melody, rhythm and ending in the bottom Player. The simple MIDI audition and generated song serve different listening tasks. Music continues in the same Player on Lyrics and Versions.
 5. If satisfied, enter a name such as “Morning · higher opening”, then choose “Save as a version”. Open it to inspect submitted ABC and parent. Reopen the original Version to confirm its Score and Audio remain. You can leave an unsatisfying Candidate unsaved.
 
-Starting from an existing Version's Score retains that source parent through independent edit saving, generation and explicit Version saving. An independent example or a Score without an owning Version may have no parent. Completing a Job never adds version history automatically.
+To start another direction from a saved Version, open it in “Versions” and choose “Continue from this version”. The page shows that starting point; existing ABC, style, lyrics and seed drafts remain. To copy the saved style, lyrics and seed, explicitly choose “Use this version’s inputs”, then inspect and save/select the current Score. The new GFS Job and explicitly saved child Version use this starting point. The original Score and earlier origin records remain unchanged.
+
+The ordinary Score entry retains its existing origin. In particular, a Cover output Score may retain an earlier Reference Audio origin; use the explicit Version entry above to branch from the saved Cover Version. An independent example or a Score without an owning Version may have no parent. Completing a Job never adds version history automatically.
 
 ## Continue after invalid input or interruption {#recover}
 

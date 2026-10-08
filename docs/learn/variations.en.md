@@ -38,6 +38,12 @@ Continue Morning song. Keep the original recipe and change one dimension. Hear t
 
 ## 3. Try the next Candidate in the same Project {#run}
 
+<p>To continue from work you kept, open “Versions” and inspect the saved parent relationships. Choose an earlier work, such as the original Morning version. Inspect its inputs, origin and “Saved outputs”, then choose “Continue from this version”. This opens that Version's Score and preserves your current drafts. Choose “Use this version’s inputs” separately when you want its style, lyrics and seed.</p>
+
+<ol><li>Inspect or edit the ABC, then explicitly choose “Select saved Score” or “Save and select this Score”.</li><li>Keep lyrics and seed, change only the style to a lighter piano arrangement, then generate from the selected Score. Check that the submitted parent is the original Morning version you chose.</li><li>Listen to the new Candidate. If you like it, name it “Morning · light piano” and explicitly save a Version. Unsaved Candidates remain outside the relationship view.</li><li>Return to the original and save another direction. Both new Versions link to the original; the newest branch does not automatically become the next starting point. Reloading reads the same relationships and saved snapshots.</li></ol>
+
+<p>A list can have several independent starting points; a Version without a parent is valid. If reading fails, choose “Reread versions”; an error is not empty history. Restore a missing original Audio or ABC file before rereading. Existing history remains. If the starting point cannot be confirmed, your draft remains: return to the actual Version or reread the starting point, then inspect and explicitly select again.</p>
+
 <p>In the formal Web's music generation page, choose “Explore with these inputs” on an earlier Candidate, change one input, generate, listen and record your judgment. Earlier Candidates and Versions remain. To keep a deliberately selected melody while changing style, use <a href="./edit-score.en.md#regenerate">regeneration on the Score page</a>; it retains selected ABC and source parent. Use the supplement below when you need scripts and downloaded files, with a new output directory for each attempt.</p>
 
 <details class="creator-supplement"><summary>Current entrypoint: reuse the same Project</summary>

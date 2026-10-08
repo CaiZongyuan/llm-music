@@ -3,12 +3,15 @@ import { Link } from '@tanstack/react-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { components } from '@llm-music/api-client';
 import type { NoteTimingEvent } from 'abcjs';
-import { ErrorNotice } from '../../components/States';
+import { ErrorNotice, Loading } from '../../components/States';
 import { api, ApiFailure, dataOf } from '../../lib/api';
 import { assetKeys } from '../assets/queries';
 import { useMessages } from '../preferences/Preferences';
 import { scorePlayback, selectPlayerScore, subscribeScorePlayback, type ScorePlayback } from '../player';
-import { versionsOptions } from '../versions/queries';
+import { versionOptions, versionsOptions } from '../versions/queries';
+import { versionMessages } from '../versions/messages';
+import { VersionInputReuse } from '../versions/VersionInputReuse';
+import '../versions/versions.css';
 import { scoreKeys } from './queries';
 import { useScoreDraft } from './drafts';
 import { editorMessages } from './editor-messages';
@@ -26,12 +29,23 @@ function warningText(warnings: string[]) {
   return warnings.join('\n').replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&');
 }
 
-export function ScoreEditor({ projectId, score, initialABC, generation }: { projectId: string; score?: Score; initialABC: string; generation?: ReactNode }) {
+export function ScoreEditor({ projectId, score, initialABC, generation, branchVersionId }: { projectId: string; score?: Score; initialABC: string; generation?: ReactNode; branchVersionId?: string }) {
   const t = useMessages(editorMessages);
+  const v = useMessages(versionMessages);
   const cache = useQueryClient();
-  const [draft, edit, select, check] = useScoreDraft(projectId, score?.id ?? 'new', initialABC);
+  // Branch entry preserves ABC, but requires a choice in this editor instance.
+  const branchSelectionContext = useRef(Symbol(branchVersionId)).current;
+  const context = branchVersionId === undefined ? 'score' : branchSelectionContext;
+  const [draft, edit, select, check] = useScoreDraft(projectId, score?.id ?? 'new', initialABC, context);
   const versions = useQuery({ ...versionsOptions(projectId), enabled: Boolean(score) });
-  const parentId = score?.parent_version_id ?? versions.data?.find(version => version.score_id === score?.id)?.id ?? null;
+  const branch = useQuery({ ...versionOptions(projectId, branchVersionId ?? ''), enabled: Boolean(branchVersionId) });
+  const branchReady = branchVersionId === undefined || Boolean(branch.isSuccess && branch.data.id === branchVersionId && branch.data.project_id === projectId && branch.data.score_id === score?.id);
+  const sourceReady = (!score || versions.isSuccess) && branchReady;
+  // Only an explicit, verified Version action changes this editor's origin.
+  // Ordinary Scores retain their existing Reference/editing parent.
+  const parentId = branchVersionId === undefined
+    ? score?.parent_version_id ?? versions.data?.find(version => version.score_id === score?.id)?.id ?? null
+    : branchReady ? branchVersionId : null;
   const [attempt, setAttempt] = useState(0);
   const [status, setStatus] = useState<'checking' | 'valid' | 'invalid'>('checking');
   const [checked, setChecked] = useState<CheckedScore | null>(null);
@@ -40,7 +54,8 @@ export function ScoreEditor({ projectId, score, initialABC, generation }: { proj
   const notation = useRef<HTMLDivElement>(null);
   const recoveryId = useRef<string | null>(null);
   const current = status === 'valid' && checked?.abc === draft.abc;
-  const ready = current && draft.selected?.abc === draft.abc;
+  const selectionMatches = draft.selectedContext === context && draft.selected?.parent_version_id === parentId;
+  const ready = current && sourceReady && selectionMatches && draft.selected?.abc === draft.abc;
 
   useEffect(() => {
     const captured = { abc: draft.abc, revision: draft.revision };
@@ -130,7 +145,7 @@ export function ScoreEditor({ projectId, score, initialABC, generation }: { proj
     },
   });
   function saveCurrent() {
-    if (!current || !checked || save.isPending || save.isError || recoveryId.current) return;
+    if (!current || !checked || !sourceReady || save.isPending || save.isError || recoveryId.current) return;
     if (score && checked.abc === initialABC) {
       select({ abc: checked.abc, source_score_id: score.id, parent_version_id: parentId, revision: checked.revision, abcSha256: checked.abcSha256 });
       return;
@@ -151,8 +166,11 @@ export function ScoreEditor({ projectId, score, initialABC, generation }: { proj
   }
   const error = checkError?.kind === 'headers' ? t.headers : checkError?.kind === 'native' ? t.nativeError : checkError?.kind === 'network' ? t.transportError
     : checkError?.kind === 'midi' ? checkError.detail === 'limit' ? t.limitMidi : checkError.detail === 'empty' ? t.emptyMidi : t.mediaError : t.renderFailed;
-  const canSave = current && !save.isPending && !save.isError && !recoveryId.current && (!score || versions.isSuccess);
-  return <><div className="score-editor-heading"><h2>{t.title}</h2><p className="hint">{t.intro}</p></div><div className="workspace-grid score-editor">
+  const canSave = current && !save.isPending && !save.isError && !recoveryId.current && sourceReady;
+  return <>{branchVersionId !== undefined ? <section className="surface branch-origin" aria-label={v.origin} data-branch-version-id={branchVersionId}>
+    <h2>{v.origin}</h2>{branchVersionId && branch.isPending ? <Loading /> : branch.isError ? <ErrorNotice error={branch.error} onRetry={() => void branch.refetch()} /> : !branchReady ? <div className="error-box" role="alert"><strong>{v.originInvalid}</strong><button type="button" onClick={() => void branch.refetch()}>{v.reload}</button></div> : branch.data ? <><Link to="/projects/$projectId/versions/$versionId" params={{ projectId, versionId: branch.data.id }}>{branch.data.name}</Link><p className="hint">{v.originHelp}</p><div className="feature-actions"><VersionInputReuse version={branch.data} /></div></> : null}
+    {!branchReady ? <p>{v.originRecovery}</p> : null}
+  </section> : null}<div className="score-editor-heading"><h2>{t.title}</h2><p className="hint">{t.intro}</p></div><div className="workspace-grid score-editor">
     <section className="surface"><div className="section-heading"><h3>{t.draft}</h3><span className="tag" role="status">{t[status]}</span></div>
       <p className="hint">{t.help}</p><label className="visually-hidden" htmlFor="abc-draft">{t.label}</label><textarea id="abc-draft" aria-label={t.label} className="abc-editor" value={draft.abc} spellCheck={false} onChange={event => edit(event.target.value)} />
       <small>{t.revision} r{draft.revision} · {t.session}</small><div className="score-actions"><button type="button" onClick={() => setAttempt(value => value + 1)}>{t.validate}</button><button type="button" onClick={() => edit(initialABC)}>{t.restore}</button></div>
@@ -167,6 +185,6 @@ export function ScoreEditor({ projectId, score, initialABC, generation }: { proj
       {save.isError ? <section className="error-box" role="alert"><strong>{t.saveUnknown}</strong><p>{t.saveRecovery}</p>{save.error instanceof ApiFailure && save.error.detail ? <small><code>{save.error.detail.code}</code>{save.error.detail.resource_id ? <> · <code>{save.error.detail.resource_id}</code></> : null}</small> : null}<button type="button" onClick={() => { if (save.variables) save.mutate(save.variables); }}>{t.saveRetry}</button></section> : null}
       {save.isSuccess ? <p role="status">{t.saved}</p> : null}
     </section></div><section className="surface selected-score" aria-label={t.selected} data-selected-score-id={draft.selected?.source_score_id}>
-      <h3>{t.selected}</h3><p>{draft.selected ? ready ? t.ready : t.dirty : t.none}</p>{draft.selected ? <><p className="hint">{t.frozen}</p><small>r{draft.selected.revision} · {t.parent}: {draft.selected.parent_version_id ?? t.noParent}</small><details><summary>{t.selectedABC}</summary><pre className="score-code">{draft.selected.abc}</pre></details><Link className="button" to="/projects/$projectId/scores/$scoreId" params={{ projectId, scoreId: draft.selected.source_score_id }}>{t.openSaved}</Link></> : null}
-    </section>{generation ?? <ScoreGeneration projectId={projectId} />}</>;
+      <h3>{t.selected}</h3><p>{draft.selected ? ready ? t.ready : !selectionMatches ? v.originChanged : t.dirty : t.none}</p>{draft.selected ? <><p className="hint">{t.frozen}</p><small>r{draft.selected.revision} · {t.parent}: {draft.selected.parent_version_id ?? t.noParent}</small><details><summary>{t.selectedABC}</summary><pre className="score-code">{draft.selected.abc}</pre></details><Link className="button" to="/projects/$projectId/scores/$scoreId" params={{ projectId, scoreId: draft.selected.source_score_id }}>{t.openSaved}</Link></> : null}
+    </section>{generation ?? <ScoreGeneration projectId={projectId} selectionReady={ready} />}</>;
 }

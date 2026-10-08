@@ -1,0 +1,7 @@
+.version-forest .version-row { min-width:0; padding-inline-start:16px; border-inline-start:2px solid var(--line); }
+.version-forest .version-row p,.version-forest .version-row code,.branch-origin a { overflow-wrap:anywhere; }
+.version-parent { display:flex; flex-wrap:wrap; gap:6px; font-size:.78rem; color:var(--muted); }
+.branch-origin { margin-bottom:24px; }
+.branch-origin h2 { font-size:1rem; }
+.version-outputs .facts dd { min-width:0; overflow-wrap:anywhere; }
+@media(max-width:680px) { .version-forest .version-row { margin-inline-start:0 !important; } }

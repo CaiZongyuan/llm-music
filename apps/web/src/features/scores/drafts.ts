@@ -2,7 +2,7 @@ import { useEffect, useRef, useSyncExternalStore } from 'react';
 import type { GenerateFromScoreCreate } from '@llm-music/api-client';
 
 export type SelectedScore = Readonly<Pick<GenerateFromScoreCreate, 'abc' | 'source_score_id' | 'parent_version_id'> & { revision: number; abcSha256: string }>;
-type ScoreDraft = { abc: string; revision: number; checkedABC: string | null; selected: SelectedScore | null };
+type ScoreDraft = { abc: string; revision: number; checkedABC: string | null; selected: SelectedScore | null; selectedContext: string | symbol | null };
 const drafts = new Map<string, ScoreDraft>();
 const listeners = new Set<() => void>();
 const selected = new Map<string, SelectedScore>();
@@ -12,11 +12,11 @@ function notify() { listeners.forEach(listener => listener()); }
 
 function draftFor(key: string, abc: string): ScoreDraft {
   let draft = drafts.get(key);
-  if (!draft) { draft = { abc, revision: 1, checkedABC: null, selected: null }; drafts.set(key, draft); }
+  if (!draft) { draft = { abc, revision: 1, checkedABC: null, selected: null, selectedContext: null }; drafts.set(key, draft); }
   return draft;
 }
 // Creative drafts persist across tabs in this session. Durable Scores stay in Query/API.
-export function useScoreDraft(projectId: string, scoreId: string, initialABC: string) {
+export function useScoreDraft(projectId: string, scoreId: string, initialABC: string, context: string | symbol = 'score') {
   const key = `${projectId}/${scoreId}`;
   const owner = useRef(Symbol(key)).current;
   const draft = useSyncExternalStore(listener => { listeners.add(listener); return () => { listeners.delete(listener); }; }, () => draftFor(key, initialABC));
@@ -28,7 +28,7 @@ export function useScoreDraft(projectId: string, scoreId: string, initialABC: st
       if (owners.get(projectId) !== owner) return;
       owners.delete(projectId); selected.delete(projectId); notify();
     };
-  }, [projectId, owner]);
+  }, [projectId, owner, context]);
   function edit(abc: string) {
     if (owners.get(projectId) !== owner) return;
     const current = draftFor(key, initialABC);
@@ -41,7 +41,7 @@ export function useScoreDraft(projectId: string, scoreId: string, initialABC: st
     // in a different editor or in a remounted instance of this editor.
     if (owners.get(projectId) !== owner) return;
     const snapshot = Object.freeze({ ...value });
-    drafts.set(key, { ...draftFor(key, initialABC), selected: snapshot });
+    drafts.set(key, { ...draftFor(key, initialABC), selected: snapshot, selectedContext: context });
     if (draftFor(key, initialABC).checkedABC === snapshot.abc) selected.set(projectId, snapshot);
     notify();
   }
@@ -50,7 +50,7 @@ export function useScoreDraft(projectId: string, scoreId: string, initialABC: st
     const current = draftFor(key, initialABC);
     if (abc !== null && current.abc !== abc) return;
     drafts.set(key, { ...current, checkedABC: abc });
-    if (abc && current.selected?.abc === abc) selected.set(projectId, current.selected);
+    if (abc && current.selected?.abc === abc && current.selectedContext === context) selected.set(projectId, current.selected);
     else selected.delete(projectId);
     notify();
   }
