@@ -34,10 +34,15 @@ permissions:
 
 jobs:
   web:
+    name: web-${{ matrix.group }}
     runs-on: windows-latest
-    # The shipped 21-case job took 842–851s; the full/mode gate adds ten cases.
-    # Keep case/expect deadlines and retries; allow bounded install + all required suites.
+    # Prior complete jobs took 773–873s before the branch suite was added.
+    # Independent owned CPU servers permit two isolated groups; every suite stays required.
     timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        group: [workspace, music]
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
@@ -60,32 +65,46 @@ jobs:
           pnpm web:check
           pnpm test:browser:check
       - name: Exercise bilingual themes and persistent Project/Asset/Job consumers
+        if: matrix.group == 'workspace'
         run: pnpm test:web
       - name: Exercise owned launcher startup, reuse, failures and bounded stop
+        if: matrix.group == 'workspace'
         run: pnpm test:launcher
       - name: Exercise authoritative Jobs, cancellation and acknowledgement recovery
+        if: matrix.group == 'workspace'
         run: pnpm test:web:jobs
       - name: Exercise transcription readiness, failure and explicit retry
+        if: matrix.group == 'workspace'
         run: pnpm test:web:transcription
       - name: Exercise generation failure, durable save and damaged media recovery
+        if: matrix.group == 'music'
         run: pnpm test:web:generation -- generation-recovery.controlled.ts
       - name: Exercise Runtime observations, model states and read-only settings recovery
+        if: matrix.group == 'workspace'
         run: pnpm test:web:runtime
       - name: Exercise current ABC notation, MIDI audition, immutable saves and recovery
+        if: matrix.group == 'music'
         run: pnpm test:web:score
       - name: Exercise selected Score generation, frozen inputs and explicit parent Version recovery
+        if: matrix.group == 'music'
         run: pnpm test:web:score-generation
       - name: Exercise inspectable melody Cover, actual source lineage and acknowledgement recovery
+        if: matrix.group == 'music'
         run: pnpm test:web:cover
+      - name: Exercise saved Version branches, explicit origins and durable forest recovery
+        if: matrix.group == 'music'
+        run: pnpm test:web:version-branches
       - name: Restore both creator journeys and persisted entities after an API process restart
+        if: matrix.group == 'workspace'
         run: pnpm test:web:gate
       - name: Bound failed shutdown and retain owned-child cleanup receipts
+        if: matrix.group == 'workspace'
         run: pnpm test:web:gate:shutdown
       - name: Retain browser results and process ownership receipts
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: web-foundation-${{ github.run_id }}-${{ github.run_attempt }}
+          name: web-foundation-${{ matrix.group }}-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
             tests/browser/test-results/
             tests/browser/playwright-report/
