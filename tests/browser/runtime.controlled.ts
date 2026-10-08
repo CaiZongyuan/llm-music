@@ -71,7 +71,7 @@ test('empty/loading/API outage recover through HTTP; language/theme and narrow l
   await scenario(request, 'ready'); await page.getByRole('button', { name: 'Check again', exact: true }).click();
   await expect(page.getByRole('alert')).toHaveCount(0);
   await expect(page.getByRole('region', { name: 'Device observations', exact: true })).toContainText('Synthetic CPU display GPU');
-  await page.getByRole('link', { name: 'Settings', exact: true }).click();
+  await page.locator('main').getByRole('link', { name: 'Settings', exact: true }).click();
   await scenario(request, 'api-error'); await page.getByRole('button', { name: 'Read configuration reference again', exact: true }).click();
   await expect(page.getByRole('alert')).toBeVisible();
   await scenario(request, 'ready'); await page.getByRole('button', { name: 'Read configuration reference again', exact: true }).click();

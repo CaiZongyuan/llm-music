@@ -25,7 +25,7 @@ for (const locale of ['zh-CN', 'en'] as const) for (const theme of ['light', 'da
     await expect(page.getByRole('region', { name: t.queue, exact: true })).toContainText(t.empty);
     await page.getByRole('button', { name: t.refresh, exact: true }).click();
     await page.screenshot({ path: info.outputPath(`${locale}-${theme}-runtime.png`), fullPage: true });
-    await page.getByRole('link', { name: t.settings, exact: true }).click();
+    await page.locator('main').getByRole('link', { name: t.settings, exact: true }).click();
     await expect(page.getByRole('heading', { name: t.settingsTitle, exact: true })).toBeVisible();
     const metadata = page.getByRole('region', { name: t.metadata, exact: true });
     await expect(metadata).toContainText(t.defaults);
