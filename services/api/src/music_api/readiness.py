@@ -20,6 +20,13 @@ def evaluate_readiness(observation: RuntimeObservation, requirements: RuntimeReq
         reasons.append("runtime_observation_stale")
     if observation.registered_nodes is None or not set(workflow.required_nodes).issubset(observation.registered_nodes):
         reasons.append("capability_missing")
+    required_inputs = workflow.manifest.get("required_node_inputs", {})
+    if isinstance(required_inputs, Mapping):
+        observed_inputs = observation.node_inputs or {}
+        if any(not isinstance(fields, Mapping) or any(observed_inputs.get(str(node), {}).get(str(field)) != kind
+                                                      for field, kind in fields.items())
+               for node, fields in required_inputs.items()):
+            reasons.append("capability_missing")
     if observation.mode == "comfyui":
         if stale(observation.system_stats_observed_at, now, max_age_seconds):
             reasons.append("runtime_system_facts_stale")

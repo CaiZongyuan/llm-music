@@ -44,6 +44,7 @@ node packages/api-client/dist/examples/generate-save.js --base-url http://127.0.
 | --- | --- |
 | 上传 | `POST /projects/{project_id}/assets`；生成的 `file` 类型是 Blob。用原生 File 与 FormData，通过该请求的 `bodySerializer` 设置 multipart body；由 fetch 生成 boundary，勿手写 Content-Type。 |
 | 转谱 | 当前支持 16 秒 PCM16 mono24k 或 stereo48k。上传成功不表示任意 600 秒音频可推理。完成后读取 Job 返回的 Score、ABC 和 MIDI 应用 id。 |
+| 从选定乐谱生成 | `POST /projects/{project_id}/jobs/generate-from-score` 使用生成的 `GenerateFromScoreCreate`，提交明确 ABC、同 Project 来源 Score、可选来源 parent 与生成设置。原文与有效推理文本分别保留；[完整操作与限制](generate-save-api.md#selected-score)。 |
 | 下载 | 用 `parseAs: 'arrayBuffer'` 或 `'blob'`。成功的 MIME 可以是 WAV、FLAC、ABC 或 MIDI；与 Asset 元数据核对字节数和 SHA256。失败响应仍为 typed JSON `error`。 |
 | 取消与重试 | 两个 POST 都没有 body。取消可返回 202 意图或 200 终态；继续查询原 Job。显式 retry 返回 202 和新 Job，客户端不会自动重试。 |
 | 保存 | Candidate 不自动成为 Version。第一次显式保存返回 201；相同 Candidate 的重复保存返回 200 和原 Version id。 |

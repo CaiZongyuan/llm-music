@@ -3,6 +3,7 @@ Look up HTTP parameters, responses, errors, and the Job event message schema for
 ## Start with a usage guide {#usage}
 
 - [Generate, inspect a Candidate, and explicitly save a Version](../guides/generate-save-api.en.md)
+- [Generate a new Candidate from selected ABC](../guides/generate-save-api.en.md#selected-score)
 - [Transcribe Reference Audio and export ABC/MIDI](../guides/api-transcription.en.md)
 - [TypeScript client and the complete controlled example](../guides/api-client.en.md)
 - [Job events and HTTP recovery](../guides/api-job-events.en.md)

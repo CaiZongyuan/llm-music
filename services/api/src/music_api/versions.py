@@ -3,7 +3,7 @@
 import logging
 from uuid import UUID, uuid4
 
-from sqlalchemy import exists, literal, select
+from sqlalchemy import exists, literal, select, update
 from sqlalchemy.dialects.sqlite import insert
 from sqlalchemy.orm import Session
 
@@ -52,8 +52,20 @@ def save_version(database: Database, session: Session, storage: Storage, project
     identifier = uuid4()
     known_version_id: str | None = None
     parent = str(value.parent_version_id) if value.parent_version_id else None
+    # Reserve the writer before reading provenance so concurrent saves retain
+    # the same snapshot. Source generation keeps its submitted parent.
+    session.execute(update(Candidate).where(Candidate.id == str(value.candidate_id), Candidate.project_id == str(project_id))
+                    .values(id=Candidate.id).execution_options(synchronize_session=False))
+    candidate = candidate_in(session, project_id, value.candidate_id)
+    if "source_score_id" in candidate.inputs:
+        source_parent = candidate.inputs.get("parent_version_id")
+        if source_parent is not None and not isinstance(source_parent, str):
+            raise DomainError(409, "candidate_result_invalid", "Candidate source parent is unavailable.", "Restore the original source snapshot.")
+        if parent is not None and parent != source_parent:
+            raise DomainError(409, "source_parent_mismatch", "Save parent differs from the submitted Score source.", "Save with the Candidate's submitted parent or omit this field.")
+        parent = source_parent
     parent_allowed = literal(True) if parent is None else exists(select(Version.id).where(Version.id == parent, Version.project_id == str(project_id)))
-    # First statement acquires the writer slot before any read snapshot. Concurrent
+    # The writer slot was acquired before any read snapshot. Concurrent
     # identical saves wait, then resolve through the durable unique candidate key.
     statement = insert(Version).from_select(
         ["id", "project_id", "candidate_id", "job_id", "name", "parent_version_id", "audio_asset_id", "score_id",

@@ -21,6 +21,9 @@ CAPTIONS: dict[Operation, tuple[tuple[str, str], ...]] = {
                  ("Rebuilding the ", "loading_model"), ("Reading the embedded vocabulary", "loading_model"),
                  ("Writing the score", "planning_score"), ("Composing", "generating_semantic"),
                  ("Synthesizing audio", "synthesizing"), ("Decoding audio", "decoding_audio")),
+    "GenerateFromScore": (("Loading the ", "loading_model"), ("Reading the repacked checkpoint", "loading_model"),
+                          ("Rebuilding the ", "loading_model"), ("Reading the embedded vocabulary", "loading_model"),
+                          ("Composing", "generating_semantic"), ("Synthesizing audio", "synthesizing"), ("Decoding audio", "decoding_audio")),
 }
 
 

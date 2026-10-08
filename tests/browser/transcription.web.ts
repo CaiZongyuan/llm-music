@@ -130,7 +130,7 @@ for (const locale of ['zh-CN', 'en'] as const) for (const theme of ['light', 'da
         const bytes = await readFile(path);
         expect(hash(bytes)).toBe(metadata.sha256);
         if (kind === 'midi') expect(midiNotes(bytes)).toEqual([{ pitch: 60, time: 0 }, { pitch: 62, time: 480 }, { pitch: 64, time: 960 }, { pitch: 65, time: 1440 }]);
-        else expect(bytes.toString('utf8')).toBe('X:1\nM:4/4\nL:1/4\nK:C\nC D E F |\n');
+        else expect(bytes.toString('utf8')).toBe('X:1\nT:\nM:4/4\nL:1/16\nQ:1/4=120\nV: Vocal clef=treble name="Vocal Melody" snm="Vocal"\nV: Ins clef=treble name="Ins Melody" snm="Inst."\nK:C\n% verse\nV: Vocal\nC4 D4 E4 F4 |\nV: Ins\nZ |\n');
         downloaded[kind] = hash(bytes);
       }
       await expect(page.locator('html')).toHaveAttribute('lang', locale);

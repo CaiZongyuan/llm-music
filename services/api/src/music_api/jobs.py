@@ -35,6 +35,7 @@ SubscriptionFactory = Callable[[str, Operation, Callable[[RuntimeStatus], None]]
 OPERATION_PHASES: dict[Operation, tuple[str, ...]] = {
     "Transcribe": ("loading_model", "transcribing"),
     "Generate": ("loading_model", "planning_score", "generating_semantic", "synthesizing", "decoding_audio"),
+    "GenerateFromScore": ("loading_model", "generating_semantic", "synthesizing", "decoding_audio"),
 }
 
 
@@ -233,7 +234,11 @@ class JobService:
                                             models=[dict(id=model.id, revision=model.revision, declared_sha256=model.sha256) for model in requirements.models if model.id in workflow.required_models])
         if retry_of_job_id is not None:
             provenance["retry_of_job_id"] = retry_of_job_id
-        job = Job(id=str(uuid4()), project_id=str(project_id), operation=operation, inputs=dict(inputs), provenance=provenance,
+        if operation == "GenerateFromScore":
+            from music_api.score_input import selected_score_validation
+            provenance["selected_score"] = dict(source_score_id=inputs["source_score_id"], parent_version_id=inputs["parent_version_id"],
+                                                 **selected_score_validation(str(inputs["abc"])))
+        job = Job(id=str(uuid4()), project_id=str(project_id), operation=operation, inputs=deepcopy(inputs), provenance=provenance,
                   runtime_mode=self.runtime.mode, attempt_id=str(uuid4()), status="queued", phase="preparing", progress=None, submission_state="pending")
         with self.database.sessions() as session:
             session.add(job)

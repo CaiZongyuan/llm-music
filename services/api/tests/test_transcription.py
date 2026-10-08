@@ -19,7 +19,10 @@ from sqlalchemy.engine import Engine
 from sqlalchemy.orm import Session
 
 
-ABC = b"X:1\nM:4/4\nL:1/4\nK:C\nC D E F |\n"
+ABC = (b'X:1\nT:\nM:4/4\nL:1/16\nQ:1/4=120\n'
+       b'V: Vocal clef=treble name="Vocal Melody" snm="Vocal"\n'
+       b'V: Ins clef=treble name="Ins Melody" snm="Inst."\n'
+       b'K:C\n% verse\nV: Vocal\nC4 D4 E4 F4 |\nV: Ins\nZ |\n')
 
 
 def reference_audio() -> bytes:

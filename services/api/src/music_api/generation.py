@@ -10,14 +10,15 @@ from sqlalchemy.orm import Session
 from music_api.database import Asset
 from music_api.errors import DomainError
 from music_api.generation_audio import validate_flac
-from music_api.generation_schemas import GenerateCreate
-from music_api.job_models import Job
+from music_api.generation_schemas import GenerateCreate, GenerateFromScoreCreate
+from music_api.job_models import Job, Score
 from music_api.jobs import JobService, job_read, validate_score
 from music_api.main import project_in, session_for
 from music_api.result_import import ImportedBundle, ImportMaterial
 from music_api.runtime_types import RuntimeResult
 from music_api.schemas import ErrorResponse, JobRead
-from music_api.version_models import Candidate
+from music_api.version_models import Candidate, Version
+from music_api.score_input import selected_score_validation
 
 
 def validate_generation(result: RuntimeResult) -> tuple[ImportMaterial, ...]:
@@ -43,9 +44,15 @@ def audio_snapshot(asset: Asset) -> dict[str, object]:
 
 def register_candidate(session: Session, job: Job, result: ImportedBundle) -> Mapping[str, str]:
     audio, abc = result.assets["audio"], result.assets["abc"]
-    if job.operation != "Generate" or audio.project_id != job.project_id or abc.project_id != job.project_id or result.score.project_id != job.project_id:
+    if job.operation not in {"Generate", "GenerateFromScore"} or audio.project_id != job.project_id or abc.project_id != job.project_id or result.score.project_id != job.project_id:
         raise DomainError(409, "candidate_result_invalid", "Generation output ownership differs from its Job.",
                           "Retain the result evidence and restore the same-Project Job mapping.")
+    if job.operation == "GenerateFromScore":
+        selected = job.provenance.get("selected_score")
+        expected_hash = selected.get("effective_abc_sha256") if isinstance(selected, dict) else None
+        if abc.sha256 != expected_hash:
+            raise DomainError(503, "score_result_mismatch", "Generated Score differs from the selected inference input.",
+                              "Retain the Job evidence and inspect the Runtime mapping; no Candidate was saved.")
     candidate = Candidate(id=str(uuid4()), project_id=job.project_id, job_id=job.id,
                           audio_asset_id=audio.id, score_id=result.score.id, inputs=deepcopy(job.inputs),
                           provenance=deepcopy(job.provenance),
@@ -57,6 +64,7 @@ def register_candidate(session: Session, job: Job, result: ImportedBundle) -> Ma
 
 def configure_generation(jobs: JobService) -> None:
     jobs.register_result("Generate", register_candidate, validate_generation)
+    jobs.register_result("GenerateFromScore", register_candidate, validate_generation)
 
 
 router = APIRouter(responses={404: {"model": ErrorResponse}, 422: {"model": ErrorResponse}, 503: {"model": ErrorResponse}})
@@ -68,3 +76,22 @@ def create_generate_job(project_id: UUID, value: GenerateCreate, request: Reques
     project_in(session, project_id)
     jobs: JobService = request.app.state.jobs
     return job_read(jobs.submit(project_id, "Generate", value.model_dump()))
+
+
+@router.post("/projects/{project_id}/jobs/generate-from-score", response_model=JobRead, status_code=202,
+             responses={409: {"model": ErrorResponse}})
+def create_generate_from_score_job(project_id: UUID, value: GenerateFromScoreCreate, request: Request,
+                                  session: Session = Depends(session_for)) -> JobRead:
+    project_in(session, project_id)
+    source = session.get(Score, str(value.source_score_id))
+    if source is None or source.project_id != str(project_id):
+        raise DomainError(404, "score_not_found", "Source Score does not exist in this Project.", "Select an existing Score from this Project.")
+    if value.parent_version_id is not None:
+        parent = session.get(Version, str(value.parent_version_id))
+        if parent is None or parent.project_id != str(project_id):
+            raise DomainError(404, "parent_version_not_found", "Parent Version does not exist in this Project.", "Select the source Version in this Project or omit the parent.")
+        if parent.score_id != source.id:
+            raise DomainError(409, "source_parent_mismatch", "The parent Version does not own the selected source Score.", "Select the Score belonging to this parent Version.")
+    selected_score_validation(value.abc)
+    jobs: JobService = request.app.state.jobs
+    return job_read(jobs.submit(project_id, "GenerateFromScore", value.model_dump(mode="json")))

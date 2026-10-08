@@ -308,6 +308,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/projects/{project_id}/jobs/generate-from-score": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create Generate From Score Job */
+        post: operations["create_generate_from_score_job_projects__project_id__jobs_generate_from_score_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/projects/{project_id}/candidates": {
         parameters: {
             query?: never;
@@ -397,7 +414,7 @@ export interface components {
              * Operation
              * @enum {string}
              */
-            operation: "Transcribe" | "Generate";
+            operation: "Transcribe" | "Generate" | "GenerateFromScore";
             /**
              * Status
              * @enum {string}
@@ -517,7 +534,8 @@ export interface components {
              * Format: uuid
              */
             score_id: string;
-            inputs: components["schemas"]["GenerateCreate"];
+            /** Inputs */
+            inputs: components["schemas"]["GenerateFromScoreCreate"] | components["schemas"]["GenerateCreate"];
             /** Provenance */
             provenance: {
                 [key: string]: unknown;
@@ -553,7 +571,7 @@ export interface components {
              * Operation
              * @enum {string}
              */
-            operation: "Transcribe" | "Generate";
+            operation: "Transcribe" | "Generate" | "GenerateFromScore";
             /** Required Models */
             required_models: string[];
             /** Ready */
@@ -715,6 +733,37 @@ export interface components {
              */
             max_seconds?: 35;
         };
+        /** GenerateFromScoreCreate */
+        GenerateFromScoreCreate: {
+            /** Style */
+            style: string;
+            /** Lyrics */
+            lyrics: string;
+            /** Seed */
+            seed: number;
+            /**
+             * Max Seconds
+             * @default 35
+             * @constant
+             */
+            max_seconds?: 35;
+            /**
+             * Abc
+             * @description Explicitly selected ABC; copied exactly into the Job input snapshot.
+             */
+            abc: string;
+            /**
+             * Source Score Id
+             * Format: uuid
+             * @description Existing source Score in this Project; edited ABC may differ from its original Asset.
+             */
+            source_score_id: string;
+            /**
+             * Parent Version Id
+             * @description Optional same-Project Version that owns the source Score; retained on explicit save.
+             */
+            parent_version_id?: string | null;
+        };
         /** HealthRead */
         HealthRead: {
             /**
@@ -741,7 +790,7 @@ export interface components {
              * Operation
              * @enum {string}
              */
-            operation: "Transcribe" | "Generate";
+            operation: "Transcribe" | "Generate" | "GenerateFromScore";
             /**
              * Status
              * @enum {string}
@@ -1003,7 +1052,8 @@ export interface components {
              * Format: uuid
              */
             score_id: string;
-            inputs: components["schemas"]["GenerateCreate"];
+            /** Inputs */
+            inputs: components["schemas"]["GenerateFromScoreCreate"] | components["schemas"]["GenerateCreate"];
             /** Provenance */
             provenance: {
                 [key: string]: unknown;
@@ -1036,7 +1086,10 @@ export interface components {
             candidate_id: string;
             /** Name */
             name: string;
-            /** Parent Version Id */
+            /**
+             * Parent Version Id
+             * @description Generate may choose a same-Project parent. GenerateFromScore retains its submitted parent when omitted and rejects a different parent.
+             */
             parent_version_id?: string | null;
         };
         /** JobEventRead */
@@ -2087,6 +2140,68 @@ export interface operations {
             };
             /** @description Not Found */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    create_generate_from_score_job_projects__project_id__jobs_generate_from_score_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GenerateFromScoreCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JobRead"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };

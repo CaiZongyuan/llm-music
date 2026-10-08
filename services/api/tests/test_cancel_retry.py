@@ -10,7 +10,8 @@ import httpx
 from cancellation_peer import cancellation_peer
 from music_api.config import Settings
 from music_api.main import create_app
-from test_transcription import ABC, reference_audio, terminal
+from test_native_transcription import NATIVE_ABC
+from test_transcription import reference_audio, terminal
 
 
 def wait_running(client: TestClient, address: str):
@@ -54,7 +55,7 @@ def test_owned_running_cancel_is_terminal_only_with_native_evidence_and_successo
             successor = client.post(base + "/transcriptions", json={"reference_asset_id": reference["id"]}).json()
             complete = terminal(client, base + "/jobs/" + successor["id"])
             assert complete["status"] == "completed", complete
-            assert client.get(base + "/assets/" + complete["result"]["abc_asset_id"] + "/content").content == ABC
+            assert client.get(base + "/assets/" + complete["result"]["abc_asset_id"] + "/content").content == NATIVE_ABC
             assert client.get(base + "/assets/" + complete["result"]["midi_asset_id"] + "/content").status_code == 200
             assert client.get(base + "/assets/" + reference["id"] + "/content").content == original
             assert client.get(address).json() == cancelled
@@ -218,7 +219,7 @@ def test_target_switch_before_atomic_cancel_preserves_completed_a_and_successful
             completed = terminal(client, address)
             assert completed["status"] == "completed", completed
             assert completed["error"] is None
-            assert client.get(base + "/assets/" + completed["result"]["abc_asset_id"] + "/content").content == ABC
+            assert client.get(base + "/assets/" + completed["result"]["abc_asset_id"] + "/content").content == NATIVE_ABC
             assert client.post(address + "/cancel").json() == completed
             assert peer.get("/facts").json()["foreign_state"] == "running"
             peer.post("/control", json={"action": "finish_survivor"}).raise_for_status()

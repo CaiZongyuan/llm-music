@@ -340,6 +340,7 @@
       "sectionIds": [
         "start",
         "candidate",
+        "selected-score",
         "save",
         "recovery"
       ]

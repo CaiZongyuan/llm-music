@@ -15,6 +15,12 @@ class GenerateCreate(BaseModel):
     max_seconds: Literal[35] = 35
 
 
+class GenerateFromScoreCreate(GenerateCreate):
+    abc: str = Field(min_length=1, max_length=100000, description="Explicitly selected ABC; copied exactly into the Job input snapshot.")
+    source_score_id: UUID = Field(description="Existing source Score in this Project; edited ABC may differ from its original Asset.")
+    parent_version_id: UUID | None = Field(default=None, description="Optional same-Project Version that owns the source Score; retained on explicit save.")
+
+
 class CandidateRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     id: UUID
@@ -22,7 +28,7 @@ class CandidateRead(BaseModel):
     job_id: UUID
     audio_asset_id: UUID
     score_id: UUID
-    inputs: GenerateCreate
+    inputs: GenerateFromScoreCreate | GenerateCreate
     provenance: dict[str, object]
     output_snapshot: dict[str, object]
     created_at: datetime
@@ -32,7 +38,7 @@ class VersionSave(BaseModel):
     model_config = ConfigDict(extra="forbid")
     candidate_id: UUID
     name: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=200)]
-    parent_version_id: UUID | None = None
+    parent_version_id: UUID | None = Field(default=None, description="Generate may choose a same-Project parent. GenerateFromScore retains its submitted parent when omitted and rejects a different parent.")
 
 
 class VersionRead(CandidateRead):

@@ -81,7 +81,10 @@ def import_result(database: Database, storage: Storage, job_id: str, materials: 
             session.flush()
             refs: dict[str, str] = dict(score_id=score.id)
             refs.update({role + "_asset_id": asset.id for role, asset in assets.items()})
-            job.provenance = dict(job.provenance, result_validation=dict(result.score_validation or {}), **dict(result.provenance))
+            # Runtime observations may add facts, never rewrite frozen application
+            # provenance. Output validation belongs to this actual result.
+            job.provenance = {**dict(result.provenance), **job.provenance,
+                              "result_validation": dict(result.score_validation or {})}
             if registrar is not None:
                 refs.update(registrar(session, job, ImportedBundle(assets, score)))
             job.result_refs = refs

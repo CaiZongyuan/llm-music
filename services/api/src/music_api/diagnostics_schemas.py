@@ -5,6 +5,8 @@ from uuid import UUID
 
 from pydantic import AwareDatetime, BaseModel, Field, JsonValue
 
+from music_api.runtime_types import Operation
+
 
 class DiagnosticReason(BaseModel):
     code: str
@@ -21,7 +23,7 @@ class DiagnosticSource(BaseModel):
 
 
 class CapabilityRead(BaseModel):
-    operation: Literal["Transcribe", "Generate"]
+    operation: Operation
     required_models: list[str]
     ready: bool
     observation: DiagnosticSource
@@ -112,7 +114,7 @@ class MemoryMetricRead(DiagnosticValue[int]):
 class ActiveApplicationJobRead(BaseModel):
     id: UUID
     project_id: UUID
-    operation: Literal["Transcribe", "Generate"]
+    operation: Operation
     status: Literal["queued", "running"]
     phase: str | None
     observation: DiagnosticSource

@@ -1,6 +1,6 @@
 # 通过应用 API 生成并保存歌曲
 
-通过 style、lyrics 和 seed 生成可试听 Audio 与可检查 Score。生成成功得到 Candidate；明确保存后才得到 Version。当前是 P1 HTTP/Swagger 流程。默认 fake 模式使用原始 CPU 夹具，不能证明模型效果。
+通过 style、lyrics 和 seed 生成可试听 Audio 与可检查 Score，或把明确选定的 ABC 交给 GenerateFromScore。生成成功得到 Candidate；明确保存后才得到 Version。这是按需使用的 API 指南；正式 Web 的乐谱仍为只读。默认 fake 模式使用原始 CPU 夹具，不能证明模型效果。
 
 ## 启动独立 API
 
@@ -38,7 +38,27 @@ HTTP 请求为 `POST /projects/{project_id}/jobs/generate`。style 与 lyrics �
 
 Candidate 可从 `GET /projects/{project_id}/candidates` 列表，或 `/candidates/{candidate_id}` 读取。它保留输入、运行参数、Workflow/Runtime provenance 和输出事实。G35 输出当前要求 FLAC PCM16、48 kHz、双声道、30–40 秒，并且全解码帧数与 STREAMINFO 声明一致。声明样本数为零的合法流式 FLAC 暂不能在这个已验证配置中完成确认。
 
+## 从选定乐谱生成 {#selected-score}
+
+保持同一个 Morning song Project。先下载一个生成或转谱 Score 的 ABC，复制到新文件，再修改一处音符。保留原生 `Vocal` / `Ins` 双声部头、完整小节和节拍；一般 ABC 能在浏览器显示，并不代表锁定的推理插件支持它。可以对照[最小原生 ABC](../../workflows/generate-from-score/v1/example.abc)。当前只接受该插件的双声部方言，且至少一个声部有音符；Vocal 全休止、Ins 有旋律的转谱结果也可用。
+
+例如把下载谱中的 `D4` 改为 `F4`，另存为 `data/morning-selected.abc`。先阅读并试听乐谱，再选择要提交的这一份。以下命令复用上一步的 Project 和来源 Score，创建新 Audio Candidate：
+
+```powershell
+uv run --project services/api --no-sync python services/api/examples/generate_save.py from-score --project-id <PROJECT_ID> --source-score-id <SOURCE_SCORE_ID> --abc-file data/morning-selected.abc --parent-version-id <SOURCE_VERSION_ID> --style "gentle folk pop" --lyrics-file data/morning-lyrics.txt --seed 2026410001 --output-dir data/morning-score-candidate-01
+```
+
+`SOURCE_SCORE_ID` 来自原 Candidate 的 `score_id` 或转谱 Job 的结果。若从已保存 Version 开始，`SOURCE_VERSION_ID` 必须是拥有该 Score 的同 Project Version；仅从转谱 Score 开始时省略 `--parent-version-id`。命令不会改写原 Score、素材或 Version，也不会自动保存新 Version。下载新 `audio.flac` 后，判断改动后的旋律与风格是否值得保留。
+
+这对应 `POST /projects/{project_id}/jobs/generate-from-score`，请求包含 `abc`、`source_score_id`、可选 `parent_version_id`，以及 Generate 的 style、lyrics、seed 和 `max_seconds=35`。ABC 最多 100000 个字符；源 Score 与 parent 必须属于同一个 Project。非法或不支持的 ABC 在创建 Job 前拒绝。没有该 capability 时明确拒绝，不能改用普通 Generate。
+
+Job 与 Candidate 的 `inputs.abc` 保存请求原文。`provenance.selected_score` 保存原文哈希、`effective_abc`、有效输入哈希、转换列表与适配版本。锁定插件会因内部 `%yue2-words` 标记不匹配而重新规划，也会重排没有 section 注释的裸谱。版本 1 适配移除匹配的内部标记；裸谱增加一个中性 section 注释，保留音符、小节、节拍、速度、声部和和弦。现有带 section 的生成谱与转谱谱无需这项转换。该记录区分原文和实际推理文本；它不承诺注释处理前后产生相同音频。
+
+排队或运行后继续编辑本地文件，不会改变已提交 Job。需要另一个编辑结果时，重新选择有效 ABC 并明确提交新 Job。输出 Score 必须与实际提交的有效文本一致；音频仍经过完整 FLAC 校验。失败结果不会成为 Candidate 或 Version。
+
 ## 明确保存 Version
+
+GenerateFromScore 的 Candidate 保留提交时的来源 parent。保存时省略 parent 字段，应用仍使用该 parent；显式给出不同 parent 返回 `409 source_parent_mismatch`。在新 Version 中检查输入 ABC 和 parent，再次读取原 Version，确认两个创作结果分别保留。
 
 将占位值替换为上一步输出，运行：
 
@@ -55,6 +75,8 @@ uv run --project services/api --no-sync python services/api/examples/generate_sa
 ## 失败恢复与真实 Runtime
 
 - `422 invalid_request`：修正空输入、seed 或超出范围的字段，再提交。
+- `422 score_invalid`：保留编辑文件，修正原生头、音符或不完整小节，再重新选定。通用 ABC 的显示成功不能替代原生推理校验。
+- `503 capability_missing`、`404 score_not_found` / `parent_version_not_found`、`409 source_parent_mismatch`：检查当前 capability，选择同 Project 且关系正确的来源。`score_result_mismatch` 表示 Runtime 输出替换了选定 Score；保留失败 Job 与快照，核对映射后再明确重试。
 - failed Job：读取其中的错误与 recovery_required，保留该 Job。缺输出、无效 Score、未完成的 FLAC 或无法确认的输出不会创建 Candidate/Version。先按[重启恢复指南](job-recovery.md)核对原工作；需要新 attempt 时，按[取消与明确重试](api-cancel-retry.md)确认安全终态并显式重试。不会自动重复推理。
 - `404 candidate_not_found` / `parent_version_not_found`：选择目标 Project 的 Candidate 或已保存 parent。跨 Project 引用不能保存。
 - `503 version_commit_unconfirmed`：先用错误中的 `resource_id` 查询 Version。重复保存已知 Version 时，即使确认回执和独立读回都失败，该 id 仍指向既有 Version。确认存在时读取其结果；不存在时恢复数据库访问，再重试相同 Candidate、名称和 parent。无法确认时应用保留原有 Asset 与快照。

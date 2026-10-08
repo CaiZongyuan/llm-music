@@ -44,6 +44,7 @@ The [client entry](../../packages/api-client/src/index.ts) only provides typed `
 | --- | --- |
 | Upload | `POST /projects/{project_id}/assets`; generated `file` is a Blob. Use a native File and FormData with this request's `bodySerializer`; let fetch set the boundary instead of writing Content-Type. |
 | Transcribe | Current support is 16-second PCM16 mono24k or stereo48k. Successful upload does not prove support for arbitrary 600-second inference. After completion, read the Score, ABC and MIDI application ids returned by the Job. |
+| Generate from a selected Score | `POST /projects/{project_id}/jobs/generate-from-score` uses generated `GenerateFromScoreCreate`, with explicit ABC, same-Project source Score, optional source parent and generation settings. Original and effective inference text are retained separately. See the [complete operation and limits](generate-save-api.en.md#selected-score). |
 | Download | Use `parseAs: 'arrayBuffer'` or `'blob'`. Success MIME can be WAV, FLAC, ABC or MIDI. Check byte count and SHA256 against Asset metadata. Failed responses still return typed JSON `error`. |
 | Cancel and retry | Both POSTs have no body. Cancel may return 202 intent or 200 terminal state; keep reading the original Job. Explicit retry returns 202 and a new Job. The client never retries automatically. |
 | Save | A Candidate does not automatically become a Version. The first explicit save returns 201; repeating a save for that Candidate returns 200 and the existing Version id. |

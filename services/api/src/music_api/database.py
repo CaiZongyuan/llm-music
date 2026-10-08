@@ -77,9 +77,20 @@ class Database:
         self.settings.database_path.parent.mkdir(parents=True, exist_ok=True)
         config = Config()
         config.set_main_option("script_location", str(Path(__file__).parent / "migrations"))
-        with self.engine.begin() as connection:
-            config.attributes["connection"] = connection
-            command.upgrade(config, "head")
+        with self.engine.connect() as connection:
+            native = connection.connection.driver_connection
+            assert isinstance(native, sqlite3.Connection)
+            # Parent-table recreation requires FK enforcement disabled outside
+            # BEGIN. Check the entire upgraded graph before committing it.
+            native.execute("PRAGMA foreign_keys=OFF")
+            try:
+                with connection.begin():
+                    config.attributes["connection"] = connection
+                    command.upgrade(config, "head")
+                    if connection.exec_driver_sql("PRAGMA foreign_key_check").first() is not None:
+                        raise ValueError("Upgraded application metadata contains invalid foreign keys")
+            finally:
+                native.execute("PRAGMA foreign_keys=ON")
 
     def close(self) -> None:
         self.engine.dispose()
