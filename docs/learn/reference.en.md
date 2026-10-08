@@ -22,7 +22,7 @@ Prepare 16 seconds of Reference Audio and get ABC and MIDI. Check the score agai
 
 ## 3. Compare by listening, not just file existence {#inspect}
 
-<ol><li>Play the original Reference Audio and listen again to the phrase you noted.</li><li>Read the ABC text or use your own ABC reader to inspect bars, meter, and pitch. Open MIDI in your existing MIDI player or music software.</li><li>Compare melodic movement and rhythm with the original. Note where a phrase differs. A downloadable score is not necessarily an exact transcription.</li></ol><p>The application validates complete files and imports the Score. That does not establish accuracy for arbitrary music. There is no integrated editor yet. You can study and edit downloads in your own tools; generating from an edited score in the application is not delivered.</p>
+<ol><li>Play the original Reference Audio and listen again to the phrase you noted.</li><li>Read the ABC text or use your own ABC reader to inspect bars, meter, and pitch. Open MIDI in your existing MIDI player or music software.</li><li>Compare melodic movement and rhythm with the original. Note where a phrase differs. A downloadable score is not necessarily an exact transcription.</li></ol><p>The application validates complete files and imports the Score; that does not establish accuracy for arbitrary music. The <a href="./edit-score.en.md">integrated editor</a> can correct notes, audition and save independently. GenerateFromScore is available through the API; its formal Web operation is a later delivery.</p>
 
 ## If the format is rejected, fix export settings {#recovery}
 

@@ -1,6 +1,6 @@
 # Find a melody you can inspect in reference music
 
-Keep original reference audio in one Project, transcribe it into a read-only score, then download ABC and MIDI. Inspect the melody and rhythm before choosing the next creative step. Transcription does not recognize lyrics or promise automatically accurate notation.
+Keep original reference audio in one Project, transcribe it into a score, then download ABC and MIDI. Inspect the melody and rhythm before choosing the next creative step. Transcription does not recognize lyrics or promise automatically accurate notation.
 
 ## Choose reference audio {#reference}
 
@@ -28,9 +28,9 @@ abcjs draws notation from the saved ABC. “ABC music notation” retains the or
 
 Choose “Download MIDI” or “Download ABC” to receive the registered original file through the browser. MIDI comes only from this Score's producer Job, rather than another transcription or generation. A music-generation score has no Reference Audio. If its producer has no MIDI, the page explains this; ABC remains available to inspect and download.
 
-If a file cannot be read, the saved score remains. Restore storage, then choose “Download again”. If notation cannot be displayed, the original ABC and files remain: choose “Display notation again”. For an unknown Score address, choose “Back to project scores” to reopen an existing record.
+If a file cannot be read, the saved score remains. Restore storage, then choose “Download again”. If notation cannot be displayed, the original ABC and files remain: choose “Update notation”. For an unknown Score address, choose “Back to project scores” to reopen an existing record.
 
-Scores are currently read-only. Text editing, MIDI playback and generation from a score belong to a later phase. Open the downloaded file in a tool supporting Standard MIDI File to inspect it further.
+Edit notes in the ABC draft above, inspect valid notation, audition/export its matching MIDI, and save an independent new Score. Follow the [Score editing tutorial](../learn/edit-score.en.md). The saved original and files below remain read-only. Web generation from a Score belongs to a later delivery; GenerateFromScore is currently available through the API.
 
 ## Local verification {#verification}
 

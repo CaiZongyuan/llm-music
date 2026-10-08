@@ -124,6 +124,16 @@
       "previous": "first-music"
     },
     {
+      "id": "edit-score",
+      "type": "tutorial",
+      "group": "play",
+      "path": "edit-score",
+      "titles": { "zh-cn": "改几个音符，听见新的旋律", "en": "Change a few notes, hear another melody" },
+      "labels": { "zh-cn": "编辑与试听乐谱", "en": "Edit and audition a Score" },
+      "sources": { "zh-cn": "docs/learn/edit-score.md", "en": "docs/learn/edit-score.en.md" },
+      "sectionIds": ["start", "edit", "listen", "save", "recover", "ideas"]
+    },
+    {
       "id": "resources",
       "type": "guide",
       "group": "help",

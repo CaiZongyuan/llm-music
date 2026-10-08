@@ -55,9 +55,11 @@ class Score(Base):
     __tablename__ = "scores"
     id: Mapped[str] = mapped_column(String(36), primary_key=True)
     project_id: Mapped[str] = mapped_column(ForeignKey("projects.id", ondelete="RESTRICT"), index=True)
-    job_id: Mapped[str] = mapped_column(ForeignKey("jobs.id", ondelete="RESTRICT"), unique=True)
+    job_id: Mapped[str | None] = mapped_column(ForeignKey("jobs.id", ondelete="RESTRICT"), unique=True)
     abc_asset_id: Mapped[str] = mapped_column(ForeignKey("assets.id", ondelete="RESTRICT"))
     source_reference_asset_id: Mapped[str | None] = mapped_column(ForeignKey("assets.id", ondelete="RESTRICT"))
+    source_score_id: Mapped[str | None] = mapped_column(ForeignKey("scores.id", ondelete="RESTRICT"))
+    parent_version_id: Mapped[str | None] = mapped_column(ForeignKey("versions.id", ondelete="RESTRICT"))
     created_at: Mapped[str] = mapped_column(String(40), default=utc_now)
 
 

@@ -90,7 +90,7 @@ def create_generate_from_score_job(project_id: UUID, value: GenerateFromScoreCre
         parent = session.get(Version, str(value.parent_version_id))
         if parent is None or parent.project_id != str(project_id):
             raise DomainError(404, "parent_version_not_found", "Parent Version does not exist in this Project.", "Select the source Version in this Project or omit the parent.")
-        if parent.score_id != source.id:
+        if parent.score_id != source.id and source.parent_version_id != parent.id:
             raise DomainError(409, "source_parent_mismatch", "The parent Version does not own the selected source Score.", "Select the Score belonging to this parent Version.")
     selected_score_validation(value.abc)
     jobs: JobService = request.app.state.jobs

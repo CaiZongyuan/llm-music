@@ -8,7 +8,7 @@ import { selectPlayerAsset } from '../player';
 import { useMessages } from '../preferences/Preferences';
 import { scoreMessages } from './messages';
 import { abcOptions, scoreOptions } from './queries';
-import { Notation } from './Notation';
+import { ScoreEditor } from './ScoreEditor';
 import { ScoreDownload } from './ScoreDownload';
 import './scores.css';
 
@@ -22,19 +22,20 @@ function ReferenceSource({ projectId, assetId }: { projectId: string; assetId: s
 function SavedScore({ score }: { score: components['schemas']['ScoreRead'] }) {
   const t = useMessages(scoreMessages);
   const abc = useQuery(abcOptions(score.project_id, score.abc_asset_id));
-  const job = useQuery(jobOptions(score.project_id, score.job_id));
+  const job = useQuery({ ...jobOptions(score.project_id, score.job_id ?? ''), enabled: Boolean(score.job_id) });
   // MIDI belongs to this producer Job, rather than any other Score in the Project.
   const midiId = job.data?.result?.score_id === score.id ? job.data.result.midi_asset_id : undefined;
-  return <><div className="workspace-grid"><section className="surface"><div className="section-heading"><h2>{t.title}</h2><span className="tag">{t.readonly}</span></div>
-    {abc.isPending ? <Loading /> : abc.isError ? <ErrorNotice error={abc.error} onRetry={() => void abc.refetch()} /> : <Notation abc={abc.data} />}
-    <p className="hint">{t.intro}</p><div className="score-actions">
-      {job.isPending ? <Loading /> : job.isError ? <ErrorNotice error={job.error} onRetry={() => void job.refetch()} /> : midiId ? <ScoreDownload key={midiId} projectId={score.project_id} assetId={midiId} kind="midi" /> : <p className="hint">{t.missingMidi}</p>}
+  return <>{abc.isPending ? <Loading /> : abc.isError ? <ErrorNotice error={abc.error} onRetry={() => void abc.refetch()} /> : <ScoreEditor projectId={score.project_id} score={score} initialABC={abc.data} />}
+    <div className="workspace-grid"><section className="surface"><div className="section-heading"><h2>{t.original}</h2><span className="tag">{t.readonly}</span></div>
+    <p className="hint">{t.savedIntro}</p><div className="score-actions">
+      {score.job_id && job.isPending ? <Loading /> : score.job_id && job.isError ? <ErrorNotice error={job.error} onRetry={() => void job.refetch()} /> : midiId ? <ScoreDownload key={midiId} projectId={score.project_id} assetId={midiId} kind="midi" /> : <p className="hint">{t.missingMidi}</p>}
       <ScoreDownload key={score.abc_asset_id} projectId={score.project_id} assetId={score.abc_asset_id} kind="abc" />
     </div><small>{t.later}</small>
   </section><section className="surface soft"><h2>{t.abc}</h2>{abc.data !== undefined ? <pre className="score-code">{abc.data}</pre> : null}
-    <h3>{t.source}</h3>{score.source_reference_asset_id ? <ReferenceSource projectId={score.project_id} assetId={score.source_reference_asset_id} /> : <p>{t.generated}</p>}
-    <label className="identity-label">{t.identity}<code>{score.id}</code></label><label className="identity-label">{t.job}<code>{score.job_id}</code></label>
-  </section></div><section className="surface"><h2>{t.job}</h2><JobState projectId={score.project_id} jobId={score.job_id} /></section></>;
+    <h3>{t.source}</h3>{score.source_reference_asset_id ? <ReferenceSource projectId={score.project_id} assetId={score.source_reference_asset_id} /> : <p>{score.job_id ? t.generated : t.independent}</p>}
+    {score.source_score_id ? <Link className="button" to="/projects/$projectId/scores/$scoreId" params={{ projectId: score.project_id, scoreId: score.source_score_id }}>{t.sourceScore}</Link> : null}
+    <label className="identity-label">{t.identity}<code>{score.id}</code></label>{score.job_id ? <label className="identity-label">{t.job}<code>{score.job_id}</code></label> : null}
+  </section></div>{score.job_id ? <section className="surface"><h2>{t.job}</h2><JobState projectId={score.project_id} jobId={score.job_id} /></section> : <p className="hint">{t.independent}</p>}</>;
 }
 export function ScoreReader({ projectId, scoreId }: { projectId: string; scoreId: string }) {
   const t = useMessages(scoreMessages);

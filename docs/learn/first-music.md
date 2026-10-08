@@ -46,7 +46,7 @@ uv run --project services/api --no-sync python services/api/examples/generate_sa
 
 ## 4. 先听，再看曲谱 {#listen}
 
-<ol><li>播放下载的 <code>audio.flac</code>。先完整听一次，再听人声是否可懂、伴奏是否贴合情绪、结尾有没有突兀中断。</li><li>打开 <code>score.abc</code>，或用自己的 ABC 阅读工具查看。对照音频中的旋律和节奏，记下一处想继续尝试的地方。</li><li>记下“我想保留什么”和“下一次只改什么”。声音能播放与文件校验通过，不等于音乐一定满意。</li></ol><p>这时它仍是 Candidate。当前生成路径提供音频与 ABC；MIDI 来自<a href="./reference.md">参考音频转谱</a>。内置曲谱编辑与比较播放器尚未交付。</p>
+<ol><li>播放下载的 <code>audio.flac</code>。先完整听一次，再听人声是否可懂、伴奏是否贴合情绪、结尾有没有突兀中断。</li><li>打开 <code>score.abc</code>，或用自己的 ABC 阅读工具查看。对照音频中的旋律和节奏，记下一处想继续尝试的地方。</li><li>记下“我想保留什么”和“下一次只改什么”。声音能播放与文件校验通过，不等于音乐一定满意。</li></ol><p>这时它仍是 Candidate。当前生成路径提供音频与 ABC；<a href="./reference.md">参考音频转谱</a>提供原 MIDI，也可在<a href="./edit-score.md">内置编辑器</a>中修改 ABC、试听并导出对应 MIDI。内置 A/B 比较尚未交付。</p>
 
 ## 5. 喜欢了，再明确保存 {#save}
 

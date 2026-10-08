@@ -23,9 +23,16 @@ async function downloaded(page: Page, name: string) {
 test('both creator journeys recover all persisted identities and bytes after an actual API process restart', async ({ page, baseURL }, info) => {
   if (!baseURL || !runDir) throw new Error('Missing isolated P2 gate environment');
   const api = createMusicClient({ baseUrl: `${baseURL}/api` });
-  const errors: string[] = [], requests: string[] = [], writes: string[] = [];
+  const errors: string[] = [], requests: string[] = [], writes: string[] = [], validations: string[] = [];
+  let validationPath = '';
   page.on('pageerror', error => errors.push(error.message));
-  page.on('request', request => { requests.push(request.url()); if (request.method() === 'POST') writes.push(request.url()); });
+  page.on('request', request => {
+    requests.push(request.url());
+    if (request.method() !== 'POST') return;
+    // Only this Project's explicit CPU validation route is a non-mutating POST.
+    if (new URL(request.url()).pathname === validationPath) validations.push(request.url());
+    else writes.push(request.url());
+  });
   const firstOwner = await owner();
   expect(firstOwner).toMatchObject({ generation: 0, runtime_mode: 'fake', torch_installed: false });
   const name = `雨后的散步 · P2 gate · ${randomUUID().slice(0, 8)}`;
@@ -38,6 +45,7 @@ test('both creator journeys recover all persisted identities and bytes after an 
   await expect(page).toHaveURL(/\/projects\/[0-9a-f-]+\/?$/);
   const projectId = new URL(page.url()).pathname.split('/')[2];
   if (!projectId) throw new Error('No Project identity');
+  validationPath = `/api/projects/${projectId}/scores/validate`;
   const path = { project_id: projectId };
   await page.locator('.tabs').getByRole('link', { name: 'Reference transcription', exact: true }).click();
   const referenceSelect = page.getByRole('combobox', { name: 'Choose reference audio', exact: true });
@@ -83,6 +91,12 @@ test('both creator journeys recover all persisted identities and bytes after an 
   expect(versions).toHaveLength(1); expect(versions[0]?.id).toBe(versionId);
   const priorWrites = [...writes];
   expect(priorWrites).toHaveLength(5); // Create Project, upload, Transcribe, Generate, save Version.
+  expect(priorWrites).toEqual([
+    `${baseURL}/api/projects`, `${baseURL}/api/projects/${projectId}/assets`,
+    `${baseURL}/api/projects/${projectId}/transcriptions`, `${baseURL}/api/projects/${projectId}/jobs/generate`,
+    `${baseURL}/api/projects/${projectId}/versions`,
+  ]);
+  expect(validations.length).toBeGreaterThan(0);
   await writeFile(resolve(runDir, 'restart'), 'Restart only the owned API child\n');
   await expect.poll(async () => readFile(resolve(runDir!, 'restart-stopped.json'), 'utf8').then(JSON.parse).catch(() => null)).toMatchObject({ pid: firstOwner.pid, graceful: true });
   await page.reload({ waitUntil: 'domcontentloaded' });
@@ -129,7 +143,8 @@ test('both creator journeys recover all persisted identities and bytes after an 
   expect(errors).toEqual([]);
   expect(requests.every(url => url.startsWith(baseURL) || url.startsWith('blob:'))).toBe(true);
   expect(writes).toEqual(priorWrites);
-  const receipt = { scope: 'Real Chromium and production FastAPI/SQLite, two distinct owned API PIDs, CPU Fake Runtime; no GPU/model quality claim', firstOwner, nextOwner, project, versions, jobs, assets, scores, midi_sha256: hash(firstMidi), writes, no_resubmission: true };
+  expect(validations.every(url => url === `${baseURL}${validationPath}`)).toBe(true);
+  const receipt = { scope: 'Real Chromium and production FastAPI/SQLite, two distinct owned API PIDs, CPU Fake Runtime; no GPU/model quality claim', firstOwner, nextOwner, project, versions, jobs, assets, scores, midi_sha256: hash(firstMidi), writes, validations, no_resubmission: true };
   await writeFile(resolve(runDir, 'gate-receipt.json'), JSON.stringify(receipt, null, 2) + '\n');
   await info.attach('p2-api-restart', { body: JSON.stringify(receipt, null, 2), contentType: 'application/json' });
 });

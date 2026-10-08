@@ -5,7 +5,7 @@ import type RegionsPlugin from 'wavesurfer.js/dist/plugins/regions.esm.js';
 import { api, dataOf } from '../../lib/api';
 import { assetOptions } from '../assets/queries';
 import { useMessages, usePreferences } from '../preferences/Preferences';
-import { playerSelection, subscribePlayerSelection } from './index';
+import { playerSelection, publishScorePlayback, subscribePlayerSelection, type PlayerScoreSelection } from './index';
 import { playerMessages } from './messages';
 import './player.css';
 
@@ -38,6 +38,7 @@ export function Player() {
   const { theme } = usePreferences();
   const container = useRef<HTMLDivElement>(null);
   const media = useRef<HTMLAudioElement>(null);
+  const loadedScore = useRef<PlayerScoreSelection | null>(null);
   const regions = useRef<RegionsPlugin | null>(null);
   const loadQueue = useRef(Promise.resolve());
   const bounded = useRef(false);
@@ -53,11 +54,27 @@ export function Player() {
   const [end, setEnd] = useState('0');
   const [regionInvalid, setRegionInvalid] = useState(false);
   const projectId = selection?.projectId ?? '';
-  const assetId = selection?.assetId ?? '';
-  const asset = useQuery({ ...assetOptions(projectId, assetId), enabled: Boolean(selection) });
-  const content = useQuery({ queryKey: ['projects', projectId, 'assets', assetId, 'playback-content'], enabled: Boolean(selection),
+  const assetId = selection?.kind === 'score' ? '' : selection?.assetId ?? '';
+  const selectionId = selection?.kind === 'score' ? selection.id : assetId;
+  const isAsset = Boolean(selection && selection.kind !== 'score');
+  const asset = useQuery({ ...assetOptions(projectId, assetId), enabled: isAsset });
+  const content = useQuery({ queryKey: ['projects', projectId, 'assets', assetId, 'playback-content'], enabled: isAsset,
     queryFn: async ({ signal }) => dataOf(await api.GET('/projects/{project_id}/assets/{asset_id}/content', { params: { path: { project_id: projectId, asset_id: assetId } }, parseAs: 'blob', signal })),
     staleTime: Infinity, gcTime: 60_000, retry: false });
+
+  useEffect(() => {
+    const element = media.current;
+    if (!element) return;
+    function sync() {
+      const score = loadedScore.current, current = playerSelection();
+      publishScorePlayback(score && current?.kind === 'score' && current.id === score.id && element
+        ? { projectId: score.projectId, abcSha256: score.abcSha256, time: element.currentTime, playing: !element.paused && !element.ended }
+        : null);
+    }
+    const events = ['timeupdate', 'play', 'pause', 'seeking', 'seeked', 'ended', 'emptied', 'error'];
+    events.forEach(name => element.addEventListener(name, sync));
+    return () => { events.forEach(name => element.removeEventListener(name, sync)); publishScorePlayback(null); };
+  }, []);
 
   useEffect(() => {
     let disposed = false;
@@ -87,30 +104,36 @@ export function Player() {
 
   useEffect(() => {
     bounded.current = false;
+    loadedScore.current = null; publishScorePlayback(null);
     wave?.pause(); setReady(false); setFailed(false); setPlaying(false); setTime(0); setDuration(0);
     regions.current?.clearRegions();
-  }, [wave, projectId, assetId]);
+  }, [wave, projectId, selectionId]);
 
   useEffect(() => {
-    if (!wave || !content.data || !asset.data || !selection) return;
+    if (!wave || !selection) return;
+    const score = selection.kind === 'score' ? selection : null;
+    const blob = score?.blob ?? content.data;
+    const length = score?.durationSeconds ?? asset.data?.duration_seconds;
+    if (!blob || !length) return;
     let disposed = false;
-    const length = asset.data.duration_seconds;
     // WaveSurfer decoding cannot be aborted. Serialize loads and publish only the
     // latest selection so an earlier decode cannot replace its waveform/regions.
     loadQueue.current = loadQueue.current.then(async () => {
       if (disposed) return;
       try {
         if (!length || !Number.isFinite(length)) throw new Error('Audio duration is unavailable');
-        await wave.loadBlob(content.data, undefined, length);
+        await wave.loadBlob(blob, undefined, length);
         if (disposed) return;
+        loadedScore.current = score;
         setDuration(length); setReady(true); setFailed(false);
         regions.current?.clearRegions();
         regions.current?.addRegion({ id: 'listening', start: 0, end: Math.min(10, length), color: 'color-mix(in srgb, var(--accent) 20%, transparent)', drag: true, resize: true, minLength: Math.min(0.1, length) });
         setStart('0'); setEnd(String(Math.min(10, length))); setRegionInvalid(false);
-      } catch { if (!disposed) { setFailed(true); setReady(false); } }
+        if (score) await wave.play();
+      } catch { if (!disposed) { loadedScore.current = null; publishScorePlayback(null); setFailed(true); setReady(false); } }
     });
     return () => { disposed = true; };
-  }, [wave, content.data, asset.data, projectId, assetId]);
+  }, [wave, content.data, asset.data, selection]);
 
   useEffect(() => {
     wave?.setOptions(waveColors());
@@ -130,19 +153,19 @@ export function Player() {
     bounded.current = false; setRegionInvalid(false);
   }
   function reread() {
-    if (!wave) { setInitializationFailed(false); setInitializationAttempt(attempt => attempt + 1); }
+    if (!wave || selection?.kind === 'score') { setInitializationFailed(false); setInitializationAttempt(attempt => attempt + 1); }
     setFailed(false);
-    if (selection) { void content.refetch(); void asset.refetch(); }
+    if (isAsset) { void content.refetch(); void asset.refetch(); }
   }
 
   return <footer id="persistent-player" className="continuous-player" aria-label={t.player}>
     <audio ref={media} hidden preload="metadata" />
-    <div className="player-title"><strong>{selection?.label ?? t.empty}</strong><small>{selection ? asset.data?.kind === 'reference_audio' ? t.source : t.player : t.emptyHelp}</small></div>
+    <div className="player-title"><strong>{selection?.label ?? t.empty}</strong><small>{selection?.kind === 'score' ? `${t.scoreTone} · r${selection.revision}` : selection ? asset.data?.kind === 'reference_audio' ? t.source : t.player : t.emptyHelp}</small></div>
     <div className="player-main"><button type="button" disabled={!selection || !ready || failed} onClick={() => playing ? wave?.pause() : void play()} aria-label={playing ? t.pause : t.play}>{playing ? 'Ⅱ' : '▶'}</button>
       <div className="wave-container" style={{ visibility: ready ? 'visible' : 'hidden' }} ref={container} /><output aria-label={t.clock}>{clock(time)} / {clock(duration)}</output>
       <label className="seek-label"><span className="visually-hidden">{t.seek}</span><input type="range" aria-label={t.seek} min={0} max={duration || 0} step={0.1} value={time} disabled={!selection || !ready} onChange={event => { bounded.current = false; wave?.setTime(Number(event.target.value)); }} /></label>
     </div>
-    {initializationFailed || selection && (failed || content.isError || asset.isError) ? <div className="player-error" role="alert">{initializationFailed ? t.unavailable : t.failed}<button type="button" onClick={reread}>{t.retry}</button></div> : selection && !ready ? <small role="status">{t.loading}</small> : null}
+    {initializationFailed || selection && (failed || isAsset && (content.isError || asset.isError)) ? <div className="player-error" role="alert">{initializationFailed ? t.unavailable : t.failed}<button type="button" onClick={reread}>{t.retry}</button></div> : selection && !ready ? <small role="status">{t.loading}</small> : null}
     {selection ? <details className="player-regions"><summary>{t.region}</summary><div className="region-fields"><label>{t.start}<input type="number" step="0.1" min="0" max={duration} value={start} onChange={event => setStart(event.target.value)} /></label><label>{t.end}<input type="number" step="0.1" min="0" max={duration} value={end} onChange={event => setEnd(event.target.value)} /></label><button type="button" disabled={!ready} onClick={applyRegion}>{t.apply}</button><button type="button" disabled={!ready} onClick={() => void play(true)}>{t.playRegion}</button></div>{regionInvalid ? <p role="alert">{t.invalidRegion}</p> : null}</details> : null}
   </footer>;
 }

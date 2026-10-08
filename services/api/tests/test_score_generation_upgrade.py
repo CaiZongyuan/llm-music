@@ -39,6 +39,8 @@ def test_actual_0005_generate_transcribe_and_branched_versions_upgrade_without_c
     with server(data, tmp_path / "upgraded-api.log") as client:
         assert client.get(base).json() == project
         for route, expected in history.items():
+            if route == "scores":
+                expected = [dict(score, source_score_id=None, parent_version_id=None) for score in expected]
             assert client.get(base + "/" + route).json() == expected
         inputs = dict(INPUTS, abc=SELECTED_ABC, source_score_id=original["score_id"], parent_version_id=original["id"])
         submitted = client.post(base + "/jobs/generate-from-score", json=inputs)

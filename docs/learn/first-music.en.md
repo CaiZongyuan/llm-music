@@ -46,7 +46,7 @@ The command calls the existing CLI directly with the controlled lyrics above. Co
 
 ## 4. Listen, then inspect the score {#listen}
 
-<ol><li>Play the downloaded <code>audio.flac</code>. Hear the whole piece first, then check understandable vocals, accompaniment that fits the mood, and an ending without an abrupt break.</li><li>Open <code>score.abc</code> or use your own ABC reader. Compare melody and rhythm with the audio and note one thing to explore next.</li><li>Write “what I want to keep” and “what I will change next.” Playable, validated files do not guarantee music you will like.</li></ol><p>This is still a Candidate. Generation currently supplies audio and ABC. MIDI comes from <a href="./reference.en.md">Reference Audio transcription</a>. The integrated score editor and comparison player are not delivered yet.</p>
+<ol><li>Play the downloaded <code>audio.flac</code>. Hear the whole piece first, then check understandable vocals, accompaniment that fits the mood, and an ending without an abrupt break.</li><li>Open <code>score.abc</code> or use your own ABC reader. Compare melody and rhythm with the audio and note one thing to explore next.</li><li>Write “what I want to keep” and “what I will change next.” Playable, validated files do not guarantee music you will like.</li></ol><p>This is still a Candidate. Generation supplies audio and ABC. <a href="./reference.en.md">Reference Audio transcription</a> supplies original MIDI, and the <a href="./edit-score.en.md">integrated editor</a> can edit ABC, audition and export matching MIDI. Integrated A/B comparison is not delivered.</p>
 
 ## 5. Save explicitly when you like it {#save}
 
