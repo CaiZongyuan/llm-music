@@ -59,12 +59,14 @@ export function Player() {
   const regions = useRef<RegionsPlugin | null>(null);
   const loadQueue = useRef(Promise.resolve());
   const previous = useRef<PlayerSelection | null>(null);
+  const loadedSelection = useRef<PlayerSelection | null>(null);
   const intent = useRef({ time: 0, playing: false });
   const bounded = useRef(false);
   const [initializationAttempt, setInitializationAttempt] = useState(0);
   const [initializationFailed, setInitializationFailed] = useState(false);
   const [wave, setWave] = useState<WaveSurfer | null>(null);
   const [ready, setReady] = useState(false);
+  const currentReady = ready && loadedSelection.current === selection;
   const [failed, setFailed] = useState(false);
   const [playing, setPlaying] = useState(false);
   const [time, setTime] = useState(0);
@@ -77,7 +79,6 @@ export function Player() {
   const versions = useQuery({ ...versionsOptions(projectId), enabled: Boolean(compare) });
   const version = compare ? versions.data?.find(value => value.id === compare.pair[compare.pair.side] && value.project_id === projectId) : null;
   const assetId = selection?.kind === 'score' ? '' : selection?.kind === 'compare' ? version?.audio_asset_id ?? '' : selection?.assetId ?? '';
-  const selectionId = selection?.kind === 'score' ? selection.id : assetId;
   const isAsset = Boolean(selection && selection.kind !== 'score' && assetId);
   const asset = useQuery({ ...assetOptions(projectId, assetId), enabled: isAsset });
   const content = useQuery({ queryKey: ['projects', projectId, 'assets', assetId, 'playback-content'], enabled: isAsset,
@@ -157,6 +158,9 @@ export function Player() {
         const position = Math.min(intent.current.time, nativeDuration);
         if (position >= nativeDuration) intent.current.playing = false;
         wave.setTime(position);
+        if (media.current) await playableMedia(media.current);
+        if (disposed) return;
+        loadedSelection.current = selection;
         setTime(position); setDuration(nativeDuration); setReady(true); setFailed(false);
         regions.current?.clearRegions();
         regions.current?.addRegion({ id: 'listening', start: 0, end: Math.min(10, nativeDuration), color: 'color-mix(in srgb, var(--accent) 20%, transparent)', drag: true, resize: true, minLength: Math.min(0.1, nativeDuration) });
@@ -172,7 +176,7 @@ export function Player() {
   }, [wave, theme]);
 
   async function play(regionOnly = false) {
-    if (!wave || !ready) return;
+    if (!wave || !currentReady) return;
     bounded.current = regionOnly;
     const region = regions.current?.getRegions()[0];
     if (regionOnly && region) wave.setTime(region.start);
@@ -194,11 +198,11 @@ export function Player() {
     <audio ref={media} hidden preload="metadata" />
     <div className="player-title"><strong>{compare ? `${compare.pair.side.toUpperCase()} · ${version?.name ?? t.chooseVersion}` : selection && selection.kind !== 'compare' ? selection.label : t.empty}</strong><small>{selection?.kind === 'score' ? `${t.scoreTone} · r${selection.revision}` : selection ? asset.data?.kind === 'reference_audio' ? t.source : t.player : t.emptyHelp}</small>
       {compare ? <div className="feature-actions"><button type="button" onClick={() => selectPlayerCompare(projectId, { ...compare.pair, side: 'a' }, true)}>{t.switchA}</button><button type="button" disabled={!compare.pair.b} onClick={() => selectPlayerCompare(projectId, { ...compare.pair, side: 'b' }, true)}>{t.switchB}</button></div> : null}</div>
-    <div className="player-main"><button type="button" disabled={!selection || !ready || failed} onClick={() => playing ? wave?.pause() : void play()} aria-label={playing ? t.pause : t.play}>{playing ? 'Ⅱ' : '▶'}</button>
-      <div className="wave-container" style={{ visibility: ready ? 'visible' : 'hidden' }} ref={container} /><output aria-label={t.clock}>{clock(time)} / {clock(duration)}</output>
-      <label className="seek-label"><span className="visually-hidden">{t.seek}</span><input type="range" aria-label={t.seek} min={0} max={duration || 0} step={0.1} value={time} disabled={!selection || !ready} onChange={event => { bounded.current = false; wave?.setTime(Number(event.target.value)); }} /></label>
+    <div className="player-main"><button type="button" disabled={!selection || !currentReady || failed} onClick={() => playing ? wave?.pause() : void play()} aria-label={playing ? t.pause : t.play}>{playing ? 'Ⅱ' : '▶'}</button>
+      <div className="wave-container" style={{ visibility: currentReady ? 'visible' : 'hidden' }} ref={container} /><output aria-label={t.clock}>{clock(time)} / {clock(duration)}</output>
+      <label className="seek-label"><span className="visually-hidden">{t.seek}</span><input type="range" aria-label={t.seek} min={0} max={duration || 0} step={0.1} value={time} disabled={!selection || !currentReady} onChange={event => { bounded.current = false; wave?.setTime(Number(event.target.value)); }} /></label>
     </div>
-    {initializationFailed || selection && (failed || isAsset && (content.isError || asset.isError)) ? <div className="player-error" role="alert">{initializationFailed ? t.unavailable : t.failed}<button type="button" onClick={reread}>{t.retry}</button></div> : selection && !ready ? <small role="status">{t.loading}</small> : null}
-    {selection ? <details className="player-regions"><summary>{t.region}</summary><div className="region-fields"><label>{t.start}<input type="number" step="0.1" min="0" max={duration} value={start} onChange={event => setStart(event.target.value)} /></label><label>{t.end}<input type="number" step="0.1" min="0" max={duration} value={end} onChange={event => setEnd(event.target.value)} /></label><button type="button" disabled={!ready} onClick={applyRegion}>{t.apply}</button><button type="button" disabled={!ready} onClick={() => void play(true)}>{t.playRegion}</button></div>{regionInvalid ? <p role="alert">{t.invalidRegion}</p> : null}</details> : null}
+    {initializationFailed || selection && (failed || isAsset && (content.isError || asset.isError)) ? <div className="player-error" role="alert">{initializationFailed ? t.unavailable : t.failed}<button type="button" onClick={reread}>{t.retry}</button></div> : selection && !currentReady ? <small role="status">{t.loading}</small> : null}
+    {selection ? <details className="player-regions"><summary>{t.region}</summary><div className="region-fields"><label>{t.start}<input type="number" step="0.1" min="0" max={duration} value={start} onChange={event => setStart(event.target.value)} /></label><label>{t.end}<input type="number" step="0.1" min="0" max={duration} value={end} onChange={event => setEnd(event.target.value)} /></label><button type="button" disabled={!currentReady} onClick={applyRegion}>{t.apply}</button><button type="button" disabled={!currentReady} onClick={() => void play(true)}>{t.playRegion}</button></div>{regionInvalid ? <p role="alert">{t.invalidRegion}</p> : null}</details> : null}
   </footer>;
 }
