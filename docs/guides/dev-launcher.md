@@ -38,6 +38,8 @@ collector 验证进程、源 revision、模型 SHA256 和文件指纹。启动�
 
 API 和 Runtime 始终使用不同 uv 项目和环境。启动器检查当前 Runtime 环境是否与自己的 `uv.lock` 同步，并记录 lock SHA256。它还核对实际 listener 的启动解释器路径、PID/创建时间与命令。Windows listener 常显示两个环境共用的基础 Python；这时必须找到仍存活的直接 venv redirector，证明它用所配置环境的解释器启动了同一命令。新的配置探测进程、共同基础 Python 或更远的祖先进程不能代替该来源。无法证明来源时，启动器拒绝复用并保留原服务，不猜测当前进程的 `sys.prefix`。
 
+不同 Git checkout 的 LF/CRLF 换行差异只在四份登记配置文本的兼容性比较中归一化。文件不被重写；实际 `uv.lock` 原始字节 SHA256、已安装环境同步、进程来源、模型及源码校验保持独立。依赖或配置值改变仍拒绝。
+
 可先运行 `pnpm dev -- --inspect-runtime-origin 实际PID --runtime-project 已准备的Runtime项目路径` 单独读取来源。该命令只查验启动路径、进程身份及当前 lock，不读取模型、连接 Runtime HTTP 或证明推理就绪。完整启动仍需要上面的新鲜 collector receipt。
 
 ## 失败恢复 {#recover}

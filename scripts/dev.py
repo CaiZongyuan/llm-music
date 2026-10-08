@@ -83,6 +83,16 @@ def check_environment(project: Path) -> None:
         raise LaunchError(f"Environment does not match its lock: {project}. Run uv sync --project \"{project}\" --frozen, then retry. This check made no changes.")
 
 
+def check_runtime_project_files(project: Path) -> None:
+    # Git can use LF/CRLF in separate Windows worktrees. Compare tracked text
+    # without changing files or the raw uv.lock hash used in origin provenance.
+    for filename in ["pyproject.toml", "uv.lock", "runtime.json", "models.json"]:
+        actual = (project / filename).read_bytes().replace(b"\r\n", b"\n")
+        pinned = (ROOT / "runtime/comfyui" / filename).read_bytes().replace(b"\r\n", b"\n")
+        if actual != pinned:
+            raise LaunchError(f"Runtime project {filename} differs from this repository's pinned environment. Restore matching configuration; no reused process was changed.")
+
+
 def signature(config: dict) -> str:
     return hashlib.sha256(json.dumps(config, sort_keys=True).encode()).hexdigest()
 
@@ -295,9 +305,7 @@ class Launcher:
             if not matches:
                 raise LaunchError(f"Native listener {option} differs from requested settings. Use matching owner settings; no reused process was changed.")
         environment(args.runtime_project.resolve())
-        for filename in ["pyproject.toml", "uv.lock", "runtime.json", "models.json"]:
-            if (args.runtime_project / filename).read_bytes() != (ROOT / "runtime/comfyui" / filename).read_bytes():
-                raise LaunchError(f"Runtime project {filename} differs from this repository's pinned environment; no reused process was changed.")
+        check_runtime_project_files(args.runtime_project)
         check_environment(args.runtime_project)
         binding = interpreter_origin(receipt.process.pid, args.runtime_project)
         self.native_binding = dict(process=binding["listener"], runtime_project=binding["project"],
@@ -453,9 +461,7 @@ def main() -> int:
                 raise LaunchError("API and Runtime must not share a Python environment")
             if not (args.runtime_root / "main.py").is_file() or not args.models_root.is_dir():
                 raise LaunchError("Native source/models are not prepared. Follow docs/guides/runtime-doctor.md; launcher never downloads models.")
-            for filename in ["pyproject.toml", "uv.lock", "runtime.json", "models.json"]:
-                if (args.runtime_project / filename).read_bytes() != (ROOT / "runtime/comfyui" / filename).read_bytes():
-                    raise LaunchError(f"Runtime project {filename} differs from this repository's pinned environment. Restore matching files; launcher never syncs or downloads native dependencies.")
+            check_runtime_project_files(args.runtime_project)
             check_environment(args.runtime_project)
         build = subprocess.run([command("pnpm"), "--filter", "@llm-music/api-client", "build"], cwd=ROOT, timeout=30, capture_output=True, text=True)
         if build.returncode:
