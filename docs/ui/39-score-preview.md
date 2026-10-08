@@ -4,7 +4,13 @@
 - 起点：实际 main `711df508dd0edead070f4345a7b23eb9c6834e77`。原生 blocker 只有 #38，已 closed / PR #84 merged。
 - Owner：`/root/score_preview_developer`。独立分支 `p3/39-score-preview`、worktree `.worktrees/39-score-preview`。
 - 预览：[score-editing-v1](../previews/score-editing-v1/README.md)。自有 <http://127.0.0.1:18072/llm-music/score-preview/>。
-- 状态：**可运行并已由作者真实浏览器核对；等待 Root 独立审阅和用户本次具体体验确认。确认前不实施 #40 的正式交互。**
+- 状态：**用户已明确“认可，继续正式实现”。对应已冻结35bb7dc版本的双声部示例与完整编辑流程；Root已独立操作并完成非作者Standards/Spec审阅，正式 #40 可按该版本推进。**
+
+## 用户确认与 Root 读回
+
+2026-10-08，用户在具体预览问题中回答“认可，继续正式实现”。问题链接当前18072预览，明确编辑→真实谱面/MIDI试听导出→选定→模拟重新生成→派生Version、中英和亮暗，以及历史示例音频和真实业务隔离。复用旧31布局与最新纠正，不重选总体设计。
+
+Root实际从公开浏览器试听MIDI、选定Score、模拟生成Candidate、显式保存新版本，并切换English/dark；操作可用，自有检查浏览器已关闭，预览服务保留。非作者双轴审阅无阻断问题；容量采用一位非作者分别报告Standards/Spec，明确同一上下文限制。可选初始无谱面文案精度建议在正式40中落实：checked为空时不声称已有上一份有效谱面。API41已实际交付于main c40010c，正式40使用其生成client/实际能力与原文/有效ABC来源，不手写生产schema或把模拟音频视为真实重新生成。
 
 ## 复用与待确认决策
 
