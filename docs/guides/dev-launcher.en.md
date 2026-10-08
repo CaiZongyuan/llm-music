@@ -38,6 +38,8 @@ A subsequent start without `--runtime-evidence` can reuse only the launch group'
 
 API and Runtime use separate uv projects and environments. The launcher checks that the current Runtime environment matches its own `uv.lock` and records the lock SHA256. It also verifies the actual listener's launch interpreter path, PID/creation time and command. Windows listeners often expose a base Python shared by separate environments. In that case, a still-live immediate venv redirector must prove that the configured environment's interpreter launched the same command. A new configuration probe, common base Python or distant ancestor cannot replace this origin. Unproved origin refuses reuse while preserving the service; the launcher does not infer the live process's `sys.prefix`.
 
+LF/CRLF differences between Git checkouts are normalized only when comparing the four registered configuration text files for compatibility. Files are not rewritten. Actual raw-byte `uv.lock` SHA256, installed-environment synchronization, process origin, models and source checks remain independent. Changed dependencies or configuration values still refuse reuse.
+
 First run `pnpm dev -- --inspect-runtime-origin ACTUAL_PID --runtime-project PREPARED_RUNTIME_PROJECT_PATH` to inspect this origin alone. This command checks launch paths, process identity and the current lock. It does not read models, connect to Runtime HTTP or establish inference readiness. A complete start still needs the fresh collector receipt above.
 
 ## Recover a failed start {#recover}

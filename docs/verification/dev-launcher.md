@@ -33,3 +33,9 @@ Root 集成登记项：根 `dev`、`test:launcher`，显式 CPU CI 执行，`doc
 - 最小公开编排检查通过（0.91 秒）：自动 receipt 首次启动，换文件名的新鲜 receipt 第二次启动复用同一组 PID；当前 proof 可无路径再次复用；真实输入时间不改写旧 receipt；过期/不同 native proof 或不同应用数据被拒绝，active proof 不变，原 peer 全部仍可读取，最终只清理测试 owner 的 peer 并读回端口无监听。
 - 完整适用 CPU 检查 9 通过，44.21 秒：8 项实际 CLI/HTTP + 1 项受控 CPU Native 编排 seam。JUnit `.scratch/p2-development/37-launcher/native-reuse-full-final.xml`；CLI/Python/Node 语法与 diff 检查通过。原 reviewer 的 `native-reuse-source-proof.json` 保留为修复前反例。
 - 有界简化将输入来源与稳定服务配置分开，复用同一 owner/config 检查和原始 receipt 校验，不新增 Runtime HTTP/API。修复 freeze 与独立复审由 Root 继续；真实三服务启动/复用/停止仍独立待验收。
+
+## 目标机器 LF/CRLF 兼容性修复
+
+- Root 实际原生目标首次启动在 pyproject 比较处拒绝，未启动任何子服务（0 owned/0 forced），PID50752 保留。原始事实是 Root `.scratch/p2-development/37-real/launcher/sessions/61413e729e8e40b9839e439e39154ed2/session.json`，没有把失败重写为通过。
+- 四份 Runtime 登记配置都是相同 Git 内容的 LF/CRLF checkout 差异。比较现在共用 `check_runtime_project_files`，只归一化 CRLF/LF；不修改环境或文件，也不改变实际 lock 字节 hash 的 origin provenance、locked sync、模型和源码绑定。
+- 最小公开比较 oracle 对 LF 与 CRLF 均接受，同时拒绝实际 Torch dependency/lock、Runtime port 和 Model Registry schema 值改变；比较前后文件原始字节不变。作者只读比较实际项目14已通过，没有 Runtime/GPU/模型读取或服务操作。最终比较 JUnit 与冻结记录随交接保留；原9项 CLI/编排证据未受此文本比较边界以外的行为改变。
