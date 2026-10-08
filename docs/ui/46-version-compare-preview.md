@@ -68,3 +68,13 @@ B 是 full 历史音频实际解码并裁切 `[0,31]` 的 **PCM16 stereo48k WAV 
 冻结源码服务已重新启动在同一 owned18096：PID **51140**、parent **26392**、实际 birth **1791483394.268**，exec session **94251**，实际 Node script 为本工作树 `docs/previews/version-compare-v1/serve.mjs`。`freeze.json` / `server-owner.json` 保存身份与 served hashes；它们一起作为停止依据，不能只按端口认领进程。stop-file 为 Root `.scratch/p5-development/46-preview/media/stop-preview`；仅在再次核对身份后创建以 graceful关闭。
 
 冻结服务供 Root 独立复查，作者不再改源码。Root 是 sole Native/GPU owner；protected8188 / PID50752 / birth1791306524.2399251 / parent38748 未写入、未停止、未 interrupt/free。根 package/lock、API/app/source、用户暂存与无关 skills/design/previews 未改。本票独立 review/真实集成读回之后，Root 按既有豁免自动派发 fresh #47；不追加用户确认等待。
+
+## 非作者 Spec P2 修复：持续试听身份
+
+Root 的两位非作者对 `3f4c78d…` 分别报告 Standards0、Spec1项P2。Spec 在 `46-review/spec.md` 指出：Candidate1正在试听时，Candidate2成功完成会替换当前 Candidate，原 Player label 查不到旧 id，虽实际 audio/src/clock继续，却失去候选或已保存身份。Root `candidate-identity-red.json` 从公开操作独立确认未保存/已保存两种反例；原37+6作者事实没有覆盖第二次成功完成，此缺口明确保留。
+
+本次只改 Player 的本地来源选择：载入时捕获精简、冻结的 id/name/audio/Candidate或saved身份，不再在每次绘制时依赖“当前显示的 Candidate”。新 Job/结果不会删除正在听的身份；retry同一旧来源仍用原快照。明确保存当前正在听的 Candidate 时，仅更新该匹配来源的 saved id/name，不改媒体或时钟；保存另一个 Candidate 不能改名旧试听。状态行显示所听候选/已存记录 id，避免把相同默认名字归给新结果。场景重置和明确换侧继续按原规则清除或替换来源。
+
+有界简化将保存后的来源身份更新放在单次 render之前，保留一个媒体owner、一次状态发布；不新增 store、播放器、API、依赖或后台运行。`node --check app.js`、`git diff --check`已通过。作者按Root窗口所有权要求**未执行浏览器、构建、GPU或服务操作**，不宣称修复行为已通过。Root将以重新冻结候选运行原始双反例和 targeted公开回归：旧src/time/playing/label/id/audio1保持，保存正在听的候选更新身份，保存后续候选不改旧身份，明确返回A从0暂停。脚本 `46-preview/candidate-identity-regression.js` 已提供，结果待Root实际写回；未改变的37+6作者及11条Root trusted浏览器证据按语义差异复用。
+
+Root最初的 synthetic播放因 userActivation=false 得到真实 NotAllowedError，已经用trusted原生点击解决后获得 `root-browser-facts-trusted.json` 11条通过；这是测试前提修正，不是产品解码缺陷。旧作者服务51140在Root读回时已经不存在、18096无监听；当前独立浏览器与静态服务归Root，PID50664、parent60304、exec72898，stop-file为 `root-stop-preview`。上述旧服务身份保留为历史，**不作为当前停止依据**；本次作者没有停止它或 protected Native50752。

@@ -37,7 +37,12 @@ function relations(versions) {
 let model = {versions:fixture(),selected:'preview-v1',origin:null,job:null,candidate:null,read:'ready',serial:0};
 let pendingOrigin = null, jobTimer = null, pair = null, pairNotice = '', saveNotice = '', walkthrough = null;
 const version = id => model.versions.find(value=>value.id === id);
-const listeningChoice = id => version(id) ?? (model.candidate?.id === id ? {...model.candidate,name:`${t(model.candidate.saved ? 'saved' : 'candidate')} · ${model.candidate.name}`} : null);
+function listeningChoice(id) {
+  const saved = version(id);
+  if (saved) return {id:saved.id,name:saved.name,audio:saved.audio};
+  const candidate = model.candidate;
+  return candidate?.id === id ? {id:candidate.id,name:candidate.name,audio:candidate.audio,candidate:true,saved:candidate.saved} : null;
+}
 const storageKey = 'llm-music-preview46:preview-project:pair';
 function persistPair() {
   try { if ($('storage-blocked').checked) throw new Error('Simulated unavailable storage'); localStorage.setItem(storageKey,JSON.stringify(pair)); }
@@ -75,7 +80,7 @@ function metadataReady() {
 const audio = $('audio');
 const regions = Regions.create();
 const wave = WaveSurfer.create({container:$('waveform'),media:audio,height:42,normalize:true,plugins:[regions],waveColor:'#a69b8b',progressColor:'#365e54',cursorColor:'#365e54'});
-let requestNumber = 0, loadingQueue = Promise.resolve(), ready = false, failed = false, requestedId = null;
+let requestNumber = 0, loadingQueue = Promise.resolve(), ready = false, failed = false, requestedId = null, requestedChoice = null;
 let pendingTime = 0, pendingPlaying = false, region = null, bounded = false;
 function commonDuration() {
   if (!pair?.a || !pair?.b) return 0;
@@ -90,9 +95,13 @@ function showRegion() {
 function pause() { pendingPlaying = false; bounded = false; audio.pause(); renderPlayer(); }
 async function load(id,time = 0,playing = false,keepBound = false) {
   const sequence = ++requestNumber;
+  // The playing identity outlives the currently displayed Candidate. Retry also
+  // retains it after another successful generation replaces that Candidate.
+  const choice = listeningChoice(id) ?? (requestedChoice?.id === id ? requestedChoice : null);
+  requestedChoice = choice ? Object.freeze({...choice}) : null;
   audio.pause(); ready = false; failed = false; requestedId = id; pendingTime = time; pendingPlaying = playing; bounded = keepBound;
   renderPlayer();
-  const choice = listeningChoice(id), key = choice?.audio;
+  const key = choice?.audio;
   if (!key || !blobs.has(key)) { renderPlayer(); return; }
   const delay = pair?.side === 'b' && $('late-load').checked;
   if (delay) $('late-load').checked = false;
@@ -171,10 +180,10 @@ for (const name of ['play','pause','ended','seeked']) audio.addEventListener(nam
 audio.addEventListener('error',()=>{audio.pause();ready=false;failed=true;bounded=false;pendingPlaying=false;renderPlayer();});
 function clock(seconds) { const value = Math.max(0,Math.floor(seconds || 0)); return `${Math.floor(value/60)}:${String(value%60).padStart(2,'0')}`; }
 function renderPlayer() {
-  const choice = listeningChoice(requestedId);
-  $('player-label').textContent = choice?.name ?? t('notListening');
+  const choice = requestedChoice;
+  $('player-label').textContent = choice ? `${choice.candidate ? `${t(choice.saved ? 'saved' : 'candidate')} · ` : ''}${choice.name}` : t('notListening');
   const source = choice?.audio === 'full' ? t('copy31') : choice?.audio === 'melody' ? t('copy35') : '';
-  $('player-status').textContent = `${ready ? !audio.paused ? t('playing') : audio.ended || audio.currentTime >= audio.duration ? t('ended') : t('ready') : failed ? t('audioFailed') : choice?.audio ? t('loadingAudio') : t('noAudio')}${source ? ` · ${source}` : ''}`;
+  $('player-status').textContent = `${ready ? !audio.paused ? t('playing') : audio.ended || audio.currentTime >= audio.duration ? t('ended') : t('ready') : failed ? t('audioFailed') : choice?.audio ? t('loadingAudio') : t('noAudio')}${source ? ` · ${source}` : ''}${choice?.candidate ? ` · ${choice.saved ?? choice.id}` : ''}`;
   $('player-error').hidden = !failed; $('player-error').textContent = t('audioFailed'); $('retry-audio').hidden = !failed;
   $('play').disabled = !ready || failed; $('play').textContent = t(ready && !audio.paused ? 'pause' : 'play');
   $('seek').disabled = !ready; $('seek').max = ready ? audio.duration : 0; $('seek').value = ready ? audio.currentTime : 0;
@@ -260,7 +269,11 @@ function saveCandidate() {
   if ($('failure').value === 'save') { $('failure').value = 'none'; saveNotice = 'saveFailed'; renderJob(); return; }
   if (!version(candidate.intent.parent)) { saveNotice = 'relationError'; renderJob(); return; }
   const saved = {id:`preview-saved-${candidate.id}`,name:candidate.intent.name,parent:candidate.intent.parent,audio:candidate.audio,inputs:structuredClone(candidate.inputs)};
-  model.versions.push(saved); candidate.saved = saved.id; saveNotice = ''; model.selected = saved.id; render();
+  model.versions.push(saved); candidate.saved = saved.id; saveNotice = ''; model.selected = saved.id;
+  if (requestedChoice?.candidate && requestedChoice.id === candidate.id) {
+    requestedChoice = Object.freeze({...requestedChoice,name:saved.name,saved:saved.id});
+  }
+  render();
 }
 function setPair(a,b) {
   if (!version(a)?.audio || b && (!version(b)?.audio || a === b)) { pairNotice = 'pairInvalid'; renderPair(); return; }
@@ -269,7 +282,7 @@ function setPair(a,b) {
   persistPair(); void load(a); render();
 }
 function scenario(kind) {
-  clearTimeout(jobTimer); pause(); ++requestNumber; ready = false; failed = false; requestedId = null; region = null; regions.clearRegions();
+  clearTimeout(jobTimer); pause(); ++requestNumber; ready = false; failed = false; requestedId = null; requestedChoice = null; region = null; regions.clearRegions();
   model = {versions:fixture(),selected:'preview-v1',origin:null,job:null,candidate:null,read:'ready',serial:model.serial}; pendingOrigin = null; saveNotice = ''; pairNotice = ''; $('branch-choice').hidden = true; $('draft-message').textContent = ''; $('region-message').textContent = t('noPairRegion');
   if (kind === 'empty') model.versions = [];
   if (kind === 'one') model.versions = [model.versions[0]];
