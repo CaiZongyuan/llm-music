@@ -28,6 +28,8 @@ To use a deliberate melody edit in the next song, follow the [editing and regene
 2. Choose “Save as a version”. Success shows “View saved version” and adds this choice to the version list.
 3. Open the version to inspect original inputs and results. Refreshing reads the same Version identity and audio. Later generation keeps old versions intact.
 
+“Versions” shows saved parent relationships in the same Project, including several valid independent starting points. Parent links, inputs, origin and “Saved outputs” come from saved snapshots. To branch from an earlier Version, choose “Continue from this version”, explicitly select its Score, then generate from that Score. Choose “Use this version’s inputs” separately to copy style, lyrics and seed. Inspecting or entering a Version preserves existing drafts and creates no Job. New results remain Candidates until you name and explicitly save a child Version.
+
 The application service retains the candidate list. Select a candidate again after refresh. Unsaved Candidates do not belong to version history. The current draft remains only in the open Web. After refresh, restore submitted inputs from a job link or choose “Explore with these inputs” on a candidate. Player selection and playback position also belong to the current Web session; select audio again after refresh.
 
 ## Continue after failure {#recover}
@@ -37,5 +39,5 @@ The application service retains the candidate list. Select a candidate again aft
 - Version save fails or its acknowledgement is lost: name and Candidate remain. Choose “Reread saved versions” first to check whether it was saved. If recovery is needed, choose “Save the same version again”. It uses the first name and Candidate; later text edits do not change the recovery intent. Repeated saves of the same Candidate and name return the same Version without duplicate history.
 - Candidate or version reads fail: use the corresponding reread action. A read error does not become empty history.
 
-The single continuous player supports selection, play, pause, seek and bounded regions. The Score page supports ABC editing, MIDI audition/export and generation from selected notation. Cover, A/B switching, long-song generation and version graphs belong to later stages. See the [workspace guide](web-workspace.en.md#launch) to start the formal Web and independent application service.
+The single continuous player supports selection, play, pause, seek and bounded regions. The Score page supports ABC editing, MIDI audition/export and generation from selected notation. Saved Versions show their relationships and support explicit continued creation; Cover supports both modes. A/B switching and long-song generation belong to later stages. See the [workspace guide](web-workspace.en.md#launch) to start the formal Web and independent application service.
 

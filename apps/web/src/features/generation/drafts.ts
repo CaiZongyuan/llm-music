@@ -14,11 +14,14 @@ function draftFor(projectId: string, initial?: GenerateCreate): GenerationDraft 
   return draft;
 }
 // Draft text is local UI state. Candidate/Version snapshots always come from the API.
+export function updateGenerationDraft(projectId: string, changes: Partial<GenerationDraft>) {
+  drafts.set(projectId, { ...draftFor(projectId), ...changes });
+  listeners.forEach(listener => listener());
+}
 export function useGenerationDraft(projectId: string, initial?: GenerateCreate) {
   const draft = useSyncExternalStore(listener => { listeners.add(listener); return () => { listeners.delete(listener); }; }, () => draftFor(projectId, initial));
   function update(changes: Partial<GenerationDraft>) {
-    drafts.set(projectId, { ...draftFor(projectId), ...changes });
-    listeners.forEach(listener => listener());
+    updateGenerationDraft(projectId, changes);
   }
   return [draft, update] as const;
 }

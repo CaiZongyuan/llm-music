@@ -26,7 +26,7 @@ function rejectedBeforeJob(error: unknown) {
   return error instanceof ApiFailure && error.status >= 400 && (error.status < 500 || ['model_missing', 'capability_missing', 'runtime_unavailable', 'runtime_observation_stale', 'runtime_evidence_stale', 'model_evidence_stale'].includes(error.detail?.code ?? ''));
 }
 
-export function ScoreGeneration({ projectId }: { projectId: string }) {
+export function ScoreGeneration({ projectId, selectionReady = true }: { projectId: string; selectionReady?: boolean }) {
   const t = useMessages(messages), g = useMessages(generationMessages);
   const score = useSyncExternalStore(subscribeSelectedScore, () => selectedScore(projectId));
   const [validation, setValidation] = useState<'seed' | 'empty' | null>(null);
@@ -45,7 +45,7 @@ export function ScoreGeneration({ projectId }: { projectId: string }) {
   const capability = useQuery(capabilitiesOptions());
   const candidates = useQuery(candidatesOptions(projectId));
   const jobs = useQuery({ ...projectJobsOptions(projectId), enabled: false, refetchInterval: false });
-  function openJob(id: string) { void navigate({ to: '.', search: { jobId: id } }); }
+  function openJob(id: string) { void navigate({ to: '.', search: previous => ({ ...previous, jobId: id }) }); }
   const submit = useMutation({ retry: false,
     mutationFn: async ({ body }: ScoreSubmission) => {
       const result = await api.POST('/projects/{project_id}/jobs/generate-from-score', { params: { path: { project_id: projectId } }, body });
@@ -70,7 +70,7 @@ export function ScoreGeneration({ projectId }: { projectId: string }) {
   function generate() {
     const selected = selectedScore(projectId);
     const existing = scoreSubmission(projectId);
-    if (!selected || pending.current || existing?.state === 'submitting' || existing?.state === 'unconfirmed' || capability.isError || !operationReady(capability.data, 'GenerateFromScore') || (job.data && isActiveJob(job.data)) || (jobId && !job.isSuccess)) return;
+    if (!selected || !selectionReady || pending.current || existing?.state === 'submitting' || existing?.state === 'unconfirmed' || capability.isError || !operationReady(capability.data, 'GenerateFromScore') || (job.data && isActiveJob(job.data)) || (jobId && !job.isSuccess)) return;
     const seed = Number(draft.seed);
     if (!/^\d+$/.test(draft.seed) || !Number.isSafeInteger(seed) || seed < 0) { setValidation('seed'); return; }
     if (!draft.style.trim() || !draft.lyrics.trim()) { setValidation('empty'); return; }
@@ -98,7 +98,7 @@ export function ScoreGeneration({ projectId }: { projectId: string }) {
       {submit.isError && !uncertain ? <ErrorNotice error={submit.error} /> : null}
       <CapabilityReadiness operation="GenerateFromScore" />
       {!score ? <p className="hint">{t.none}</p> : null}
-      <button className="primary" disabled={!score || submission?.state === 'submitting' || uncertain || submit.isPending || capability.isError || !operationReady(capability.data, 'GenerateFromScore') || Boolean(job.data && isActiveJob(job.data)) || Boolean(jobId && !job.isSuccess)}>{submission?.state === 'submitting' ? g.submitting : t.submit}</button><p className="field-help">{g.decide}</p>
+      <button className="primary" disabled={!score || !selectionReady || submission?.state === 'submitting' || uncertain || submit.isPending || capability.isError || !operationReady(capability.data, 'GenerateFromScore') || Boolean(job.data && isActiveJob(job.data)) || Boolean(jobId && !job.isSuccess)}>{submission?.state === 'submitting' ? g.submitting : t.submit}</button><p className="field-help">{g.decide}</p>
     </form></section>
     {submission?.state === 'submitting' ? <p role="status">{t.sending}</p> : null}
     {uncertain && submission ? <section className="surface submission-recovery" role="alert"><h3>{t.unknown}</h3><p>{t.recover}</p><InputsSnapshot projectId={projectId} inputs={submission.body} provenance={{}} />
