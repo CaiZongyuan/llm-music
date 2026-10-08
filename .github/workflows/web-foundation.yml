@@ -10,7 +10,7 @@ on:
       - package.json
       - pnpm-workspace.yaml
       - pnpm-lock.yaml
-      - docs/guides/web-workspace*
+      - docs/guides/web-*
       - .github/workflows/web-foundation.yml
   pull_request:
     paths:
@@ -21,7 +21,7 @@ on:
       - package.json
       - pnpm-workspace.yaml
       - pnpm-lock.yaml
-      - docs/guides/web-workspace*
+      - docs/guides/web-*
       - .github/workflows/web-foundation.yml
   workflow_dispatch:
 
@@ -55,6 +55,12 @@ jobs:
           pnpm test:browser:check
       - name: Exercise bilingual themes and persistent Project/Asset/Job consumers
         run: pnpm test:web
+      - name: Exercise authoritative Jobs, cancellation and acknowledgement recovery
+        run: pnpm test:web:jobs
+      - name: Exercise transcription readiness, failure and explicit retry
+        run: pnpm test:web:transcription
+      - name: Exercise generation failure, durable save and damaged media recovery
+        run: pnpm test:web:generation -- generation-recovery.controlled.ts
       - name: Retain browser results and process ownership receipts
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4

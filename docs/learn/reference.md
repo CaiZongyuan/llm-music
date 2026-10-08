@@ -6,7 +6,7 @@
 
 ## 2. 上传到项目，再转谱一次 {#transcribe}
 
-<p>继续使用 Morning song Project，把这段文件作为 Reference Audio 上传。记下 Asset id，再提交一次 Transcribe。保留 Job id，等待 completed；此时得到 Score、ABC 与 MIDI，原参考音频保持不变。</p><p>实际操作使用现有本地 Swagger。下面的说明可以展开照做；文档页面不会上传你的文件。</p>
+<p>继续使用 Morning song Project，把文件作为 Reference Audio 上传。打开正式 Web 的“参考转谱”，选择这份原文件，检查准备状态，再选择“开始转谱”。完成后查看乐谱并下载 ABC/MIDI；原参考音频保持不变。完整步骤见<a href="../guides/web-transcribe.md">工作区转谱指南</a>。需要 API 操作时再展开下面的补充；文档页面不会上传文件。</p>
 
 <details class="creator-supplement"><summary>当前操作入口：本地 Swagger 的完整路径</summary>
 

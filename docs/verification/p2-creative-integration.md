@@ -1,0 +1,18 @@
+# P2 creative workspace integration
+
+Root exercised the complete assembled source `c48ad75ddaf46aee68e87d27f5626f3501c4870d` against the real local ComfyUI target and independent application data on 2026-10-08. The approved prototype18032 remains closed; this was formal Web acceptance on owned18043/18044 services.
+
+| Public journey | Observed result |
+| --- | --- |
+| Create Project → style/lyrics → Generate | Project `a0ac0436-53d0-455f-b535-0636f4eefa9a`; Job `8d7ecc40-de04-44f4-80a2-a52af72d5498`; actual loading, planning, semantic, synthesis and decoding phases. Candidate created without Version. |
+| Listen → Lyrics/Score → native ABC download → explicit Version | Actual media clock advances across SPA navigation; one audio element; `34.9986666667` seconds of finite48kHz stereo FLAC. Download SHA matches the saved Asset. Save returns201 and refresh restores Version `1cf81ec0-4871-4c56-9a57-ac1725d22019`. |
+| Upload16s PCM16 stereo48kHz → Transcribe → Score → native MIDI/ABC download | Job `1de74fb9-db06-4d2f-8c7b-f29080dee4ff`; Score `ab0b50fd-185d-4da7-ab41-3f1f9e226f87`; MIDI is fully parsed with60 actual note-on events, original download hashes match Assets, reference identity and prior Version survive refresh. |
+| Boundary/ownership | Browser requests only same-origin FastAPI proxy. Read-only native histories match each original graph, handle and client id. Protected Runtime PID50752/create-time unchanged and final native queue empty. Both owned APIs and Web stop gracefully; no surviving18043/18044 listener. |
+
+The Transcribe run used the native recording cache: the actual Runtime log says “Transcription reused: the recording has not changed.” This proves the current Web/FastAPI/Runtime result and ownership path, while the existing P1 fresh inference receipt supplies unchanged model execution evidence. Current Runtime, Job, storage, workflows and locks are unchanged from that receipt; later API differences only add OpenAPI/WS discovery and declared download media types. This is not a new transcription-quality or performance comparison.
+
+Source and receipts are retained under `.scratch/p2-development/creative-real/`: immutable owner receipts collected before submissions, public intent/result records, matching native histories, downloaded files, and `verification.json`. The successful6.56-second formal Web take is compressed to359586-byte VP9 WebM; the actual music to561068-byte128kbps MP3. Complete decode checks pass and original bytes remain unchanged. Recording is silent; use the MP3 for audio. No Swagger recording.
+
+Two Root verification setup mistakes remain recorded: Node CJS module interop failed before any creative submission; an exact accessible-name locator omitted the download button's arrow and stalled the first result take. Recovery reused the already completed Job rather than submitting again. Native proof initially compared the whole auxiliary metadata dictionary instead of the required original client id; the corrected check separately validates handle, complete graph and client id. Failed logs/takes are retained and are not published as successful evidence.
+
+Independent Standards/Spec and exact final-head CI gate actual integration. The final candidate adds a tested first Player-module load recovery and test-only per-case held-Job cleanup to this executed source; affected media/browser checks refresh those changes. #34/#35 remain open until the complete Monitor is actually integrated and these acceptance receipts are mapped to the final main revision. #38 also waits for Runtime/Settings and the one-command launcher.

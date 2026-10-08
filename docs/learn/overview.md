@@ -14,7 +14,7 @@
 
 ## 开始前，知道这两件事 {#entry}
 
-<p>当前实际操作入口是本地应用 API 的 Swagger 页面与现成 CLI。生成音乐需要已就绪的真实 Runtime；默认 fake 模式只发出测试音调。<a href="./resources.md">环境准备和操作入口 →</a></p><p>本站只展示教程内容、复制输入和播放已有示例。它不会提交生成、上传音频或保存项目。正式音乐工作台 Web 还未交付；曲谱编辑、Cover 与内置 A/B 播放器随后续阶段实现。</p>
+<p>打开本地正式 Web，从<a href="../guides/web-workspace.md">创建项目</a>开始，再选择<a href="../guides/web-generation.md">生成与试听</a>或<a href="../guides/web-transcribe.md">参考转谱</a>。生成音乐需要已就绪的真实 Runtime；默认 fake 模式只发出测试音调。<a href="./resources.md">环境准备和操作入口 →</a></p><p>本站只展示教程内容、复制输入和播放已有示例。它不会提交生成、上传音频或保存项目。曲谱编辑、Cover 与内置 A/B 播放器随后续阶段实现。</p>
 
 ## 一次只问一个创作问题 {#habit}
 

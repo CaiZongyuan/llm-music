@@ -14,7 +14,7 @@ Describe a style and write a few lyric lines. Make about 35 seconds of music, th
 
 ## Two things to know before starting {#entry}
 
-<p>Current entrypoints are the local application API's Swagger page and the existing CLI. Music generation needs a ready real Runtime; default fake mode produces a test tone. <a href="./resources.en.md">Preparation and entrypoints →</a></p><p>This site displays tutorials, copies inputs, and plays an existing example. It submits no generation, uploads no audio, and saves no Projects. The product Web Workbench is not delivered yet. Score editing, Cover, and an integrated A/B player belong to later stages.</p>
+<p>Open the local formal Web and start by <a href="../guides/web-workspace.en.md">creating a Project</a>, then choose <a href="../guides/web-generation.en.md">generation and listening</a> or <a href="../guides/web-transcribe.en.md">Reference Audio transcription</a>. Music generation needs a ready real Runtime; default fake mode produces a test tone. <a href="./resources.en.md">Preparation and entrypoints →</a></p><p>This site displays tutorials, copies inputs, and plays an existing example. It submits no generation, uploads no audio, and saves no Projects. Score editing, Cover, and an integrated A/B player belong to later stages.</p>
 
 ## Ask one creative question at a time {#habit}
 

@@ -16,7 +16,7 @@ Reopen existing projects from the list. Changing interface language leaves your 
 2. Select the saved file under “Project assets”. Details show its filename, type, duration, channels, sample rate, asset identity and original SHA256.
 3. Choose “Download original file” to retrieve the original audio. Refresh, or return to “My projects” and reopen it: the same asset and identity remain.
 
-The currently verified transcription input is16 seconds of PCM16, mono24 kHz or stereo48 kHz. The upload budget is64 MiB/600 seconds; it does not promise inference for longer audio. You can keep reference assets after uploading. This foundation does not yet provide formal transcription, generation or Player actions. Next, note the melody, rhythm and changes you want to explore, keeping a clear starting point for later creation.
+The currently verified transcription input is16 seconds of PCM16, mono24 kHz or stereo48 kHz. The upload budget is64 MiB/600 seconds; it does not promise inference for longer audio. After uploading, open [Reference transcription](web-transcribe.en.md) to inspect the score and download ABC/MIDI. You can also open [Music generation](web-generation.en.md) to create a Candidate from style and lyrics, listen, then explicitly save a Version. The persistent Player keeps the current audio across workspace navigation.
 
 ## Choose language and theme {#preferences}
 
@@ -28,7 +28,7 @@ The application rejects invalid or incomplete WAV files without creating assets.
 
 After an unconfirmed save or interrupted connection, read projects/assets before repeating creation or upload. Check saved records first; an asset identity in the error can help identify the original operation. The page never retries writes automatically. An unknown project or page provides a link back to “My projects”.
 
-“Creative jobs” reads saved generation/transcription Jobs and shows their five states, phases and an explicit read action. Unknown progress has no percentage. The complete cancellation, retry and event reconnect Monitor will arrive with the corresponding feature.
+Project “Jobs” and global “Jobs” read the same saved generation/transcription Jobs and show their five states, phases and an explicit read action. Unknown progress has no percentage. The [Jobs guide](web-jobs.en.md) explains cancellation confirmation, explicit retry and reconnect recovery.
 
 ## Local launch and isolated verification {#launch}
 
@@ -60,6 +60,9 @@ pnpm web:check
 pnpm test:browser:install
 pnpm test:browser:check
 pnpm test:web
+pnpm test:web:jobs
+pnpm test:web:transcription
+pnpm test:web:generation -- generation-recovery.controlled.ts
 ```
 
 `web:check` builds the generated client, generates file routes, builds the production Web and checks strict types. Product browser tests start their own Fake API and Web, retain failure traces/screenshots and `.artifacts/<run-id>/` process/data receipts, and require graceful shutdown acknowledgements. They have a separate entrypoint from existing Swagger tests and do not record video. Real GPU inference is verified separately. See the [Web source guide](../../apps/web/README.md) for maintenance boundaries.

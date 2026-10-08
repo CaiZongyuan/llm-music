@@ -361,6 +361,7 @@ form>.primary {
 }
 .tabs {
   display:flex;
+  flex-wrap:wrap;
   gap:14px;
   border-bottom:1px solid var(--line);
   padding-bottom:12px;

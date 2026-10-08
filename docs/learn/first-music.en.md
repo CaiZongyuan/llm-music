@@ -28,9 +28,9 @@ English, gentle folk pop, warm clear voice, acoustic guitar and piano, light bas
 
 ## 3. Generate once and keep this Job {#generate}
 
-<p>Use seed <code>2026192201</code> and keep <code>max_seconds=35</code>. Name the Project Morning song; keep later variations in this Project.</p><p>Submit once using the existing entrypoint below. Record Project and Job ids, then wait for that Job. Read the phase when no percentage is available. A quiet period is not a reason to submit again.</p>
+<p>Use seed <code>2026192201</code> and keep <code>max_seconds=35</code>. Name the Project Morning song; keep later variations in this Project.</p><p>Open “Music generation” in the formal Web, enter the style, lyrics and seed above, then choose “Generate a music clip”. Follow the <a href="../guides/web-generation.en.md">workspace generation guide</a> to check the Job, listen, inspect the score and choose “Save as a version”. Read the phase when no percentage is available. A quiet period is not a reason to submit again. Expand the supplement below when you need command-line operations.</p>
 
-<details class="creator-supplement"><summary>Current entrypoint: use the existing CLI</summary>
+<details class="creator-supplement"><summary>Supplementary entrypoint: use the existing CLI</summary>
 
 <p>Run from the repository root in a second terminal while the API is running. The example creates the required download directory and uses the controlled lyrics above. This command creates a Project and submits generation using the configured Runtime, and downloads <code>audio.flac</code> and <code>score.abc</code>. It saves no Version. The output directory must not already exist.</p>
 

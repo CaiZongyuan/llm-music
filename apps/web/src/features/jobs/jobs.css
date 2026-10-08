@@ -1,0 +1,14 @@
+.job-monitor { min-width:0; padding-bottom:20px }
+.job-monitor+.job-monitor { margin-top:12px }
+.job-monitor .job-card { padding-bottom:12px }
+.job-connection { color:var(--muted); font-size:.78rem; margin-bottom:12px }
+.job-controls { display:flex; flex-wrap:wrap; align-items:center; gap:12px; margin-bottom:12px }
+.job-controls>p,.job-controls>.error-box { flex-basis:100%; margin:0 }
+.job-controls button { font-size:.8rem }
+.job-problem { color:var(--error); border-left:3px solid var(--error); padding:10px 14px; margin-bottom:12px; background:var(--error-bg) }
+.job-problem strong { font-size:.82rem }
+.job-problem p { margin:8px 0 }
+.job-problem small { color:var(--error) }
+.job-attempt code { overflow-wrap:anywhere }
+.global-jobs { display:grid; gap:24px }
+.job-result-links { display:flex; flex-wrap:wrap; gap:18px; margin-bottom:14px }
