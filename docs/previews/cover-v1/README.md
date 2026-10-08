@@ -18,7 +18,7 @@ pnpm --dir docs/previews/cover-v1 run start
 1. 使用历史 V1 参考，或选择本地 WAV。文件只在浏览器读取；本预览限制 25 MiB、40 秒以内，不作为正式上传全范围的声明。
 2. 选择 full 并模拟转谱。检查示例 ABC 的两个声部、音符、节奏及和弦。转谱是独立模拟示例，不能据此判断参考音频转谱准确度，也不自动识别歌词。
 3. 修改 ABC、试听当前 MIDI，再明确选定 Score。导出 MIDI 和本地简单音色试听来自真实 abcjs。
-4. 切换 melody：原稿与原选定快照保持完整，有效输入预览去掉音乐和弦标记，保留 Vocal/Ins 音符、节奏与头部名称。再次明确选定，再“试听选定的有效输入 MIDI”。模式切换不静默改变已选定或已提交内容。
+4. 切换 melody：原稿与原选定快照保持完整，有效输入预览去掉音乐和弦标记，保留 Vocal/Ins 音符、节奏与头部名称。再次明确选定，再“试听选定的有效输入 MIDI”。模式、参考或转谱 Score 改变时，必须重新明确选定，即使新 ABC 文本相同；旧快照仍可查看。
 5. 修改新风格、歌词或 seed，模拟生成。Reference Audio 只进入模拟转谱；生成使用已选定的有效 ABC、mode、style、lyrics 与短片段设置。任务快照冻结，后续编辑不进入旧任务。
 6. 结果先成为 Candidate。试听时明确使用历史 PR #58 音乐，再命名并模拟保存为 Version。历史 V1 参考的派生版本保留明确 V1 parent；本地参考没有父版本。旧版本保持完整。
 
@@ -41,12 +41,14 @@ pnpm --dir docs/previews/cover-v1 run start
 
 “检查其他状态”提供转谱失败、无效 ABC、谱面失败、模式未支持、缺模型、显存不足、生成失败、保存失败、暂停与取消竞态。每次故障仅影响对应操作。无效文本保留；上一份有效谱面明确标为过期，不能用于试听、导出或新选定。重新检查可恢复。
 
-转谱失败/取消和生成失败/取消保留参考与有效中间乐谱。重试生成使用同一冻结输入并创建新 Job；不会自动产生 Version。不支持模式或缺模型时拒绝新任务，不替换模式。保存失败保留 Candidate 与名称，重试显式保存同一结果。Reference 变化时旧谱可见，但必须为新 Reference 转谱并选定后再提交。
+转谱失败/取消和生成失败/取消保留参考与有效中间乐谱。重试生成使用同一冻结输入并创建新 Job；不会自动产生 Version。不支持模式或缺模型时拒绝新任务，不替换模式。保存失败保留 Candidate 与名称，重试显式保存同一结果。Reference 变化时旧谱可见，但必须为新 Reference 转谱并选定后再提交。同一 Reference 再次转谱也产生新的 Score，旧选择不能仅因 ABC 相同而用于新来源。
 
 ## 隔离与证据
 
 真实本地行为：WAV 文件读取与解码、abcjs SVG/MIDI、当前或选定有效 MIDI 生成的 PCM WAV 试听、媒体时钟、seek 和原生下载。预览限制派生 MIDI 为 120 秒、10,000 音符以内；试听是简单合成音色。
 
 模拟行为：Project、Reference/Score 身份、Transcribe/Cover Jobs、mode capability、模型状态、阶段、Candidate 与 Version 均只在本页内存。刷新重置。阶段只显示未知进度，未推测百分比。没有业务 API、Runtime 或 GPU 请求，也没有真实上传/持久写入。页面 CSP 禁止连接，静态服务只允许列出的 GET/HEAD 文件。
+
+历史 V1→Reference→派生 parent 目前只在隔离预览模拟，现有正式 API 不支持该来源转换。正式 #44 将从 Version 的真实 audio Asset 受控提取当前支持的 16 秒 WAVE 参考片段，记录 source Version、source Asset、区间及 hash，用该实际关系支撑 parent；不接收任意 parent，也不提供通用转码平台。本地上传 Reference 没有 parent。此预览试听仍播放已标识的完整历史样本，不声称已实际提取该片段。
 
 参考/结果试听复用已标识 [历史 PR #58 音乐与 provenance](../web-mvp-v1/sample-provenance.json)，没有重复存入音乐二进制；它与独立 ABC 不声称对应，不证明此次模式、编辑或风格的音频效果。中文/英文、亮/暗主题与已确认 #31/#39 布局延续。源码、验证与已知边界记录在 UI 交接文件；预览确认前不实施正式 Cover。

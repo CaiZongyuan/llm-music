@@ -4,7 +4,7 @@
 - 基线：`8fe1ed0c6c1f8016861a45e80f91351bc3bd2450`，实际 #42 / PR #88 合并，阻塞已关闭、Root 已确认 P3 gate。
 - Owner：`/root/cover_preview_developer`；branch `p4/43-cover-preview`；worktree `.worktrees/43-cover-preview`。
 - 预览：[cover-v1](../previews/cover-v1/README.md)，<http://127.0.0.1:18084/llm-music/cover-preview/>。
-- 实际冻结源码：`05c21da8d9a6025c4ffe4ece2fe292447234fbf9`；后续此交接记录补充不改变已验证的预览源码。
+- 初版实际冻结源码：`05c21da8d9a6025c4ffe4ece2fe292447234fbf9`，文档补充 head `49266221ea78980dd3107ce08c2b5103881fc30f`；下方记录独立审阅后的最小来源身份修复，最终 SHA 由交接 freeze receipt 指向。
 - 状态：可运行候选，等待 Root 独立审阅和用户对本次 Cover 流程的具体确认；不实施正式 #44/#45。
 
 ## 要确认的体验
@@ -40,6 +40,12 @@ mode 改变保留草稿与旧选择，须重新明确选定；有效 ABC 可展�
 
 自有 Node PID `47140`，birth `1791458868.978`，parent `29216`，exec session `22179`，实际 command 为此 worktree 的 `docs/previews/cover-v1/serve.mjs`，仅监听 `127.0.0.1:18084`。HTTP200和CSP已读回；旧18032、18072均无监听。共享8188未操作。Root独立审阅及用户确认期间保留该服务，停止前再次核对PID、birth、脚本、端口。
 
-已读回冻结源码全SHA、实际端口owner与文件hash：app `98de2082fc0f6c2a2f29b0a54fe124894f4facb0d316b4666cd569bdd490a601`，index `906c2fdb0a5d09f5588ec66e675a7c54f78815199c8fa42f2559bbe59cdf13a2`，styles `00b83e9124387365b1ee715dc43b90887285b342481fe97a6294efabc402da8c`，serve `1679c9838abae34d94683d449afad3b206b7f57352bbf38357e550de15504e6b`。后续确认记录须指向实际服务源码。用户尚未确认本次 #43 Cover；旧布局确认与 #39 的“认可，继续正式实现”不替代本票新流程确认。
+已读回修复候选源码、实际端口owner与文件hash：app `83d9b587614e56480363c4bf04491083dc295c224b34f17a2dd6bfd14f61dd67`（初版 `98de2082fc0f6c2a2f29b0a54fe124894f4facb0d316b4666cd569bdd490a601`），index `906c2fdb0a5d09f5588ec66e675a7c54f78815199c8fa42f2559bbe59cdf13a2`，styles `00b83e9124387365b1ee715dc43b90887285b342481fe97a6294efabc402da8c`，serve `1679c9838abae34d94683d449afad3b206b7f57352bbf38357e550de15504e6b`。后续确认记录须指向实际服务源码。用户尚未确认本次 #43 Cover；旧布局确认与 #39 的“认可，继续正式实现”不替代本票新流程确认。
 
-正式交接额外 seam：历史V1选项模拟将已生成的V1音频用作新Reference，与固定V1来源形成派生parent；当前正式Transcribe只接上传Reference，生成FLAC与Reference/Version来源关系尚未实现，现有Score编辑parent也不允许任意附加V1。此预览不把该内存关系报告为正式支持。#44/#45需实现并验证真实来源链及所需音频转换，或由Root明确缩减入口；不得仅依靠客户端parent文案建立来源。
+正式交接额外 seam：历史V1选项模拟将已生成的V1音频用作新Reference，与固定V1来源形成派生parent；当前正式Transcribe只接上传Reference，生成FLAC与Reference/Version来源关系尚未实现，现有Score编辑parent也不允许任意附加V1。Root 决定正式 #44 受控提取 Version.audioAsset 的当前支持 16 秒 WAVE 参考，记录真实 sourceVersion/sourceAsset、片段区间及 hash，由该实际关系支撑 parent；不是任意 parent 输入或通用转码平台。本地上传 Reference parent=null。此方向尚待本次具体预览确认，未单独获得正式实现批准；完整历史试听不声称实际提取片段。
+
+## 独立审阅来源身份修复
+
+Root 在初版独立复现 Spec P2：V1/full 转谱并选定后，上传另一份 16 秒 WAV，再以 full 转谱得到相同 ABC；旧选择仍带 V1 来源与 parent，却可提交。原始 red 保留于 Root `.scratch/p4-development/43-reference-identity/` 与 `43-reference-probe.mjs`，审阅记录 `43-review/spec.md`。初版 31 条检查中新 Reference 测试同时改变了模式谱，未覆盖相同 ABC 的来源变化。
+
+最小修复要求选定快照的 source Score ID、reference ID 均匹配当前来源，并继续检查 ABC/mode；保留旧选择供查看，显示来源已变化，禁新提交和旧有效输入试听直至再次明确选定。修复后 **5 条有范围的实际浏览器事实通过，0 page errors**：同 ABC 新 Reference 禁提交且旧快照不被替换；明确新选择使用新 Score、parent=null；提交快照实际引用新的本地 Reference/ABC、没有 V1 parent；同 Reference 再转谱也使旧选择失效；明确重新选定恢复提交。原来的 31 条其他事实按未改变行为复用，未添加生产测试或扩大 Runtime 操作。证据 `.scratch/43-preview/reference-identity-repair/facts.json`，浏览器已关闭，服务 owned 身份保持不变。

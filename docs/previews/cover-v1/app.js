@@ -22,6 +22,7 @@ messages.en.uploadLabel='Choose a local WAV';messages.en.referenceError='Choose 
 messages.zh.referenceError='请选择可播放的 WAV。本预览限制 25 MiB、40 秒以内。';
 messages.en.playEffective='Audition selected effective MIDI';messages.zh.playEffective='试听选定的有效输入 MIDI';
 messages.en.currentLimit='This preview explores the upcoming Cover flow. Released generation from selected Score currently supports full only.';
+messages.en.selectNeeded='Draft, source Score, reference or mode changed. Inspect and select again before generating.';messages.zh.selectNeeded='草稿、来源乐谱、参考或模式已变化。请检查并重新选定，再生成。';
 messages.en.stepReselect='5 · Select melody input';messages.zh.stepReselect='5 · 选定 melody 输入';messages.en.failureGenerate='5 · Generate';messages.zh.failureGenerate='5 · 生成';
 let language = 'zh';
 const t = key => messages[language][key] ?? messages.en[key];
@@ -56,7 +57,7 @@ const consume = name => { const value=failures.has(name); failures.delete(name);
 const isCurrent = () => checked?.abc === state.draft && checkStatus === 'valid';
 const active = job => ['queued','running','cancelRequested'].includes(job?.state);
 const currentSource = () => state.source?.reference.id === state.reference?.id;
-const selectedCurrent = () => isCurrent() && state.selected?.abc === state.draft && state.selected.mode === state.mode && currentSource();
+const selectedCurrent = () => isCurrent() && state.selected?.abc === state.draft && state.selected.mode === state.mode && currentSource() && state.selected.sourceScore === state.source.id && state.selected.reference.id === state.reference.id;
 const canGenerate = () => selectedCurrent() && state.supported && state.models && !active(state.job) && !active(state.transcribe);
 const versionName = version => version.nameKey ? t(version.nameKey) : version.name;
 function toast(message) { $('toast').textContent=message; $('toast').classList.add('visible'); clearTimeout(toast.timer); toast.timer=setTimeout(()=>$('toast').classList.remove('visible'),3500); }
