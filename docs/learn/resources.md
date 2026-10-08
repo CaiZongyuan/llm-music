@@ -6,6 +6,7 @@
 
 - [环境、模型、Doctor 与 Runtime 启动](../guides/runtime-doctor.md)
 - [本地 Web 启动、项目与参考素材](../guides/web-workspace.md#launch)
+- [用一条命令启动本地工作台](../guides/dev-launcher.md)
 - [应用 API 启动与生成/保存操作](../guides/generate-save-api.md)
 - [真实 Runtime 诊断收据与刷新](../reference/runtime-evidence.md)
 

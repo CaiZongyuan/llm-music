@@ -6,6 +6,8 @@ on:
       - apps/web/**
       - packages/api-client/**
       - tests/browser/**
+      - tests/launcher/**
+      - scripts/**
       - services/api/**
       - package.json
       - pnpm-workspace.yaml
@@ -17,6 +19,8 @@ on:
       - apps/web/**
       - packages/api-client/**
       - tests/browser/**
+      - tests/launcher/**
+      - scripts/**
       - services/api/**
       - package.json
       - pnpm-workspace.yaml
@@ -55,6 +59,8 @@ jobs:
           pnpm test:browser:check
       - name: Exercise bilingual themes and persistent Project/Asset/Job consumers
         run: pnpm test:web
+      - name: Exercise owned launcher startup, reuse, failures and bounded stop
+        run: pnpm test:launcher
       - name: Exercise authoritative Jobs, cancellation and acknowledgement recovery
         run: pnpm test:web:jobs
       - name: Exercise transcription readiness, failure and explicit retry

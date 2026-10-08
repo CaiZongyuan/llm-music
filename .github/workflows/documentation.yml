@@ -13,6 +13,7 @@ on:
       - docs/guides/documentation*
       - docs/verification/github-pages.md
       - runtime/comfyui/examples/**
+      - scripts/examples/**
       - package.json
       - pnpm-workspace.yaml
       - pnpm-lock.yaml
@@ -29,6 +30,7 @@ on:
       - docs/guides/documentation*
       - docs/verification/github-pages.md
       - runtime/comfyui/examples/**
+      - scripts/examples/**
       - package.json
       - pnpm-workspace.yaml
       - pnpm-lock.yaml

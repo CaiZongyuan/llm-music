@@ -53,7 +53,7 @@ $env:MUSIC_WEB_API_TARGET='http://127.0.0.1:18036'
 pnpm web:dev --port 18035
 ```
 
-打开 <http://127.0.0.1:18035/>。Web 的 `/api` 代理连接 FastAPI；它不连接 ComfyUI。FakeRuntime 结果仅供应用交互检查，没有真实音乐推理。退出时分别在自己启动的两个终端按 Ctrl+C；不要停止其他项目或共享 Runtime 的进程。正式三进程启动编排在后续启动票据交付。
+打开 <http://127.0.0.1:18035/>。Web 的 `/api` 代理连接 FastAPI；它不连接 ComfyUI。FakeRuntime 结果仅供应用交互检查，没有真实音乐推理。退出时分别在自己启动的两个终端按 Ctrl+C；不要停止其他项目或共享 Runtime 的进程。也可以按[一条命令启动指南](dev-launcher.md)使用 `pnpm dev`；真实模式编排独立 Runtime、API 与 Web，并保留已复用服务。
 
 ```powershell
 pnpm web:check

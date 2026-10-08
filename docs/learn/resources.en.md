@@ -6,6 +6,7 @@ Creator tutorials focus on results. Consult preparation, Doctor, API, and develo
 
 - [Environment, models, Doctor, and Runtime launch](../guides/runtime-doctor.en.md)
 - [Local Web launch, Projects and Reference Audio](../guides/web-workspace.en.md#launch)
+- [Start the local workbench with one command](../guides/dev-launcher.en.md)
 - [Application API launch and generate/save operations](../guides/generate-save-api.en.md)
 - [Real Runtime diagnostic receipts and refresh](../reference/runtime-evidence.en.md)
 
