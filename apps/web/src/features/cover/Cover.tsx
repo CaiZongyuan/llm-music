@@ -67,7 +67,7 @@ export function Cover({ projectId, selection, onSelect }: { projectId: string; s
     const asset = dataOf(result); if (!asset || asset.id !== intent.save_id || asset.kind !== 'reference_audio') throw new ApiFailure(result.response.status);
     return asset;
   }, onSuccess: async (asset, { intent, recover }) => {
-    await cache.cancelQueries({ queryKey: assetKeys.list(projectId) });
+    await cache.cancelQueries({ queryKey: assetKeys.list(projectId), exact: true });
     cache.setQueryData<AssetRead[]>(assetKeys.list(projectId), previous => [...(previous ?? []).filter(item => item.id !== asset.id), asset]);
     cache.setQueryData(assetKeys.detail(projectId, asset.id), asset); void cache.invalidateQueries({ queryKey: assetKeys.list(projectId), exact: true });
     if (referenceIntent(projectId)?.save_id !== intent.save_id) return;

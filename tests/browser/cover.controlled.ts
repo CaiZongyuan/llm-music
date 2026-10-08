@@ -8,7 +8,7 @@ import { withParent } from './score-generation-fixtures.js';
 import {
   EDITED_FULL, EDITED_MELODY, FULL_ABC, LYRICS, MELODY_ABC, NEXT_FULL, SEED, STYLE,
   abcBytes, assetBytes, completedJob, control, coverUrl, derivedSeed, expectedInput, expectReferenceWav,
-  fillCover, generateCover, inspectAndSelect, labels, openCover, projectOnly,
+  fillCover, generateCover, holdMountedOrigin, inspectAndSelect, labels, openCover, projectOnly,
   referencePath, selectCurrentMelody, selectMelody, transcribe, uploadedSeed, uploadReference, type Api,
 } from './cover-fixtures.js';
 
@@ -535,23 +535,73 @@ test('lost Reference creation ACK locks the first source choice and recovers one
   const intent = writes[0];
   if (!intent?.save_id) throw new Error('No captured Reference save identity');
   await expect(choice).toBeDisabled();
-  await page.reload();
-  await expect(page.locator('.cover-reference')).toContainText('Reference creation is unconfirmed');
-  await page.getByRole('button', { name: 'Recover this reference', exact: true }).click();
-  await expect(page.locator('.cover-reference-origin')).toHaveAttribute('data-source-version-id', original.id);
-  const reference = received(await api.GET('/projects/{project_id}/assets/{asset_id}', { params: { path: { ...path, asset_id: intent.save_id } } }));
-  const bytes = await assetBytes(api, project.id, reference.id);
-  expectReferenceWav(bytes);
-  const origin = received(await api.GET('/projects/{project_id}/assets/{asset_id}/reference-origin', { params: { path: { ...path, asset_id: reference.id } } }));
-  expect(origin).toMatchObject({ source_version_id: original.id, source_asset_id: original.audio_asset_id });
-  expect(writes).toEqual([intent]);
-  const conflict = await api.POST('/projects/{project_id}/reference-audio/from-version', { params: { path }, body: { ...intent, source_version_id: later.id } });
-  expect(conflict.response.status).toBe(409);
-  expect(received(await api.GET('/projects/{project_id}/assets', { params: { path } })).filter(value => value.kind === 'reference_audio')).toEqual([reference]);
-  expect(hash(await assetBytes(api, project.id, reference.id))).toBe(hash(bytes));
-  expect(received(await api.GET('/projects/{project_id}/assets/{asset_id}/reference-origin', { params: { path: { ...path, asset_id: reference.id } } }))).toEqual(origin);
-  expect(received(await api.GET('/projects/{project_id}/jobs', { params: { path } }))).toHaveLength(2);
-  await info.attach('reference-first-intent-recovery', { body: JSON.stringify({ intent, writes, reference, origin, original, later }, null, 2), contentType: 'application/json' });
+  const gate = await holdMountedOrigin(page, project.id, intent.save_id, original.id, original.audio_asset_id);
+  try {
+    await page.reload();
+    await expect.poll(gate.ready).toBe(true);
+    await expect(page.locator('.cover-reference')).toContainText('Reference creation is unconfirmed');
+    await page.getByRole('button', { name: 'Recover this reference', exact: true }).click();
+    await expect.poll(() => gate.reads.length).toBe(2);
+    await expect(page.locator('.reference-recovery')).toHaveCount(0);
+    gate.release();
+    await expect(page.locator('.cover-reference-origin')).toHaveAttribute('data-source-version-id', original.id);
+    expect(gate.failures).toEqual([]);
+    const reference = received(await api.GET('/projects/{project_id}/assets/{asset_id}', { params: { path: { ...path, asset_id: intent.save_id } } }));
+    const bytes = await assetBytes(api, project.id, reference.id);
+    expectReferenceWav(bytes);
+    const origin = received(await api.GET('/projects/{project_id}/assets/{asset_id}/reference-origin', { params: { path: { ...path, asset_id: reference.id } } }));
+    expect(origin).toMatchObject({ source_version_id: original.id, source_asset_id: original.audio_asset_id });
+    expect(writes).toEqual([intent]);
+    const conflict = await api.POST('/projects/{project_id}/reference-audio/from-version', { params: { path }, body: { ...intent, source_version_id: later.id } });
+    expect(conflict.response.status).toBe(409);
+    expect(received(await api.GET('/projects/{project_id}/assets', { params: { path } })).filter(value => value.kind === 'reference_audio')).toEqual([reference]);
+    expect(hash(await assetBytes(api, project.id, reference.id))).toBe(hash(bytes));
+    expect(received(await api.GET('/projects/{project_id}/assets/{asset_id}/reference-origin', { params: { path: { ...path, asset_id: reference.id } } }))).toEqual(origin);
+    expect(received(await api.GET('/projects/{project_id}/jobs', { params: { path } }))).toHaveLength(2);
+    await info.attach('reference-first-intent-recovery', { body: JSON.stringify({ intent, writes, reference, origin, original, later }, null, 2), contentType: 'application/json' });
+  } finally {
+    gate.release();
+    await info.attach('reference-recovery-origin-schedule', { body: JSON.stringify({ referenceId: intent.save_id, reads: gate.reads, failures: gate.failures }, null, 2), contentType: 'application/json' });
+  }
+});
+
+test('uploading another Reference preserves the selected derived Reference and its pending origin read', async ({ page, baseURL }, info) => {
+  const { api, project, original } = await withParent(baseURL);
+  const path = { project_id: project.id };
+  const reference = received(await api.POST('/projects/{project_id}/reference-audio/from-version', { params: { path }, body: { source_version_id: original.id } }));
+  const oldReference = await assetBytes(api, project.id, reference.id);
+  const oldAudio = await assetBytes(api, project.id, original.audio_asset_id);
+  const originalOrigin = received(await api.GET('/projects/{project_id}/assets/{asset_id}/reference-origin', { params: { path: { ...path, asset_id: reference.id } } }));
+  const gate = await holdMountedOrigin(page, project.id, reference.id, original.id, original.audio_asset_id);
+  try {
+    await page.goto(coverUrl(project.id, reference.id));
+    await page.locator('.preferences select').selectOption('en');
+    await expect.poll(gate.ready).toBe(true);
+    await expect(page.getByRole('combobox', { name: 'Choose Cover reference audio', exact: true })).toHaveValue(reference.id);
+    await page.locator('.cover-upload summary').click();
+    const posted = page.waitForResponse(response => response.request().method() === 'POST' && response.url().endsWith(`/projects/${project.id}/assets`));
+    await page.getByLabel('Choose WAV audio').setInputFiles({ name: 'another-local-reference-16s.wav', mimeType: 'audio/wav', buffer: await readFile(referencePath) });
+    await page.getByRole('button', { name: 'Add to project assets', exact: false }).click();
+    const response = await posted;
+    expect(response.status()).toBe(201);
+    const uploaded: Awaited<ReturnType<typeof uploadReference>> = await response.json();
+    expect(uploaded.id).not.toBe(reference.id);
+    await expect(page.locator('.cover-upload .asset-list').getByRole('button').filter({ hasText: uploaded.original_name })).toBeVisible();
+    gate.release();
+    await expect(page.locator('.cover-reference-origin')).toHaveAttribute('data-source-version-id', original.id);
+    expect(gate.failures).toEqual([]);
+    await expect(page.getByRole('combobox', { name: 'Choose Cover reference audio', exact: true })).toHaveValue(reference.id);
+    expect(received(await api.GET('/projects/{project_id}/assets/{asset_id}/reference-origin', { params: { path: { ...path, asset_id: reference.id } } }))).toEqual(originalOrigin);
+    expect(received(await api.GET('/projects/{project_id}/assets/{asset_id}/reference-origin', { params: { path: { ...path, asset_id: uploaded.id } } }))).toBeNull();
+    expect(hash(await assetBytes(api, project.id, reference.id))).toBe(hash(oldReference));
+    expect(hash(await assetBytes(api, project.id, original.audio_asset_id))).toBe(hash(oldAudio));
+    expect(received(await api.GET('/projects/{project_id}/versions/{version_id}', { params: { path: { ...path, version_id: original.id } } }))).toEqual(original);
+    expect(received(await api.GET('/projects/{project_id}/jobs', { params: { path } }))).toHaveLength(1);
+    await info.attach('upload-preserves-existing-origin', { body: JSON.stringify({ reference, originalOrigin, uploaded, original }, null, 2), contentType: 'application/json' });
+  } finally {
+    gate.release();
+    await info.attach('upload-origin-schedule', { body: JSON.stringify({ referenceId: reference.id, reads: gate.reads, failures: gate.failures }, null, 2), contentType: 'application/json' });
+  }
 });
 
 // C14: two bounded cold entries cover both languages/themes, not a four-way

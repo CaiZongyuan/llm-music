@@ -175,3 +175,25 @@ export async function generateCover(page: Page, locale: Locale = 'en') {
   if (!candidateId) throw new Error('No resulting public Cover Candidate');
   return { job, candidateId };
 }
+
+// Hold the mounted public origin read after the real server has answered. This
+// fixes the overlap with a producer's list update without inspecting Query.
+export async function holdMountedOrigin(page: Page, projectId: string, referenceId: string, sourceVersionId: string, sourceAssetId: string) {
+  let release!: () => void;
+  const held = new Promise<void>(resolve => { release = resolve; });
+  const reads: { ordinal: number; status: number }[] = [], failures: string[] = [];
+  const suffix = `/api/projects/${projectId}/assets/${referenceId}/reference-origin`;
+  page.on('requestfailed', request => {
+    if (request.url().endsWith(suffix)) failures.push(request.failure()?.errorText ?? 'unknown request failure');
+  });
+  await page.route(`**${suffix}`, async route => {
+    const response = await route.fetch();
+    expect(response.status()).toBe(200);
+    expect(await response.json()).toMatchObject({ reference_asset_id: referenceId, source_version_id: sourceVersionId, source_asset_id: sourceAssetId });
+    const ordinal = reads.length + 1;
+    reads.push({ ordinal, status: response.status() });
+    if (ordinal === 1) await held;
+    await route.fulfill({ response });
+  });
+  return { ready: () => reads.length > 0, release: () => release(), reads, failures };
+}

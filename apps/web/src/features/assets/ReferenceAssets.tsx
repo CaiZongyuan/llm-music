@@ -19,7 +19,7 @@ export function ReferenceAssets({ projectId }: { projectId: string }) {
       bodySerializer: body => { const form = new FormData(); form.append('file', body.file); return form; },
     })),
     onSuccess: async asset => {
-      await cache.cancelQueries({ queryKey: assetKeys.list(projectId) });
+      await cache.cancelQueries({ queryKey: assetKeys.list(projectId), exact: true });
       cache.setQueryData<AssetRead[]>(assetKeys.list(projectId), previous => [...(previous ?? []).filter(item => item.id !== asset.id), asset]);
       cache.setQueryData(assetKeys.detail(projectId, asset.id), asset);
       void cache.invalidateQueries({ queryKey: assetKeys.list(projectId), exact: true });

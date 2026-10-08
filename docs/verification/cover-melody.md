@@ -127,10 +127,55 @@ manifest remain in worktree `.scratch/44-browser-*`. Both test paths and the
 UI author are STOP-WRITE before unified source freeze. No additional product
 fix was needed after the initial static selection/reader coordination.
 
-## Remaining delivery at this record
+## CI recovery query repair and affected evidence
 
-Root still owns final non-author Standards/Spec review, applicable final-head
-CI, the actual browser→API→Native/GPU melody sample, complete audio decode,
-explicit parent Version, restart/refresh/old-byte evidence, compressed media
-and actual merge/main/issue delivery. Symbolic native acceptance does not prove
-acoustic melody/harmony accuracy. Swagger is not recorded.
+At registered source0a047fe, the push Web run passed but the PR Web run failed
+the original Reference recovery case (19 passed/1 failed). Captured recovery
+validation returned the correct Origin200, while a separate mounted Origin
+query was aborted and left permanently Reading. It was not the historical
+ERR_NO_BUFFER_SPACE failure. Both Cover reference recovery and shared local
+Reference upload cancelled the Assets-list *prefix*, including that child
+Origin query, then invalidated only the exact list.
+
+The original recovery test now deterministically holds the displayed Origin's
+real200 response while independent recovery validation succeeds. A second
+public upload consumer holds an existing derived Reference's Origin while a
+new WAV upload updates the list. Both reached the unchanged original missing
+Origin attribute assertion on0a, each with10000ms and retries0. Inline schedule
+facts show actual200 reads followed by ERR_ABORTED. The two producer changes
+only add exact:true to list cancellation, preserving stale-list protection
+and unrelated child observations. Both public cases then passed in13.396259s,
+with200 reads/no child failures; Web/browser strict checks pass. The original
+CI trace remains; local diagnostic red screenshots/trace were overwritten by
+the following default output directory, while structured errors and inline
+gate facts remain preserved. No repeat was used to fill that history.
+
+Red API50100:21670/Web60260:50281 and green API40148:49381/Web39156:29446 have
+graceful receipts and independent absence readback. The bounded simplification
+review retains the existing two producers and one public gate helper; no new
+cache abstraction or budget change is needed. API, migration, registry, adapter,
+inputs and native execution are unchanged, so valid prior evidence is reused;
+required final-head complete CI remains Root-owned.
+
+## Actual Root native acceptance and remaining delivery
+
+Root completed real browser→API→protected Native GPU acceptance at0a047fe:
+separate Transcribe6.404s and Cover35.236s, both uncached, actual cot=melody and
+effective hash7134abbde2bb8130b8bd574c9a44ea910cb963281e458bab1eae25cb86fc488e.
+Reference PCM equals the actual source's first768000 frames. Generated FLAC
+fully decodes34.9986667s/stereo48k. Explicit Version
+`32689856-a811-441a-81d8-b9abc9d55468` retains source parent
+`cc4298f6-33e2-4e9c-9cdd-66700f83a683`.
+Actual API8360→63196 restart preserves17 Asset bytes, all records/origin/edit,
+with no resubmission or persistent write on reload. These read-back receipts
+are Root `.scratch/p4-development/44-real/{browser-gate,native-verification,
+restart-verification}.json`. Recorder title/autoplay precondition failures
+remain separately recorded and are not this CI query defect. All real owned
+API/Web services stopped gracefully; protected8188 remains. The narrow UI
+cancellation repair does not invalidate native/PCM/input/parent/restart facts.
+
+Root still owns affected non-author Standards/Spec review, applicable final-head
+CI, compressed media and actual merge/main/issue delivery. Symbolic native
+acceptance does not prove acoustic melody/harmony accuracy. Swagger is not
+recorded. No local full API/GPU or unchanged browser suite was repeated for
+these two query filters.
