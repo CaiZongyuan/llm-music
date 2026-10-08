@@ -69,6 +69,8 @@ jobs:
         run: pnpm test:web:generation -- generation-recovery.controlled.ts
       - name: Exercise Runtime observations, model states and read-only settings recovery
         run: pnpm test:web:runtime
+      - name: Restore both creator journeys and persisted entities after an API process restart
+        run: pnpm test:web:gate
       - name: Retain browser results and process ownership receipts
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
