@@ -121,7 +121,8 @@
         "zh-cn": "docs/learn/variations.md",
         "en": "docs/learn/variations.en.md"
       },
-      "previous": "first-music"
+      "previous": "first-music",
+      "sectionIds": ["start", "recipes", "intent", "compare", "run", "save", "recovery", "next"]
     },
     {
       "id": "edit-score",
@@ -585,7 +586,7 @@
       "titles": { "zh-cn": "在工作区生成、试听并留下版本", "en": "Generate, listen and keep a version in the workspace" },
       "labels": { "zh-cn": "在 Web 生成与试听", "en": "Generate and listen in the Web" },
       "sources": { "zh-cn": "docs/guides/web-generation.md", "en": "docs/guides/web-generation.en.md" },
-      "sectionIds": ["generate", "listen", "save", "recover"]
+      "sectionIds": ["generate", "listen", "save", "compare", "recover"]
     },
     {
       "id": "guide-dev-launcher",

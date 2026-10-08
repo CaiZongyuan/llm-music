@@ -94,6 +94,9 @@ jobs:
       - name: Exercise saved Version branches, explicit origins and durable forest recovery
         if: matrix.group == 'music'
         run: pnpm test:web:version-branches
+      - name: Exercise saved Version comparison, absolute playback and source recovery
+        if: matrix.group == 'music'
+        run: pnpm test:web:version-compare
       - name: Restore both creator journeys and persisted entities after an API process restart
         if: matrix.group == 'workspace'
         run: pnpm test:web:gate
