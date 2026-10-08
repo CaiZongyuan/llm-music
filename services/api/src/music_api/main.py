@@ -76,6 +76,7 @@ def create_app(settings: Settings | None = None, runtime: InferenceRuntime | Non
     from music_api.fake_generation import generation_fixture
     from music_api.generation import configure_generation, router as generation_router
     from music_api.version_routes import router as version_router
+    from music_api.reference_audio import ReferenceOriginRead, reference_origin, router as reference_router
 
     configured = settings or Settings()
     event_broker = JobEventBroker()
@@ -193,6 +194,9 @@ def create_app(settings: Settings | None = None, runtime: InferenceRuntime | Non
         inputs: dict[str, object] = dict(reference_asset_id=reference.id, reference_sha256=actual_hash,
                                          duration_seconds=facts.duration_seconds, sample_rate=facts.sample_rate, channels=facts.channels, sample_width_bits=facts.sample_width_bits,
                                          decoded_frames=facts.decoded_frames)
+        origin = reference_origin(session, reference)
+        if origin is not None:
+            inputs["reference_origin"] = ReferenceOriginRead.model_validate(origin).model_dump(mode="json")
         jobs: JobService = request.app.state.jobs
         return job_read(jobs.submit(project_id, "Transcribe", inputs))
 
@@ -253,4 +257,5 @@ def create_app(settings: Settings | None = None, runtime: InferenceRuntime | Non
 
     app.include_router(generation_router)
     app.include_router(version_router)
+    app.include_router(reference_router)
     return app
