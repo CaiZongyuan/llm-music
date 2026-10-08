@@ -1,0 +1,123 @@
+{
+  "source_commit": "9ba1feed9b4307b5251c6fa25db7906915c76e54",
+  "reused_transcription": true,
+  "native": {
+    "passed": true,
+    "recorded_at": "2026-10-08T16:37:47.395033+00:00",
+    "executions": {
+      "transcribed": {
+        "job_id": "8edad40d-f7ed-4452-b0ea-e783e079107f",
+        "native_prompt_id": "dd2cab0a-187e-430a-8004-cbf13badbf56",
+        "core_cached": false,
+        "execution_seconds": 6.404,
+        "options": {
+          "cot": "full",
+          "max_seconds": 0,
+          "keep_model_loaded": false,
+          "device": "cuda:0",
+          "attention_backend": "sdpa",
+          "download": "off",
+          "quantization": "bf16",
+          "offload": "on",
+          "low_vram": false,
+          "vae": "standard",
+          "vocals_only": false
+        }
+      },
+      "completed": {
+        "job_id": "3561feb9-e0a9-44f1-8629-8f9d28702dfb",
+        "native_prompt_id": "f960051e-c467-49da-bcb8-e042add9caf2",
+        "core_cached": false,
+        "execution_seconds": 37.685,
+        "options": {
+          "cot": "full",
+          "max_seconds": 35,
+          "keep_model_loaded": false,
+          "quantization": "bf16",
+          "offload": "on",
+          "low_vram": false,
+          "vae": "standard",
+          "device": "cuda:0",
+          "attention_backend": "sdpa",
+          "download": "off",
+          "cfg_scale": 0,
+          "ode_steps": 32,
+          "abc_temperature": 0.7,
+          "abc_top_p": 0.9,
+          "abc_top_k": 30,
+          "temperature": 1,
+          "top_p": 0.95,
+          "top_k": 100,
+          "repetition_penalty": 1.2,
+          "transpose": 0,
+          "vocals_only": false
+        }
+      }
+    },
+    "expected_effective_sha256": "e21093391e9e9cfca95b077be1ef0ee2aa6e24fa021fc2a99b88e33abc75196e",
+    "actual_score_input_matches": true,
+    "reference_pcm_equals_actual_source_first16s": true,
+    "reference_frames": 768000,
+    "decoded_seconds": 34.998666666666665,
+    "sample_rate": 48000,
+    "channels": 2,
+    "peak_native_units": 20669,
+    "rms_native_units": 2699.162559315508,
+    "audio_sha256": "6279e9c581cf0a9a8c0b04bbea47e41d7e221a6f68275a68599d5df64422cd4e",
+    "version": "94909afa-ba1a-459b-89f6-d586ad6c08e3",
+    "parent_version": "cc4298f6-33e2-4e9c-9cdd-66700f83a683",
+    "native_device_observation": [
+      {
+        "name": "cuda:0 NVIDIA GeForce RTX 3070 Ti Laptop GPU : cudaMallocAsync",
+        "type": "cuda",
+        "index": 0,
+        "vram_total": 8589410304,
+        "vram_free": 6960447488,
+        "torch_vram_total": 1006632960,
+        "torch_vram_free": 732954624
+      }
+    ],
+    "scope": "Actual uncached native graphs, full audio decode, exact stereo PCM reference and true parent. Device counters are a post-execution observation, not a measured peak. No subjective or acoustic melody fidelity claim."
+  },
+  "restart": {
+    "passed": true,
+    "recorded_at": "2026-10-08T16:38:00.467Z",
+    "first_pid": 43560,
+    "next_pid": 51788,
+    "first_birth": 1791477261.804772,
+    "next_birth": 1791477468.3887684,
+    "records_equal": true,
+    "asset_bytes_equal": true,
+    "reference_origin_equal": true,
+    "saved_edit_readable": true,
+    "assets_checked": 20,
+    "posts": [],
+    "validation_posts_only": true,
+    "no_persistent_write": true,
+    "no_resubmission": true,
+    "scope": "Actual graceful FastAPI restart and fresh browser reload; persisted Cover origin/intermediates/Candidate/Version and all Assets restored, protected native Runtime retained"
+  },
+  "audio": {
+    "recorded_at": "2026-10-08T16:40:36.850155+00:00",
+    "file": "full-cover.mp3",
+    "bytes": 561068,
+    "sha256": "beffee708a9ae829132cf7f6bc82ce86540e1daa36500d32c0eac246b931768f",
+    "decoded_seconds": 34.998666666666665,
+    "codec": "MP3 stereo48k128kbps software",
+    "original_sha256": "6279e9c581cf0a9a8c0b04bbea47e41d7e221a6f68275a68599d5df64422cd4e",
+    "original_unchanged": true,
+    "source_commit": "9ba1feed9b4307b5251c6fa25db7906915c76e54",
+    "job_id": "3561feb9-e0a9-44f1-8629-8f9d28702dfb"
+  },
+  "video": {
+    "bytes": 1138054,
+    "sha256": "64a2b738eb34130374219fea9d2f39a04051541de4b8d47b5dfc1654f864ee8c",
+    "frames": 1172,
+    "last_seconds": 46.84,
+    "width": 1080,
+    "height": 720,
+    "codec": "VP9 CRF40 software",
+    "full_decode": true,
+    "audio": false
+  }
+}
