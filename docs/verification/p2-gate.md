@@ -57,6 +57,24 @@ Fixed range: `b3ea84154f0e8062e508db5ab661d99ea4cb7845` → actual main `adfd190
 
 No optional simplification is implemented and there is no deletion quota. The survey is not a new music benchmark, accessibility audit of every viewport, dependency security review, every CSS selector's reachability proof, Electron review or P3 editing acceptance. Existing architecture and domain decisions remain in force.
 
+## Independent shutdown-stall repair
+
+Independent Spec at Root's registered `276423de07082b579bd900931578568b4be38dec` found that the original `finish()` waited10 seconds then raised without reclaiming a stalled non-daemon child. Its `finally` raised before writing the stop receipt, and CPython could then join the surviving child indefinitely at interpreter exit. This is a new gate-harness defect, not a demonstrated product/API defect.
+
+The independent immutable-source red is `.scratch/p2-development/38-review/shutdown-red.json`: the exact original `finish` AST set its stop Event, waited10 seconds and raised while the no-listener CPU child remained alive. The20-second outer watchdog reclaimed only its verified handle/birth/parent/command identity; elapsed10.219 seconds, non-graceful exit-15, no residual process. The historic normal receipts remain unchanged.
+
+The repair preserves the10-second graceful wait. It records ownership immediately for each spawned handle; if the same child is still alive, it verifies creation time and direct parent before terminate, then uses bounded two-second joins and kill only if needed. Parent cleanup receipts retain force actions, exit code, completion and child acknowledgement separately; they never forge or overwrite a normal acknowledgement. Re-entering `finally` reuses the completed cleanup result, writes the aggregate receipt, and still fails if any child did not stop gracefully. The owned SpawnProcess also bounds CPython's otherwise implicit exit join, so a cleanup exception cannot recreate the original indefinite wait.
+
+The permanent no-port regression runs the actual repaired `main`, substitutes an Event-ignoring CPU child and requests restart. It requires a bounded failed supervisor exit, `graceful=false`, `forced_cleanup=true`, one terminated exact child, missing normal acknowledgement preserved, no second/resumed child and no surviving owned listener/process. Entry:
+
+```powershell
+uv run --project services/api --frozen --no-sync python -m pytest tests/browser/test_gate_shutdown.py -q
+```
+
+The actual regression passed1/1 in12.70 seconds. After making the test create only the `.artifacts` parent (the supervisor still requires a new run directory), the standalone entry passed1/1 in12.40 seconds from an isolated source copy whose artifact directory did not previously exist. That copy differs from the final supervisor only in the later normal-acknowledgement field merge; its no-acknowledgement fault path is identical. The refreshed normal browser gate passed1/1 in18.9 seconds (case11.5 seconds): complete object/download/write invariants retained, both actual API children and Web graceful, forced cleanup false. Python syntax and diff checks pass; unaffected strict browser/source/GPU evidence is reused.
+
+The first green-oracle attempt is retained as a failed test: Windows' venv redirector meant the external Popen PID differed from the actual supervisor PID. The regression now records and verifies that immediate live relation before asserting its child ownership. Its original resources were confirmed absent; no shared process was touched. Repair source, original/red/refreshed receipts and final local freeze are under `.worktrees/38-web-gate/.scratch/p2-development/38-gate/`. Root owns explicit shutdown-regression CI registration and final review; no source-handoff push or repeated whole CI is needed.
+
 ## Final handoff
 
 Gate remains open until Root pins the complete candidate, obtains independent Standards/Spec review, observes applicable CI, integrates and reads back actual main, and confirms the current public documentation source. No additional GPU run is needed for the test-only persistence gap unless an actual source/environment/contract change invalidates the mapped evidence. Score editing, Cover, A/B and long-song claims remain later stages.

@@ -18,6 +18,13 @@ from music_api.config import Settings
 from music_api.main import create_app
 
 
+class OwnedProcess(multiprocessing.context.SpawnProcess):
+    def join(self, timeout=None):
+        # CPython also joins live children during exception-driven interpreter
+        # exit. That implicit join must not turn a failed cleanup into a hang.
+        super().join(2 if timeout is None else timeout)
+
+
 def record(path, value):
     temporary = path.with_suffix(".tmp")
     temporary.write_text(json.dumps(value, indent=2) + "\n", encoding="utf-8")
@@ -54,6 +61,50 @@ def serve(run_dir, port, generation, stop):
         "stopped_at": datetime.now(timezone.utc).isoformat()})
 
 
+def stop_child(owned, run_dir):
+    if "receipt" in owned:
+        return owned["receipt"]
+    process, event, identity = owned["process"], owned["event"], owned["identity"]
+    forced = []
+    errors = []
+
+    def same_child():
+        if not process.is_alive():
+            return False
+        try:
+            actual = psutil.Process(process.pid)
+            return actual.create_time() == identity["create_time"] and actual.ppid() == identity["parent_pid"]
+        except psutil.Error:
+            return False
+
+    try:
+        event.set()
+        process.join(10)
+        for action in ["terminate", "kill"]:
+            if not process.is_alive():
+                break
+            if not same_child():
+                errors.append("Owned child birth/parent identity could not be confirmed; no signal sent")
+                break
+            getattr(process, action)()
+            forced.append(action)
+            process.join(2)
+    except (OSError, ValueError) as error:
+        errors.append(str(error))
+    path = run_dir / f"api-{identity['generation']}-stopped.json"
+    acknowledgement = json.loads(path.read_text(encoding="utf-8")) if path.exists() else None
+    matching_ack = acknowledgement and acknowledgement.get("pid") == identity["pid"] \
+        and acknowledgement.get("create_time") == identity["create_time"]
+    receipt = {**(acknowledgement or {}), **identity, "graceful": bool(matching_ack and acknowledgement.get("graceful")
+               and not forced and not errors and not process.is_alive() and process.exitcode == 0),
+               "forced_cleanup": bool(forced), "forced_actions": forced, "errors": errors,
+               "cleanup_complete": not process.is_alive(), "exitcode": process.exitcode,
+               "acknowledgement": acknowledgement, "stopped_at": datetime.now(timezone.utc).isoformat()}
+    record(run_dir / f"api-{identity['generation']}-cleanup.json", receipt)
+    owned["receipt"] = receipt
+    return receipt
+
+
 def main():
     run_dir = Path(os.environ["MUSIC_BROWSER_RUN_DIR"]).resolve()
     if run_dir.parent != Path(__file__).resolve().parent / ".artifacts" or run_dir.exists():
@@ -66,46 +117,48 @@ def main():
     run_dir.mkdir(parents=True)
     context = multiprocessing.get_context("spawn")
     children = []
-    process = None
-    stop = None
+    current = None
 
     def start(generation):
         event = context.Event()
-        child = context.Process(target=serve, args=(run_dir, port, generation, event))
+        child = OwnedProcess(target=serve, args=(run_dir, port, generation, event))
         child.start()
-        children.append({"pid": child.pid, "generation": generation})
-        return child, event
+        owned = {"process": child, "event": event, "identity": {
+            "pid": child.pid, "create_time": psutil.Process(child.pid).create_time(),
+            "parent_pid": os.getpid(), "generation": generation, "port": port,
+            "data_dir": str(run_dir / "application")}}
+        children.append(owned)
+        return owned
 
     def finish():
-        stop.set()
-        process.join(10)
-        if process.is_alive() or process.exitcode != 0:
+        receipt = stop_child(current, run_dir)
+        if not receipt["graceful"]:
             raise RuntimeError("Owned API child did not finish its normal shutdown")
+        return receipt
 
     try:
-        process, stop = start(0)
+        current = start(0)
         while not (run_dir / "stop").exists():
-            if process.exitcode is not None:
+            if current["process"].exitcode is not None:
                 raise RuntimeError("Owned API exited before the gate requested shutdown")
             if (run_dir / "restart").exists():
-                finish()
-                previous = json.loads((run_dir / "api-0-stopped.json").read_text(encoding="utf-8"))
-                if not previous["graceful"]:
-                    raise RuntimeError("Initial API shutdown was not acknowledged")
+                previous = finish()
                 record(run_dir / "restart-stopped.json", previous)
                 while not (run_dir / "resume").exists() and not (run_dir / "stop").exists():
                     time.sleep(0.1)
                 if (run_dir / "stop").exists():
                     break
                 (run_dir / "restart").unlink()
-                process, stop = start(1)
+                current = start(1)
             time.sleep(0.1)
     finally:
-        if process is not None:
-            finish()
-        receipts = [json.loads((run_dir / f"api-{child['generation']}-stopped.json").read_text(encoding="utf-8")) for child in children]
+        receipts = [stop_child(child, run_dir) for child in children]
         record(run_dir / "stopped.json", {"pid": os.getpid(), "port": port,
-               "graceful": all(receipt["graceful"] for receipt in receipts), "children": receipts})
+               "graceful": bool(receipts) and all(receipt["graceful"] for receipt in receipts),
+               "forced_cleanup": any(receipt["forced_cleanup"] for receipt in receipts),
+               "cleanup_complete": all(receipt["cleanup_complete"] for receipt in receipts), "children": receipts})
+        if any(not receipt["graceful"] for receipt in receipts):
+            raise RuntimeError("Owned API cleanup failed; inspect the truthful stopped receipt")
 
 
 if __name__ == "__main__":
