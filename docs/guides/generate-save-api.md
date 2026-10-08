@@ -52,6 +52,10 @@ uv run --project services/api --no-sync python services/api/examples/generate_sa
 
 这对应 `POST /projects/{project_id}/jobs/generate-from-score`，请求包含 `abc`、`source_score_id`、可选 `parent_version_id`，以及 Generate 的 style、lyrics、seed 和 `max_seconds=35`。ABC 最多 100000 个字符；源 Score 与 parent 必须属于同一个 Project。非法或不支持的 ABC 在创建 Job 前拒绝。没有该 capability 时明确拒绝，不能改用普通 Generate。
 
+正式 [ABC 编辑器](../learn/edit-score.md) 已能独立保存修改。`POST /projects/{project_id}/scores/validate` 用当前锁定解析器检查 `abc`，没有 Job 或 GPU 调用。`POST /projects/{project_id}/scores` 保存原文到新的 ABC Asset 与 Score，接受可选 `source_score_id`、`parent_version_id` 和稳定 `save_id`。首次返回 `201`；以同一保存 id、Project、来源、parent 与原文哈希重放返回 `200` 与同一 Score，不同意图返回 `409 score_save_conflict`。`job_id=null` 明确表示独立保存，没有自动 Candidate 或 Version。
+
+从编辑后的 Score 继续时，`source_score_id` 使用新保存 Score 的真实 id；parent 可为拥有原来源的 Version，或该 Score 已记录的编辑 parent。连续编辑继承这一 parent；不会冒用旧 Score id 或改写旧素材。保存确认不明时，`score_commit_unconfirmed` 的 `resource_id` 指向可读回的 Score；客户端保留同一 `save_id` 和输入进行显式恢复。
+
 Job 与 Candidate 的 `inputs.abc` 保存请求原文。`provenance.selected_score` 保存原文哈希、`effective_abc`、有效输入哈希、转换列表与适配版本。锁定插件会因内部 `%yue2-words` 标记不匹配而重新规划，也会重排没有 section 注释的裸谱。版本 1 适配移除匹配的内部标记；裸谱增加一个中性 section 注释，保留音符、小节、节拍、速度、声部和和弦。现有带 section 的生成谱与转谱谱无需这项转换。该记录区分原文和实际推理文本；它不承诺注释处理前后产生相同音频。
 
 排队或运行后继续编辑本地文件，不会改变已提交 Job。需要另一个编辑结果时，重新选择有效 ABC 并明确提交新 Job。输出 Score 必须与实际提交的有效文本一致；音频仍经过完整 FLAC 校验。失败结果不会成为 Candidate 或 Version。

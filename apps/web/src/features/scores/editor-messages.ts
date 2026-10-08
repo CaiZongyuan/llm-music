@@ -1,0 +1,31 @@
+import { defineMessages } from '../preferences/Preferences';
+
+export const editorMessages = defineMessages({
+  title: '让下一次创作听见你的修改', intro: '改几个音符，看谱试听，再明确保存并选定乐谱。草稿不会改写旧版本。',
+  draft: 'ABC 草稿', help: '先修改 Ins 声部的 C D E F；保留 Vocal 的等长休止。', label: 'ABC 乐谱文本', validate: '更新谱面', restore: '恢复原文到草稿',
+  notation: '谱面与试听', preview: '乐谱预览', checking: '正在检查草稿…', valid: '有效草稿', invalid: 'ABC 需要修正', current: '谱面和 MIDI 对应当前草稿。',
+  oldNotation: '正在显示上一份有效谱面；它不是当前草稿。', noNotation: '检查通过后将在这里显示谱面。',
+  preserved: '草稿文本已保留。修正后更新谱面；旧 Score 和版本不受影响。', renderFailed: '暂时无法显示谱面。更新谱面以重试。',
+  unsupported: '当前生成支持 Vocal / Ins 双声部 ABC。保留原始标头和等长完整小节；其他 ABC 语法可能无法使用。',
+  nativeError: '不符合当前支持的乐谱格式', transportError: '暂时无法检查乐谱。更新谱面以重试。', headers: 'ABC 需要 X: 与 K: 标头，且只能包含一首乐曲。',
+  audition: '试听草稿 MIDI', export: '导出草稿 MIDI', tone: '试听用简单音色检查实际 MIDI 的音高与节奏。它不是 AI 生成的歌曲。',
+  mediaError: '未能生成试听或导出文件。草稿与已保存结果仍保留，请重试。', emptyMidi: '没有可播放的音符。', limitMidi: '试听支持 120 秒以内、10,000 个音符以内的乐谱。',
+  save: '保存并选定此 Score', selectSaved: '选定已保存 Score', saving: '正在保存乐谱…', selected: '供下一次生成使用的 Score', none: '检查并试听草稿，再明确保存选定。',
+  ready: '已保存 Score 对应当前有效草稿。', dirty: '草稿已修改。再次生成前须检查并保存选定。', frozen: '已选定 ABC 与来源已保存。继续编辑不会覆盖此快照。',
+  selectedABC: '查看已选定 ABC 快照', openSaved: '打开已保存 Score', saved: '已独立保存乐谱；没有创建任务或版本。', parent: '父版本', noParent: '没有父版本',
+  revision: '草稿修订', session: '未保存的草稿只保留在本次页面会话。刷新会重新读取已保存原文。', saveRetry: '再次保存同一快照', saveUnknown: '保存尚未确认。', saveRecovery: '草稿与旧文件已保留。重试恢复点击保存时的同一份 ABC 快照；之后写入的新草稿不会替换它。',
+}, {
+  title: 'Let your next creation hear your edits', intro: 'Change a few notes, inspect and audition, then explicitly save and select the Score. Drafts do not rewrite old Versions.',
+  draft: 'ABC draft', help: 'Start with C D E F in Ins; retain the matching Vocal rests.', label: 'ABC Score text', validate: 'Update notation', restore: 'Restore original into draft',
+  notation: 'Notation & audition', preview: 'Score preview', checking: 'Checking draft…', valid: 'Valid draft', invalid: 'ABC needs correction', current: 'Notation and MIDI match the current draft.',
+  oldNotation: 'Showing the last valid notation; it is not the current draft.', noNotation: 'Notation will appear here after the draft passes checks.',
+  preserved: 'Draft text is preserved. Correct it and update notation; saved Scores and Versions remain.', renderFailed: 'Notation could not be displayed. Update notation to retry.',
+  unsupported: 'Generation currently supports Vocal / Ins two-voice ABC. Keep the original headers and complete matching bars; other ABC syntax may be unsupported.',
+  nativeError: 'Outside the currently supported Score format', transportError: 'The Score could not be checked. Update notation to retry.', headers: 'ABC requires X: and K: headers and exactly one tune.',
+  audition: 'Audition draft MIDI', export: 'Export draft MIDI', tone: 'A simple tone plays the actual MIDI pitches and rhythm. This is not an AI-generated song.',
+  mediaError: 'Audition or export could not be prepared. Your draft and saved results remain; retry.', emptyMidi: 'No playable notes.', limitMidi: 'Audition supports Scores up to 120 seconds and 10,000 notes.',
+  save: 'Save and select this Score', selectSaved: 'Select saved Score', saving: 'Saving Score…', selected: 'Score for the next generation', none: 'Check and audition the draft, then explicitly save and select it.',
+  ready: 'The saved Score matches this valid draft.', dirty: 'The draft changed. Check it and save/select again before generating.', frozen: 'The selected ABC and its origin are saved. Further editing keeps this snapshot intact.',
+  selectedABC: 'Inspect selected ABC snapshot', openSaved: 'Open saved Score', saved: 'Score saved independently; no Job or Version was created.', parent: 'Parent Version', noParent: 'No parent Version',
+  revision: 'Draft revision', session: 'Unsaved drafts remain in this page session. Refresh rereads the saved original.', saveRetry: 'Save the same snapshot again', saveUnknown: 'Saving is unconfirmed.', saveRecovery: 'Your draft and older files remain. Retry recovers the ABC snapshot captured at the save click; later draft edits do not replace it.',
+});

@@ -12,4 +12,11 @@
 .score-download { flex:1; min-width:150px }
 .score-download small { margin-top:8px; overflow-wrap:anywhere }
 .score-source strong { overflow-wrap:anywhere }
+.score-editor-heading { margin:16px 0 24px }
+.abc-editor { display:block; width:100%; min-height:340px; resize:vertical; font:.85rem/1.8 "Cascadia Code",monospace; padding:16px; background:var(--surface); color:var(--text); border:1px solid var(--line); border-radius:9px; white-space:pre; overflow:auto }
+.abc-errors { white-space:pre-wrap; overflow-wrap:anywhere; font:.8rem/1.6 "Cascadia Code",monospace }
+.score-editor > section { min-width:0 }
+.selected-score { margin:24px 0 }
+.selected-score details { margin:16px 0 }
+.score-notation > div > div { max-width:100% }
 @media(max-width:680px) { .score-list li { align-items:start; flex-direction:column } }

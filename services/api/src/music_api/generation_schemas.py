@@ -18,7 +18,7 @@ class GenerateCreate(BaseModel):
 class GenerateFromScoreCreate(GenerateCreate):
     abc: str = Field(min_length=1, max_length=100000, description="Explicitly selected ABC; copied exactly into the Job input snapshot.")
     source_score_id: UUID = Field(description="Existing source Score in this Project; edited ABC may differ from its original Asset.")
-    parent_version_id: UUID | None = Field(default=None, description="Optional same-Project Version that owns the source Score; retained on explicit save.")
+    parent_version_id: UUID | None = Field(default=None, description="Optional same-Project Version owning the source Score or retained as its explicit editing parent; retained on Version save.")
 
 
 class CandidateRead(BaseModel):

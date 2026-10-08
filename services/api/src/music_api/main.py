@@ -11,7 +11,7 @@ from uuid import UUID, uuid4
 from fastapi import Depends, FastAPI, Request, Response, UploadFile
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import FileResponse
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 from starlette.exceptions import HTTPException
@@ -25,7 +25,9 @@ from music_api.assets import import_audio
 from music_api.database import Asset, Database, Project
 from music_api.errors import (DomainError, dependency_error_response, domain_error_response,
                               http_error_response, validation_error_response)
-from music_api.schemas import AssetRead, ErrorResponse, JobRead, ProjectCreate, ProjectRead, ScoreRead, TranscribeCreate
+from music_api.schemas import AssetRead, ErrorResponse, JobRead, ProjectCreate, ProjectRead, ScoreCreate, ScoreRead, ScoreValidate, ScoreValidationRead, TranscribeCreate
+from music_api.score_editing import save_score
+from music_api.score_input import selected_score_validation
 from music_api.audio import inspect_wav
 from music_api.job_models import Job, Score
 from music_api.jobs import JobService, job_read
@@ -220,6 +222,21 @@ def create_app(settings: Settings | None = None, runtime: InferenceRuntime | Non
     def retry_job(project_id: UUID, job_id: UUID, request: Request) -> JobRead:
         jobs: JobService = request.app.state.jobs
         return job_read(jobs.retry(project_id, job_id))
+
+    @app.post("/projects/{project_id}/scores/validate", response_model=ScoreValidationRead)
+    def validate_edited_score(project_id: UUID, value: ScoreValidate, session: Session = Depends(session_for)) -> ScoreValidationRead:
+        project_in(session, project_id)
+        return ScoreValidationRead.model_validate(selected_score_validation(value.abc))
+
+    @app.post("/projects/{project_id}/scores", response_model=ScoreRead, status_code=201,
+              responses={200: {"model": ScoreRead}, 409: {"model": ErrorResponse}})
+    def create_edited_score(project_id: UUID, value: ScoreCreate, request: Request, response: Response, session: Session = Depends(session_for)) -> ScoreRead:
+        # Reserve this writer before the first Project/source read.
+        session.execute(update(Project).where(Project.id == str(project_id)).values(id=Project.id))
+        project_in(session, project_id)
+        score, created = save_score(request.app.state.database, session, request.app.state.storage, project_id, value)
+        response.status_code = 201 if created else 200
+        return ScoreRead.model_validate(score)
 
     @app.get("/projects/{project_id}/scores", response_model=list[ScoreRead])
     def list_scores(project_id: UUID, session: Session = Depends(session_for)) -> list[ScoreRead]:

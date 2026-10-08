@@ -2,7 +2,7 @@
 
 from datetime import datetime
 from typing import Annotated, Literal
-from uuid import UUID
+from uuid import UUID, uuid4
 
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints
 
@@ -75,7 +75,29 @@ class ScoreRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     id: UUID
     project_id: UUID
-    job_id: UUID
+    job_id: UUID | None
     abc_asset_id: UUID
     source_reference_asset_id: UUID | None
+    source_score_id: UUID | None
+    parent_version_id: UUID | None
     created_at: datetime
+
+
+class ScoreValidate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    abc: str = Field(min_length=1, max_length=100000)
+
+
+class ScoreCreate(ScoreValidate):
+    save_id: UUID = Field(default_factory=uuid4, description="Stable save-intent id. Repeating identical input returns the same immutable Score.")
+    source_score_id: UUID | None = Field(default=None, description="Optional source Score in this Project; its files remain immutable.")
+    parent_version_id: UUID | None = Field(default=None, description="Optional Version owning the source Score, or its retained editing parent.")
+
+
+class ScoreValidationRead(BaseModel):
+    note_count: int = Field(gt=0)
+    abc_sha256: str
+    effective_abc_sha256: str
+    transformations: list[str]
+    adapter_version: str
+    parser: str

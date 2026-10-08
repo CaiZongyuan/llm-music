@@ -257,6 +257,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/projects/{project_id}/scores/validate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Validate Edited Score */
+        post: operations["validate_edited_score_projects__project_id__scores_validate_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/projects/{project_id}/scores": {
         parameters: {
             query?: never;
@@ -267,7 +284,8 @@ export interface paths {
         /** List Scores */
         get: operations["list_scores_projects__project_id__scores_get"];
         put?: never;
-        post?: never;
+        /** Create Edited Score */
+        post: operations["create_edited_score_projects__project_id__scores_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -760,7 +778,7 @@ export interface components {
             source_score_id: string;
             /**
              * Parent Version Id
-             * @description Optional same-Project Version that owns the source Score; retained on explicit save.
+             * @description Optional same-Project Version owning the source Score or retained as its explicit editing parent; retained on Version save.
              */
             parent_version_id?: string | null;
         };
@@ -969,6 +987,27 @@ export interface components {
             /** Reasons */
             reasons: components["schemas"]["DiagnosticReason"][];
         };
+        /** ScoreCreate */
+        ScoreCreate: {
+            /** Abc */
+            abc: string;
+            /**
+             * Save Id
+             * Format: uuid
+             * @description Stable save-intent id. Repeating identical input returns the same immutable Score.
+             */
+            save_id?: string;
+            /**
+             * Source Score Id
+             * @description Optional source Score in this Project; its files remain immutable.
+             */
+            source_score_id?: string | null;
+            /**
+             * Parent Version Id
+             * @description Optional Version owning the source Score, or its retained editing parent.
+             */
+            parent_version_id?: string | null;
+        };
         /** ScoreRead */
         ScoreRead: {
             /**
@@ -981,11 +1020,8 @@ export interface components {
              * Format: uuid
              */
             project_id: string;
-            /**
-             * Job Id
-             * Format: uuid
-             */
-            job_id: string;
+            /** Job Id */
+            job_id: string | null;
             /**
              * Abc Asset Id
              * Format: uuid
@@ -993,11 +1029,35 @@ export interface components {
             abc_asset_id: string;
             /** Source Reference Asset Id */
             source_reference_asset_id: string | null;
+            /** Source Score Id */
+            source_score_id: string | null;
+            /** Parent Version Id */
+            parent_version_id: string | null;
             /**
              * Created At
              * Format: date-time
              */
             created_at: string;
+        };
+        /** ScoreValidate */
+        ScoreValidate: {
+            /** Abc */
+            abc: string;
+        };
+        /** ScoreValidationRead */
+        ScoreValidationRead: {
+            /** Note Count */
+            note_count: number;
+            /** Abc Sha256 */
+            abc_sha256: string;
+            /** Effective Abc Sha256 */
+            effective_abc_sha256: string;
+            /** Transformations */
+            transformations: string[];
+            /** Adapter Version */
+            adapter_version: string;
+            /** Parser */
+            parser: string;
         };
         /** SettingsMetadataRead */
         SettingsMetadataRead: {
@@ -2015,6 +2075,59 @@ export interface operations {
             };
         };
     };
+    validate_edited_score_projects__project_id__scores_validate_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ScoreValidate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ScoreValidationRead"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
     list_scores_projects__project_id__scores_get: {
         parameters: {
             query?: never;
@@ -2037,6 +2150,77 @@ export interface operations {
             };
             /** @description Not Found */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    create_edited_score_projects__project_id__scores_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ScoreCreate"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ScoreRead"];
+                };
+            };
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ScoreRead"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };
