@@ -4,6 +4,7 @@
 - 基线：`8fe1ed0c6c1f8016861a45e80f91351bc3bd2450`，实际 #42 / PR #88 合并，阻塞已关闭、Root 已确认 P3 gate。
 - Owner：`/root/cover_preview_developer`；branch `p4/43-cover-preview`；worktree `.worktrees/43-cover-preview`。
 - 预览：[cover-v1](../previews/cover-v1/README.md)，<http://127.0.0.1:18084/llm-music/cover-preview/>。
+- 实际冻结源码：`05c21da8d9a6025c4ffe4ece2fe292447234fbf9`；后续此交接记录补充不改变已验证的预览源码。
 - 状态：可运行候选，等待 Root 独立审阅和用户对本次 Cover 流程的具体确认；不实施正式 #44/#45。
 
 ## 要确认的体验
@@ -28,7 +29,7 @@ mode 改变保留草稿与旧选择，须重新明确选定；有效 ABC 可展�
 | --- | --- |
 | 正常闭环 | 空态禁止提交；历史参考→full独立示例→编辑/明确选定→melody有效输入→Candidate→明确保存派生Version；完成后仍只有原V1，保存后两Version。新版本保留reference/mode/effective ABC/parent，原V1 ABC逐字保持原样。 |
 | 两模式/冻结 | mode改变保持原selected，禁新提交直至重新选定；有效ABC保留quoted声部名称与两声部音乐。提交后改首音，任务原source/effective ABC不变。有效melody MIDI 10.2s实际播放，媒体error=null。 |
-| MIDI与Player | 草稿导出实际Download完成，failure=null，685B SMF，SHA256 `2be7732affdd0ef587a522d0d68b6d954838719e228804097f45c04845a78431`。真实当前MIDI WAV10.2s，currentTime前进；歌词/版本切换同src继续播放，页面仅一个audio。 |
+| MIDI与Player | 草稿导出实际Download完成，failure=null，685B SMF，SHA256 `2be7732affdd0ef587a522d0d68b6d954838719e228804097f45c04845a78431`；现有独立完整SMF校验器读回56个note-on（含abcjs派生和弦音）。真实当前MIDI WAV10.2s，currentTime前进；歌词/版本切换同src继续播放，页面仅一个audio。 |
 | 恢复/错误 | 转谱失败和取消保留旧编辑谱；生成OOM和取消保留中间谱/旧版本。重试得到新Candidate但不新增Version；保存失败保留名称和Candidate，再次明确保存同一结果。模式不支持和缺模型禁止任务且不fallback。 |
 | 输入/谱面 | 无效文本保留，旧notation明确过期，禁选定/生成。谱面失败不丢文本、禁过期试听，更新恢复。ABC文件冒充音频被拒绝，旧reference保留；实际16s本地WAV可以试听。新reference阻止旧来源Cover，转谱后本地reference任务无V1父版本。 |
 | 可访问操作/隔离 | 三条guided路径以实际按钮驱动；模式路径可reset/transcribe/select/switch/reselect/inspect。English+dark实际生效，390px document和Player均390px，无横向溢出。requests仅owned18084静态GET/Blob，0业务请求；serverPOST=405、allowlist外路径=404、CSP connect-src none。 |
@@ -39,4 +40,6 @@ mode 改变保留草稿与旧选择，须重新明确选定；有效 ABC 可展�
 
 自有 Node PID `47140`，birth `1791458868.978`，parent `29216`，exec session `22179`，实际 command 为此 worktree 的 `docs/previews/cover-v1/serve.mjs`，仅监听 `127.0.0.1:18084`。HTTP200和CSP已读回；旧18032、18072均无监听。共享8188未操作。Root独立审阅及用户确认期间保留该服务，停止前再次核对PID、birth、脚本、端口。
 
-源码最终全SHA、文件hash和最终HTTP/source核对由冻结交接读回；确认记录须指向实际服务源码。用户尚未确认本次 #43 Cover；旧布局确认与 #39 的“认可，继续正式实现”不替代本票新流程确认。
+已读回冻结源码全SHA、实际端口owner与文件hash：app `98de2082fc0f6c2a2f29b0a54fe124894f4facb0d316b4666cd569bdd490a601`，index `906c2fdb0a5d09f5588ec66e675a7c54f78815199c8fa42f2559bbe59cdf13a2`，styles `00b83e9124387365b1ee715dc43b90887285b342481fe97a6294efabc402da8c`，serve `1679c9838abae34d94683d449afad3b206b7f57352bbf38357e550de15504e6b`。后续确认记录须指向实际服务源码。用户尚未确认本次 #43 Cover；旧布局确认与 #39 的“认可，继续正式实现”不替代本票新流程确认。
+
+正式交接额外 seam：历史V1选项模拟将已生成的V1音频用作新Reference，与固定V1来源形成派生parent；当前正式Transcribe只接上传Reference，生成FLAC与Reference/Version来源关系尚未实现，现有Score编辑parent也不允许任意附加V1。此预览不把该内存关系报告为正式支持。#44/#45需实现并验证真实来源链及所需音频转换，或由Root明确缩减入口；不得仅依靠客户端parent文案建立来源。
