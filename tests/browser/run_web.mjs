@@ -17,7 +17,14 @@ const requireWeb = createRequire(resolve(root, 'apps/web/package.json'));
 const { build, preview } = await import(pathToFileURL(requireWeb.resolve('vite')).href);
 const buildDir = resolve(runDir, 'web-dist');
 await mkdir(buildDir);
-const config = { root: resolve(root, 'apps/web'), configFile: resolve(root, 'apps/web/vite.config.ts'), mode: 'production', build: { outDir: buildDir, emptyOutDir: false } };
+const config = {
+  root: resolve(root, 'apps/web'), configFile: resolve(root, 'apps/web/vite.config.ts'), mode: 'production',
+  build: { outDir: buildDir, emptyOutDir: false, rolldownOptions: { input: [
+    resolve(root, 'apps/web/index.html'),
+    resolve(root, 'apps/web/test/consumer.html'),
+    resolve(root, 'apps/web/test/job-results.html'),
+  ] } },
+};
 await build(config);
 const entrySha256 = createHash('sha256').update(await readFile(resolve(buildDir, 'index.html'))).digest('hex');
 const server = await preview({ ...config, preview: { host: '127.0.0.1', port, strictPort: true } });
