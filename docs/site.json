@@ -527,6 +527,16 @@
       "sectionIds": ["generate", "listen", "save", "recover"]
     },
     {
+      "id": "guide-dev-launcher",
+      "type": "guide",
+      "group": "technical",
+      "path": "dev-launcher",
+      "titles": { "zh-cn": "一条命令打开本地工作台", "en": "Start the local workbench with one command" },
+      "labels": { "zh-cn": "启动本地工作台", "en": "Start the local workbench" },
+      "sources": { "zh-cn": "docs/guides/dev-launcher.md", "en": "docs/guides/dev-launcher.en.md" },
+      "sectionIds": ["start", "ownership", "native", "recover"]
+    },
+    {
       "id": "web-runtime-guide",
       "type": "guide",
       "group": "help",

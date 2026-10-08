@@ -53,7 +53,7 @@ $env:MUSIC_WEB_API_TARGET='http://127.0.0.1:18036'
 pnpm web:dev --port 18035
 ```
 
-Open <http://127.0.0.1:18035/>. The Web `/api` proxy connects to FastAPI, never ComfyUI. FakeRuntime outputs exercise the application only; they are not real music inference. Press Ctrl+C in each terminal you started to stop your two processes. Do not stop other projects or the shared Runtime. Formal three-process orchestration is a later launch issue.
+Open <http://127.0.0.1:18035/>. The Web `/api` proxy connects to FastAPI, never ComfyUI. FakeRuntime outputs exercise the application only; they are not real music inference. Press Ctrl+C in each terminal you started to stop your two processes. Do not stop other projects or the shared Runtime. You can also use `pnpm dev` with the [one-command launch guide](dev-launcher.en.md). Real mode orchestrates independent Runtime, API and Web services while preserving reused services.
 
 ```powershell
 pnpm web:check

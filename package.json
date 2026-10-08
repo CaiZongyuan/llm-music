@@ -3,6 +3,8 @@
   "private": true,
   "packageManager": "pnpm@11.22.0",
   "scripts": {
+    "dev": "uv run --project services/api --frozen python scripts/dev.py",
+    "test:launcher": "uv run --project services/api --frozen --no-sync python -m pytest tests/launcher -q",
     "web:dev": "pnpm --filter @llm-music/api-client build && pnpm --filter @llm-music/web dev",
     "web:check": "pnpm --filter @llm-music/api-client build && pnpm --filter @llm-music/web check",
     "web:build": "pnpm --filter @llm-music/api-client build && pnpm --filter @llm-music/web build",
