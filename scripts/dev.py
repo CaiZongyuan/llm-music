@@ -229,12 +229,21 @@ class Launcher:
         log = (self.folder / f"{role}.log").open("w", encoding="utf-8")
         self.logs.append(log)
         child = subprocess.Popen(cmd, cwd=ROOT, env=env, stdout=log, stderr=subprocess.STDOUT)
-        owned = dict(config=config, launcher_child=identity(child.pid), process_tree={}, popen=child)
+
+        def check_child() -> None:
+            if child.poll() is not None:
+                raise LaunchError(f"{role} startup failed (exit {child.returncode}). Inspect {self.folder / (role + '.log')}; repair and retry.")
+
+        try:
+            launcher_child = identity(child.pid)
+        except psutil.NoSuchProcess:
+            check_child()
+            raise
+        owned = dict(config=config, launcher_child=launcher_child, process_tree={}, popen=child)
         self.owned.append(owned)
         while time.monotonic() < deadline:
             self.observe_children(owned)
-            if child.poll() is not None:
-                raise LaunchError(f"{role} startup failed (exit {child.returncode}). Inspect {self.folder / (role + '.log')}; repair and retry.")
+            check_child()
             try:
                 owner = read_json(Path(config["owner_file"]))
                 pid = owner.get("pid") or owner["process"]["pid"]
@@ -265,7 +274,15 @@ class Launcher:
         process = matching(owned["launcher_child"])
         if process is None:
             return
-        for item in [process, *process.children(recursive=True)]:
+        try:
+            children = process.children(recursive=True)
+        except psutil.NoSuchProcess:
+            # A verified launcher child can exit between matching and traversal.
+            # Only its creation handle can confirm that this is a completed exit.
+            if owned["popen"].poll() is None:
+                raise
+            return
+        for item in [process, *children]:
             try:
                 if item.environ().get("MUSIC_DEV_SESSION") == self.session:
                     owned["process_tree"].setdefault(item.pid, identity(item.pid))
