@@ -16,9 +16,9 @@ export function Version({ projectId, versionId }: { projectId: string; versionId
   if (version.isPending) return <Loading />;
   if (version.isError) return <ErrorNotice error={version.error} onRetry={() => void version.refetch()} />;
   const value = version.data;
-  return <section className="surface" aria-label={t.details} data-version-id={value.id}><span className="tag">{t.details}</span><h2>{value.name}</h2><div className="feature-actions"><button type="button" className="primary" onClick={() => selectPlayerAsset({ projectId, assetId: value.audio_asset_id, label: value.name })}>{t.listen}</button><Link className="button" to="/projects/$projectId/scores/$scoreId" params={{ projectId, scoreId: value.score_id }}>{generation.score}</Link></div>
+  return <section className="surface version-detail" aria-label={t.details} data-version-id={value.id}><span className="tag">{t.details}</span><h2>{value.name}</h2><div className="feature-actions"><button type="button" className="primary" onClick={() => selectPlayerAsset({ projectId, assetId: value.audio_asset_id, label: value.name })}>{t.listen}</button><Link className="button" to="/projects/$projectId/scores/$scoreId" params={{ projectId, scoreId: value.score_id }}>{generation.score}</Link></div>
     {value.provenance.runtime_kind === 'fake' ? <p className="field-help">{t.fake}</p> : null}
-    <InputsSnapshot inputs={value.inputs} provenance={value.provenance} /><dl className="facts"><dt>{t.created}</dt><dd>{value.created_at}</dd><dt>{t.candidate}</dt><dd><code>{value.candidate_id}</code></dd><dt>{t.parent}</dt><dd>{value.parent_version_id ? <code>{value.parent_version_id}</code> : t.none}</dd></dl>
+    <InputsSnapshot projectId={projectId} inputs={value.inputs} provenance={value.provenance} /><dl className="facts"><dt>{t.created}</dt><dd>{value.created_at}</dd><dt>{t.candidate}</dt><dd><code>{value.candidate_id}</code></dd><dt>{t.parent}</dt><dd>{value.parent_version_id ? <code>{value.parent_version_id}</code> : t.none}</dd></dl>
     <details className="record-details"><summary>{generation.record}</summary><code>{value.id}</code><code>{value.job_id}</code><code>{value.audio_asset_id}</code><code>{value.score_id}</code></details>
   </section>;
 }

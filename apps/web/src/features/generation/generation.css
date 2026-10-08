@@ -6,6 +6,11 @@
 .input-snapshot { margin:20px 0; font-size:.82rem; }
 .input-snapshot summary { cursor:pointer; color:var(--accent); margin-bottom:16px; }
 .input-snapshot h3 { margin:16px 0 8px; }
+.score-code { white-space:pre-wrap; overflow-wrap:anywhere; font: .82rem/1.8 "Cascadia Code",monospace; padding:18px; background:var(--surface); border:1px solid var(--line); border-radius:9px }
+.input-snapshot p,.input-snapshot a { overflow-wrap:anywhere; }
+.version-detail .facts dd { min-width:0; overflow-wrap:anywhere; }
+.version-detail h2 { overflow-wrap:anywhere; }
+.generation-grid > div { min-width:0; }
 .save-candidate { padding-top:20px; border-top:1px solid var(--line); }
 .saved-candidate { display:flex; flex-wrap:wrap; align-items:center; gap:12px; margin-top:20px; }
 .fixture-notice { margin:16px 0; }

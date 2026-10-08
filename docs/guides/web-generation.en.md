@@ -20,6 +20,8 @@ Missing models or unavailable creative resources disable submission. Restore res
 
 “Lyrics and inputs” shows the current draft. “Submitted inputs” shows the Candidate snapshot. “Explore with these inputs” copies that snapshot into the draft without changing the original Candidate or Version. Keep lyrics and seed, change only the style, then generate another candidate and compare your listening notes.
 
+To use a deliberate melody edit in the next song, follow the [editing and regeneration tutorial](../learn/edit-score.en.md#regenerate): inspect, audition and save/select a Score, then choose “Generate from selected Score” on its page. That Job retains actual ABC, source Score and parent Version. Generation from style and lyrics alone remains a separate creative operation.
+
 ## Explicitly save the result you like {#save}
 
 1. After listening, enter “A walk after rain · warm piano” in “Version name”.
@@ -32,8 +34,8 @@ The application service retains the candidate list. Select a candidate again aft
 
 - GPU memory exhaustion, missing models, workflow failure or cancellation: style, lyrics and seed remain. Restore resources, then explicitly choose “Create a new retry job”, or adjust inputs and generate again. Retry creates a new Job and retains the original job and existing versions.
 - Audio cannot play: choose “Reread audio”. If it still fails, download the original file from project assets to inspect it. Candidate and inputs remain.
-- Version save fails or its acknowledgement is lost: name and Candidate remain. Choose “Reread saved versions” first to check whether it was saved. If no record exists, retry with the same name. Repeated saves of the same Candidate and name return the same Version without duplicate history.
+- Version save fails or its acknowledgement is lost: name and Candidate remain. Choose “Reread saved versions” first to check whether it was saved. If recovery is needed, choose “Save the same version again”. It uses the first name and Candidate; later text edits do not change the recovery intent. Repeated saves of the same Candidate and name return the same Version without duplicate history.
 - Candidate or version reads fail: use the corresponding reread action. A read error does not become empty history.
 
-The single continuous player supports selection, play, pause, seek and bounded regions. This stage has no score editing, Cover, A/B switch, long-song generation or version graph. See the [workspace guide](web-workspace.en.md#launch) to start the formal Web and independent application service.
+The single continuous player supports selection, play, pause, seek and bounded regions. The Score page supports ABC editing, MIDI audition/export and generation from selected notation. Cover, A/B switching, long-song generation and version graphs belong to later stages. See the [workspace guide](web-workspace.en.md#launch) to start the formal Web and independent application service.
 

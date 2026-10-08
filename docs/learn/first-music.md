@@ -70,4 +70,4 @@ uv run --project services/api --no-sync python services/api/examples/generate_sa
 
 ## 下一步：同一首歌词，换一种味道 {#next}
 
-<p>保留这个 Project、原歌词、seed 和喜欢的 Version。<a href="./variations.md">下一章只改一个输入</a>，让变化更容易听清。</p>
+<p>保留这个 Project、原歌词、seed 和喜欢的 Version。<a href="./variations.md">下一章只改一个输入</a>，让变化更容易听清。想亲手改旋律时，进入<a href="./edit-score.md">乐谱编辑与重新生成</a>：先改一句、试听并选定，再保留带来源父版本的新作品。</p>
