@@ -373,11 +373,46 @@ test('ordinary Cover-output Score keeps its inherited source; unowned, missing a
   page.on('request', request => {
     if (request.method() === 'POST' && request.url().endsWith('/jobs/generate-from-score')) writes.push(request.postDataJSON());
   });
-  await page.goto(`/projects/${project.id}/scores/${coverScore.id}`);
+  // Follow the related producer's existing public Score link. Back/Forward
+  // stays within the SPA and must retain the distinction from an invalid origin.
+  await page.goto(`/projects/${project.id}/scores/${coverScore.id}?branchVersionId=false`);
   await page.locator('.preferences select').selectOption('en');
+  await expect(page.locator('.branch-origin [role="alert"]')).toBeVisible();
+  await expect(page.getByRole('button', { name: labels.en.select, exact: true })).toBeDisabled();
+  await expect(page.getByRole('button', { name: labels.en.generate, exact: true })).toBeDisabled();
+  await page.locator(`[data-job-id="${cover.job_id}"]`).getByRole('link', { name: 'Inspect score', exact: true }).click();
+  await expect.poll(() => new URL(page.url()).searchParams.has('branchVersionId')).toBe(false);
+  await expect(page.locator('.branch-origin')).toHaveCount(0);
   await expect(page.getByText(labels.en.current, { exact: true })).toBeVisible();
+  await expect(page.getByRole('textbox', { name: labels.en.abc, exact: true })).toHaveValue(MELODY_ABC);
   await page.getByRole('button', { name: labels.en.select, exact: true }).click();
   await setInputs(page);
+  const select = page.getByRole('button', { name: labels.en.select, exact: true });
+  const generate = page.getByRole('button', { name: labels.en.generate, exact: true });
+  await expect(generate).toBeEnabled();
+  const publicReadiness = async () => ({ url: page.url(), selected: await page.locator('.selected-score').innerText(), selectEnabled: await select.isEnabled(), generateEnabled: await generate.isEnabled(), generationPosts: writes.length });
+  const historyFacts = [{ stage: 'ordinary selected before Back', ...await publicReadiness() }];
+  await page.goBack();
+  await expect.poll(() => new URL(page.url()).searchParams.has('branchVersionId')).toBe(true);
+  await expect(page.locator('.branch-origin [role="alert"]')).toBeVisible();
+  await expect(select).toBeDisabled();
+  await expect(generate).toBeDisabled();
+  historyFacts.push({ stage: 'invalid origin after Back', ...await publicReadiness() });
+  await page.goForward();
+  await expect.poll(() => new URL(page.url()).searchParams.has('branchVersionId')).toBe(false);
+  await expect(page.locator('.branch-origin')).toHaveCount(0);
+  await expect(page.getByText(labels.en.current, { exact: true })).toBeVisible();
+  await expect(page.getByRole('textbox', { name: labels.en.abc, exact: true })).toHaveValue(MELODY_ABC);
+  await expect.poll(async () => await generate.isEnabled() || await select.isEnabled()).toBe(true);
+  if (!await generate.isEnabled()) await select.click();
+  await expect(generate).toBeEnabled();
+  await expect(page.locator('.selected-score')).toHaveAttribute('data-selected-score-id', coverScore.id);
+  await expect(page.locator('.score-regeneration').getByRole('textbox', { name: labels.en.style, exact: true })).toHaveValue(BRANCH_INPUTS.style);
+  await expect(page.locator('.score-regeneration').getByRole('textbox', { name: labels.en.lyrics, exact: true })).toHaveValue(BRANCH_INPUTS.lyrics);
+  await expect(page.locator('.score-regeneration').getByRole('textbox', { name: labels.en.seed, exact: true })).toHaveValue(String(BRANCH_INPUTS.seed));
+  expect(writes).toEqual([]);
+  historyFacts.push({ stage: 'ordinary ready after Forward', ...await publicReadiness() });
+  await info.attach('same-Score-public-history-readiness', { body: JSON.stringify({ cover, coverScore, historyFacts }, null, 2), contentType: 'application/json' });
   const submitted = await generateFromCurrent(page);
   expect(submitted.body).toEqual({ abc: MELODY_ABC, source_score_id: coverScore.id, parent_version_id: original.id, ...BRANCH_INPUTS, max_seconds: 35 });
   await candidateOf(page, submitted.job.id);
