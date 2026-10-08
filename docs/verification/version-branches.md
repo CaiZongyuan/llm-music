@@ -106,6 +106,25 @@ this is local source validation, not a final committed Pages publication.
 
 ## Bounded simplification and validation scope
 
+The independent Standards review found a P2 context-key collision on candidate
+`386fa29c8627c5c76cba487cc75bd63991a853fc`; Spec reported0 other findings.
+Root reproduced it through the same Score's public related-Job link and actual
+history Back/Forward, with no POST or product-data write. An ordinary selected
+Score had generation enabled; invalid-empty branch intent blocked it; returning
+to ordinary displayed a valid selected Score and disabled selection, while
+generation stayed disabled. The proper three-state red is retained in
+`.scratch/p5-development/47-root/context-history-red.json`; an earlier script
+iteration error is kept separately.
+
+The repair gives ordinary and explicit Version contexts separate key namespaces
+at the SavedScore owner. The redundant outer ScoreReader key is removed. This
+remounts the editor at the context boundary while retaining ABC in the existing
+Project/Score draft. Ordinary selection can consistently republish after fresh
+validation, invalid context remains blocked, and each explicit branch still
+uses a fresh editor-instance choice. The original history probe, type/build
+checks and affected branch/late-ACK regressions are pending Root execution;
+this source change alone is not a passing browser claim.
+
 The source pass covers all issue-owned changed and new app, API-test and paired
 documentation paths, with immediate Query/draft/Score/Player consumers. The
 forest derives a Map and iterative traversal from the complete Query response;

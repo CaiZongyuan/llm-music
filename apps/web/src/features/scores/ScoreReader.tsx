@@ -40,6 +40,7 @@ function SavedScore({ score, branchVersionId }: { score: components['schemas']['
 export function ScoreReader({ projectId, scoreId, branchVersionId }: { projectId: string; scoreId: string; branchVersionId?: string }) {
   const t = useMessages(scoreMessages);
   const score = useQuery(scoreOptions(projectId, scoreId));
+  const originKey = branchVersionId === undefined ? 'ordinary' : `version/${branchVersionId}`;
   return <><Link className="button score-back" to="/projects/$projectId/scores" params={{ projectId }}>← {t.back}</Link>
-    {score.isPending ? <Loading /> : score.isError ? <ErrorNotice error={score.error} onRetry={() => void score.refetch()} /> : <SavedScore key={`${score.data.id}/${branchVersionId ?? ''}`} score={score.data} branchVersionId={branchVersionId} />}</>;
+    {score.isPending ? <Loading /> : score.isError ? <ErrorNotice error={score.error} onRetry={() => void score.refetch()} /> : <SavedScore key={`${score.data.id}/${originKey}`} score={score.data} branchVersionId={branchVersionId} />}</>;
 }
