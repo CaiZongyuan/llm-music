@@ -97,8 +97,8 @@ def test_restart_shutdown_stall_fails_boundedly_and_retains_forced_cleanup():
 
 
 if __name__ == "__main__" and sys.argv[1:] == ["--stall-worker"]:
-    import run_gate_api
     run_dir = Path(os.environ["MUSIC_BROWSER_RUN_DIR"])
     run_dir.with_suffix(".supervisor.json").write_text(json.dumps(identity(psutil.Process())), encoding="utf-8")
+    import run_gate_api
     run_gate_api.serve = ignore_stop
     run_gate_api.main()

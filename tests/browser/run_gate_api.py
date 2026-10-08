@@ -12,10 +12,6 @@ import threading
 import time
 
 import psutil
-import uvicorn
-
-from music_api.config import Settings
-from music_api.main import create_app
 
 
 class OwnedProcess(multiprocessing.context.SpawnProcess):
@@ -32,6 +28,11 @@ def record(path, value):
 
 
 def serve(run_dir, port, generation, stop):
+    import uvicorn
+
+    from music_api.config import Settings
+    from music_api.main import create_app
+
     log_path = run_dir / f"api-{generation}.log"
     handler = logging.FileHandler(log_path, encoding="utf-8")
     handler.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(name)s %(message)s"))
