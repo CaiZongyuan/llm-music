@@ -46,7 +46,7 @@ Reloading inside the same Project restores only still-valid Version ids and the 
 ## Continue after failure {#recover}
 
 - GPU memory exhaustion, missing models, workflow failure or cancellation: style, lyrics and seed remain. Restore resources, then explicitly choose “Create a new retry job”, or adjust inputs and generate again. Retry creates a new Job and retains the original job and existing versions.
-- Audio cannot play: choose “Reread audio”. If it still fails, download the original file from project assets to inspect it. Candidate and inputs remain.
+- Audio cannot play: choose “Reread audio” to restart paused at0. If it still fails, download the original file from project assets to inspect it. Candidate and inputs remain.
 - Version save fails or its acknowledgement is lost: name and Candidate remain. Choose “Reread saved versions” first to check whether it was saved. If recovery is needed, choose “Save the same version again”. It uses the first name and Candidate; later text edits do not change the recovery intent. Repeated saves of the same Candidate and name return the same Version without duplicate history.
 - Candidate or version reads fail: use the corresponding reread action. A read error does not become empty history.
 

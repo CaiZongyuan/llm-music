@@ -273,7 +273,8 @@ export function Player() {
     region.current = proposed; intent.current.bounded = false; setRegionInvalid(false); setRegionReset(false); showRegion();
   }
   function reread() {
-    pause(); loaded.current = null; seekIntent.current = null; setReady(false); setFailed(false); setRecovering(false);
+    pause(); intent.current.time = 0; setTime(0);
+    loaded.current = null; seekIntent.current = null; setReady(false); setFailed(false); setRecovering(false);
     if (!wave || selection?.kind === 'score') { setInitializationFailed(false); setInitializationAttempt(attempt => attempt + 1); }
     if (compare) { void versions.refetch(); if (other) void otherAsset.refetch(); }
     if (isAsset) { void content.refetch(); void asset.refetch(); }

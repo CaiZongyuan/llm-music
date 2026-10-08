@@ -45,7 +45,7 @@ Continue Morning song. Keep the original recipe and change one dimension. Hear t
 
 When a target is shorter than the current position, it stops paused at its actual end. Returning to the longer work stays paused. After a natural end, explicitly press “Play” to hear it from the start. A new pair starts paused at0; if the old region does not fit its common range, set a new one when prompted. The region is not silently shortened.
 
-Reload restores only Version choices and the A/B side that remain valid in this Project, paused at0, without position or region. When choice storage is unavailable, comparison still works for this session; reload recovery is not guaranteed. Keep the works when audio or Version reads fail: choose “Reread audio” or “Reread versions”; restore a missing original Audio/ABC file first. One available Version can still play alone. Recovery does not generate or save new work.
+Reload restores only Version choices and the A/B side that remain valid in this Project, paused at0, without position or region. When choice storage is unavailable, comparison still works for this session; reload recovery is not guaranteed. Keep the works when audio or Version reads fail: choose “Reread audio” or “Reread versions”; restore a missing original Audio/ABC file first. Rereading audio starts paused at0, avoiding another seek to a position that could not decode. One available Version can still play alone. Recovery does not generate or save new work.
 
 ## 3. Try the next Candidate in the same Project {#run}
 
