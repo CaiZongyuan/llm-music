@@ -131,8 +131,11 @@ export function Player() {
       const regionPlugin = plugin.default.create(); regions.current = regionPlugin;
       instance = library.default.create({ container: container.current, media: media.current, height: 52, normalize: true, ...waveColors(), plugins: [regionPlugin] });
       waveRef.current = instance;
-      instance.on('timeupdate', value => {
-        if (loaded.current?.key !== playerMediaKey(playerSelection())) return;
+      instance.on('timeupdate', () => {
+        const element = media.current;
+        if (!element || loaded.current?.key !== playerMediaKey(playerSelection()) || loaded.current.source !== element.currentSrc) return;
+        // An SDK event can retain the previous end during a native seek. The audio element owns time.
+        const value = element.currentTime;
         setTime(value);
         if (intent.current.bounded && region.current && value >= region.current.end) {
           intent.current.bounded = false; intent.current.playing = false; instance?.pause(); instance?.setTime(region.current.end);
