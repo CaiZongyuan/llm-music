@@ -70,4 +70,4 @@ uv run --project services/api --no-sync python services/api/examples/generate_sa
 
 ## Next: the same lyrics, a different mood {#next}
 
-<p>Keep the Project, original lyrics, seed, and the Version you like. <a href="./variations.en.md">Change one input in the next chapter</a> to hear the difference more clearly.</p>
+<p>Keep the Project, original lyrics, seed, and the Version you like. <a href="./variations.en.md">Change one input in the next chapter</a> to hear the difference more clearly. For a deliberate melody change, follow <a href="./edit-score.en.md">Score editing and regeneration</a>: change one phrase, audition and select it, then keep a new piece with its source parent Version.</p>

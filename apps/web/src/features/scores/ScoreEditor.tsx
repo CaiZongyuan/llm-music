@@ -14,6 +14,7 @@ import { useScoreDraft } from './drafts';
 import { editorMessages } from './editor-messages';
 import { auditionMidi, downloadMidi, MidiError, readMidi } from './midi';
 import { loadABCJS } from './abcjs';
+import { ScoreGeneration } from './ScoreGeneration';
 
 type Score = components['schemas']['ScoreRead'];
 type SaveIntent = components['schemas']['ScoreCreate'];
@@ -167,5 +168,5 @@ export function ScoreEditor({ projectId, score, initialABC }: { projectId: strin
       {save.isSuccess ? <p role="status">{t.saved}</p> : null}
     </section></div><section className="surface selected-score" aria-label={t.selected} data-selected-score-id={draft.selected?.source_score_id}>
       <h3>{t.selected}</h3><p>{draft.selected ? ready ? t.ready : t.dirty : t.none}</p>{draft.selected ? <><p className="hint">{t.frozen}</p><small>r{draft.selected.revision} · {t.parent}: {draft.selected.parent_version_id ?? t.noParent}</small><details><summary>{t.selectedABC}</summary><pre className="score-code">{draft.selected.abc}</pre></details><Link className="button" to="/projects/$projectId/scores/$scoreId" params={{ projectId, scoreId: draft.selected.source_score_id }}>{t.openSaved}</Link></> : null}
-    </section></>;
+    </section><ScoreGeneration projectId={projectId} /></>;
 }

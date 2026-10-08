@@ -100,7 +100,7 @@ test('save failure keeps candidate/name; lost durable acknowledgement recovers o
   await expect(page.getByRole('textbox', { name: labels.en.name, exact: true })).toHaveValue('保留这个名字');
   expect(received(await api.GET('/projects/{project_id}/versions', { params: { path } }))).toEqual([]);
   await writeFile(resolve(runDir!, 'lose-version-ack'), 'owned test fault');
-  await page.getByRole('button', { name: labels.en.save, exact: true }).click();
+  await page.getByRole('button', { name: 'Save the same version again', exact: true }).click();
   await expect(page.locator('.save-candidate .error-box')).toContainText('version_commit_unconfirmed');
   await page.getByRole('button', { name: 'Reread saved versions' }).click();
   await expect(page.getByRole('link', { name: labels.en.saved })).toBeVisible();

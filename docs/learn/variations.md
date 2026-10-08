@@ -38,7 +38,7 @@
 
 ## 3. 在同一个 Project 里试下一份 {#run}
 
-<p>更新你选择的风格、歌词或 seed，其他输入保持原样。每次使用新的下载目录，提交一次新的 Generate，并记录它的 Job 与 Candidate id。旧 Candidate 和 Version 不会被覆盖。</p>
+<p>在正式 Web 的“音乐生成”选择上一候选的“用这次输入继续探索”，更新一个输入，再生成、试听并记录判断。旧 Candidate 和 Version 不会被覆盖。想保留明确选定的旋律并改变风格时，使用<a href="./edit-score.md#regenerate">乐谱页的重新生成</a>，它会保留选定 ABC 与来源父版本。需要下载文件和脚本时再使用下面的补充，每次选择新的输出目录。</p>
 
 <details class="creator-supplement"><summary>当前操作入口：继续使用同一 Project</summary>
 

@@ -40,6 +40,8 @@ List Candidates with `GET /projects/{project_id}/candidates`, or read `/candidat
 
 ## Generate from a selected Score {#selected-score}
 
+Creators can complete the same operation in the formal Web using the [editing and regeneration tutorial](../learn/edit-score.en.md#regenerate). Explicitly select a valid saved Score on its page; the Job and result show actual submitted ABC and source parent. The API and CLI below support scripted creation.
+
 Keep the same Morning song Project. Download ABC from a generated or transcribed Score, copy it to a new file, and change one note. Retain the native `Vocal` / `Ins` two-voice header, complete bars and meter. General ABC that renders in a browser is not necessarily supported by the pinned inference plugin. Compare the [minimal native ABC](../../workflows/generate-from-score/v1/example.abc). This operation accepts only the plugin's two-voice dialect, with notes in at least one voice. A transcription with rests throughout Vocal and melody in Ins is also supported.
 
 For example, change `D4` to `F4` in a downloaded Score and save it as `data/morning-selected.abc`. Inspect and listen to the Score, then explicitly select this file. This command reuses the Project and source Score to create a new Audio Candidate:

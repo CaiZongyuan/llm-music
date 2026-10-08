@@ -38,7 +38,7 @@ Continue Morning song. Keep the original recipe and change one dimension. Hear t
 
 ## 3. Try the next Candidate in the same Project {#run}
 
-<p>Update the chosen style, lyrics, or seed and keep the other inputs unchanged. Use a new download directory each time. Submit one new Generate Job and record its Job and Candidate ids. Existing Candidates and Versions stay unchanged.</p>
+<p>In the formal Web's music generation page, choose “Explore with these inputs” on an earlier Candidate, change one input, generate, listen and record your judgment. Earlier Candidates and Versions remain. To keep a deliberately selected melody while changing style, use <a href="./edit-score.en.md#regenerate">regeneration on the Score page</a>; it retains selected ABC and source parent. Use the supplement below when you need scripts and downloaded files, with a new output directory for each attempt.</p>
 
 <details class="creator-supplement"><summary>Current entrypoint: reuse the same Project</summary>
 

@@ -1,4 +1,4 @@
-import { useSyncExternalStore } from 'react';
+import { useEffect, useRef, useSyncExternalStore } from 'react';
 import type { GenerateFromScoreCreate } from '@llm-music/api-client';
 
 export type SelectedScore = Readonly<Pick<GenerateFromScoreCreate, 'abc' | 'source_score_id' | 'parent_version_id'> & { revision: number; abcSha256: string }>;
@@ -6,6 +6,9 @@ type ScoreDraft = { abc: string; revision: number; checkedABC: string | null; se
 const drafts = new Map<string, ScoreDraft>();
 const listeners = new Set<() => void>();
 const selected = new Map<string, SelectedScore>();
+const owners = new Map<string, symbol>();
+
+function notify() { listeners.forEach(listener => listener()); }
 
 function draftFor(key: string, abc: string): ScoreDraft {
   let draft = drafts.get(key);
@@ -15,26 +18,41 @@ function draftFor(key: string, abc: string): ScoreDraft {
 // Creative drafts persist across tabs in this session. Durable Scores stay in Query/API.
 export function useScoreDraft(projectId: string, scoreId: string, initialABC: string) {
   const key = `${projectId}/${scoreId}`;
+  const owner = useRef(Symbol(key)).current;
   const draft = useSyncExternalStore(listener => { listeners.add(listener); return () => { listeners.delete(listener); }; }, () => draftFor(key, initialABC));
+  useEffect(() => {
+    owners.set(projectId, owner);
+    selected.delete(projectId);
+    notify();
+    return () => {
+      if (owners.get(projectId) !== owner) return;
+      owners.delete(projectId); selected.delete(projectId); notify();
+    };
+  }, [projectId, owner]);
   function edit(abc: string) {
+    if (owners.get(projectId) !== owner) return;
     const current = draftFor(key, initialABC);
     drafts.set(key, { ...current, abc, revision: current.revision + 1, checkedABC: null });
     selected.delete(projectId);
-    listeners.forEach(listener => listener());
+    notify();
   }
   function select(value: SelectedScore) {
+    // A late save may fill Query's durable cache, but cannot change the choice
+    // in a different editor or in a remounted instance of this editor.
+    if (owners.get(projectId) !== owner) return;
     const snapshot = Object.freeze({ ...value });
     drafts.set(key, { ...draftFor(key, initialABC), selected: snapshot });
     if (draftFor(key, initialABC).checkedABC === snapshot.abc) selected.set(projectId, snapshot);
-    listeners.forEach(listener => listener());
+    notify();
   }
   function check(abc: string | null) {
+    if (owners.get(projectId) !== owner) return;
     const current = draftFor(key, initialABC);
     if (abc !== null && current.abc !== abc) return;
     drafts.set(key, { ...current, checkedABC: abc });
     if (abc && current.selected?.abc === abc) selected.set(projectId, current.selected);
     else selected.delete(projectId);
-    listeners.forEach(listener => listener());
+    notify();
   }
   return [draft, edit, select, check] as const;
 }

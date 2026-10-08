@@ -29,13 +29,13 @@ def control() -> dict:
 
 class ControlledRuntime(FakeInferenceRuntime):
     def __init__(self):
-        super().__init__(result_factories={"Generate": generation_fixture})
+        super().__init__(result_factories={"Generate": generation_fixture, "GenerateFromScore": generation_fixture})
         self.scenarios = {}
 
     def capabilities(self, observation=None):
         values = super().capabilities(observation)
         if control().get("capability") == "missing":
-            return tuple(replace(value, ready=False, reasons=("model_missing",)) if value.operation == "Generate" else value for value in values)
+            return tuple(replace(value, ready=False, reasons=("model_missing",)) if value.operation in {"Generate", "GenerateFromScore"} else value for value in values)
         return values
 
     def submit(self, request):

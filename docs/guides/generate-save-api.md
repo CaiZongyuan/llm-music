@@ -40,6 +40,8 @@ Candidate 可从 `GET /projects/{project_id}/candidates` 列表，或 `/candidat
 
 ## 从选定乐谱生成 {#selected-score}
 
+创作者可以直接按[编辑与重新生成教程](../learn/edit-score.md#regenerate)在正式 Web 完成相同操作。乐谱页明确选定已保存的有效 Score，任务与结果显示实际提交 ABC 和来源 parent。下面的 API 与 CLI 补充用于脚本创作。
+
 保持同一个 Morning song Project。先下载一个生成或转谱 Score 的 ABC，复制到新文件，再修改一处音符。保留原生 `Vocal` / `Ins` 双声部头、完整小节和节拍；一般 ABC 能在浏览器显示，并不代表锁定的推理插件支持它。可以对照[最小原生 ABC](../../workflows/generate-from-score/v1/example.abc)。当前只接受该插件的双声部方言，且至少一个声部有音符；Vocal 全休止、Ins 有旋律的转谱结果也可用。
 
 例如把下载谱中的 `D4` 改为 `F4`，另存为 `data/morning-selected.abc`。先阅读并试听乐谱，再选择要提交的这一份。以下命令复用上一步的 Project 和来源 Score，创建新 Audio Candidate：

@@ -30,7 +30,7 @@ Choose “Download MIDI” or “Download ABC” to receive the registered origi
 
 If a file cannot be read, the saved score remains. Restore storage, then choose “Download again”. If notation cannot be displayed, the original ABC and files remain: choose “Update notation”. For an unknown Score address, choose “Back to project scores” to reopen an existing record.
 
-Edit notes in the ABC draft above, inspect valid notation, audition/export its matching MIDI, and save an independent new Score. Follow the [Score editing tutorial](../learn/edit-score.en.md). The saved original and files below remain read-only. Web generation from a Score belongs to a later delivery; GenerateFromScore is currently available through the API.
+Edit notes in the ABC draft above, inspect valid notation, audition/export its matching MIDI, and independently save/select a new Score. Use “Generate from selected Score” below to try another style, listen to the Candidate, then explicitly save a Version. Follow the [editing and regeneration tutorial](../learn/edit-score.en.md#regenerate). The saved original and files below remain read-only. A transcribed source without an owning Version can generate without a parent Version.
 
 ## Local verification {#verification}
 
