@@ -18,6 +18,8 @@ Fake 应用数据默认位于 `data/dev/fake/application/`；真实模式位于 
 
 每次启动输出唯一 `Session receipt` 路径。会话记录模式、进程 PID、创建时间、实际命令、端口、目录、已启动与已复用服务。稳定服务登记位于 `data/dev/<mode>/launcher/`，使用 `--state-dir PATH` 可隔离另一个启动组。服务日志、owner、停止确认和最终清理结果保留在该会话目录。
 
+原生 API 从启动组内稳定的 `runtime-evidence-<端口>.json` 读取证据。输入 receipt 的文件名属于来源记录；自动生成的会话路径或另一个新文件名不会改变同一服务配置。启动器先保留输入副本并验证实际 Runtime、环境、模型和全部服务配置，再将通过验证的原始内容复制到该读取位置。原始 `checked_at` 与模型校验时间不变；后续新证据不会改写旧会话的输入副本。同配置、同 Runtime 的新鲜证据可以更新现有 API 的读取来源，复用后的进程仍属于原 owner。
+
 再次用同一配置启动时，启动器核对登记、实际 PID/创建时间、命令、工作目录和本地监听身份，再检查健康状态。匹配服务会显示 `Reusing`，属于此前会话。配置不同、身份不可读或端口归属未知时拒绝复用。
 
 按 Ctrl+C 停止本次启动的服务。另一个终端也可执行启动器输出的 `pnpm dev -- --stop-session "完整会话路径/session.json"`。API 和 Web 收到会话专属停止信号后正常关闭。已复用服务继续运行；其原 owner 负责停止。正常关闭有界，必要时只终止仍与已记录身份一致的本次子进程，并在 `forced_processes` 中记录。原生 Runtime 另记录 `forced_pids`；不能把强制终止称为正常关闭。
@@ -31,6 +33,8 @@ Fake 应用数据默认位于 `data/dev/fake/application/`；真实模式位于 
 <<< ../../scripts/examples/dev-native-reuse.ps1
 
 collector 验证进程、源 revision、模型 SHA256 和文件指纹。启动器重新验证 receipt、目录及监听/状态参数，并保持原始时间戳。默认有效期为 300 秒；过期或不匹配会拒绝启动，不能把旧模型状态继续当成 ready。已复用 Runtime 不属于本次 owner，退出不会中断它。
+
+未指定 `--runtime-evidence` 的再次启动，只能复用启动组内仍有效的证据。该证据过期后，先用上述例子收集真正的新证据；复制或再次读取旧文件不会更新它的时间。不同 Runtime 进程、目录、环境或应用数据配置会拒绝复用；由原 owner 按新配置重启相应应用服务。
 
 API 和 Runtime 始终使用不同 uv 项目和环境。启动器检查当前 Runtime 环境是否与自己的 `uv.lock` 同步，并记录 lock SHA256。它还核对实际 listener 的启动解释器路径、PID/创建时间与命令。Windows listener 常显示两个环境共用的基础 Python；这时必须找到仍存活的直接 venv redirector，证明它用所配置环境的解释器启动了同一命令。新的配置探测进程、共同基础 Python 或更远的祖先进程不能代替该来源。无法证明来源时，启动器拒绝复用并保留原服务，不猜测当前进程的 `sys.prefix`。
 
@@ -46,6 +50,7 @@ API 和 Runtime 始终使用不同 uv 项目和环境。启动器检查当前 Ru
 | Native source/models not prepared / Doctor NOT READY | 按 Runtime 准备指南检查源、环境、GPU 和模型；启动器不会下载或修复权重。 |
 | Native owner/model evidence refused / Runtime not ready | 使用实际 listener PID 收集新的匹配 receipt，检查模型和目录；不要改写 `checked_at`。 |
 | Runtime environment origin differs / unproved | 指定实际启动环境，或由原 owner 提供仍可验证的启动来源。保留原服务；基础 Python 相同不代表环境相同。 |
+| Existing API native binding differs / unproved | 保留原应用服务，先核对它记录的 Runtime 来源。由原 owner 按已验证的新 Runtime 配置重启应用服务。 |
 | 单服务 startup failed / 健康等待超时 | 查看会话目录的 `api.log`、`web.log` 或 `runtime.log`，修复后重试。已启动的本次服务会清理，复用服务保留。 |
 | startup.lock 已占用 | 等待另一个启动器完成启动。仅在读取该锁后确认记录的 PID/创建时间已不存活时，保留或移走旧锁，再重试。 |
 

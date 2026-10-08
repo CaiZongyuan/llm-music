@@ -24,3 +24,12 @@ Root 集成登记项：根 `dev`、`test:launcher`，显式 CPU CI 执行，`doc
 - 对真实 PID50752 仅执行公开来源检查，得到直接 creator38748、Runtime 项目14环境以及当前 lock `a2d73a2672b098f1cc6dd1160d6f760a9b31b49652f0e1a541e74946bd044225`。证据为 `.scratch/p2-development/37-launcher/protected-origin-readonly.json`；没有 Runtime HTTP、模型读取、CUDA import、启动或停止。
 - 修复后的最终完整 CPU 检查 8 通过，43.14 秒，JUnit `origin-full-final.xml`。同配置复用正常停止保留原服务；来源正例与错误环境拒绝的两个 peer 在检查后仍可读，测试最终只清理自有进程并读回端口无监听。CLI help、Python 编译、Node 语法及 `git diff --check` 通过。
 - 有界简化保留单一 `interpreter_origin` 来源边界，由完整启动和只读 CLI 共用；移除新探测进程共同基础 executable 的错误推断，没有扩展 Runtime HTTP/API 合同。实际三服务验收与双轴独立刷新仍由 Root 完成。
+
+## 独立 Spec 审查后的原生重复启动修复
+
+- 保留原始 `867` 和环境来源修复 `42ebc90`。独立 Spec 对 Root 登记候选 `827b1fd` 证明：API identity 在 native 自动 receipt 产生前比较 `None`，但首次 API 登记的是会话 receipt 路径；相同启动或例子的新 GUID 路径会误拒绝匹配 API。
+- API identity 现在使用稳定 managed receipt 路径和明确的 Runtime 项目/上游/模型/状态目录配置。输入路径保留为来源，验证前先做不可变会话快照；现有 API 还必须匹配实际 native 进程/创建时间/命令与环境 lock binding。全部占用服务匹配后才发布验证过的原始 receipt 内容，不生成新的校验时间。
+- `test_native_reuse.py` 仅替换 Native worker/Doctor/model-evidence seam，实际执行生产 `Launcher.run`、配置签名、进程身份、HTTP 健康与复用/停止逻辑。三个独立标准库 HTTP peer 明确为 CPU 编排 fixture，不是完整 FastAPI 或真实 native/model/GPU 就绪证据。
+- 最小公开编排检查通过（0.91 秒）：自动 receipt 首次启动，换文件名的新鲜 receipt 第二次启动复用同一组 PID；当前 proof 可无路径再次复用；真实输入时间不改写旧 receipt；过期/不同 native proof 或不同应用数据被拒绝，active proof 不变，原 peer 全部仍可读取，最终只清理测试 owner 的 peer 并读回端口无监听。
+- 完整适用 CPU 检查 9 通过，44.21 秒：8 项实际 CLI/HTTP + 1 项受控 CPU Native 编排 seam。JUnit `.scratch/p2-development/37-launcher/native-reuse-full-final.xml`；CLI/Python/Node 语法与 diff 检查通过。原 reviewer 的 `native-reuse-source-proof.json` 保留为修复前反例。
+- 有界简化将输入来源与稳定服务配置分开，复用同一 owner/config 检查和原始 receipt 校验，不新增 Runtime HTTP/API。修复 freeze 与独立复审由 Root 继续；真实三服务启动/复用/停止仍独立待验收。
