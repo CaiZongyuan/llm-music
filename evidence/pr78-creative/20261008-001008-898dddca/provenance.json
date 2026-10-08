@@ -1,0 +1,41 @@
+{
+  "source_commit": "c48ad75ddaf46aee68e87d27f5626f3501c4870d",
+  "pull_request": 78,
+  "seed": 2026380001,
+  "project_id": "a0ac0436-53d0-455f-b535-0636f4eefa9a",
+  "generate_job": "8d7ecc40-de04-44f4-80a2-a52af72d5498",
+  "version_id": "1cf81ec0-4871-4c56-9a57-ac1725d22019",
+  "transcribe_job": "1de74fb9-db06-4d2f-8c7b-f29080dee4ff",
+  "midi_notes": 60,
+  "original_audio": {
+    "bytes": 2822931,
+    "sha256": "1d814c3f3fe09e0bb5dab0580ff6927cf4250d0c8caea90304f3920e00febbeb",
+    "decoded_samples": 1679936,
+    "duration_seconds": 34.998666666666665,
+    "sample_rate": 48000,
+    "channels": 2
+  },
+  "music": {
+    "filename": "morning-song-seed2026380001.mp3",
+    "encoder": "libmp3lame CPU128kbps",
+    "bytes": 561068,
+    "sha256": "4547075e484120823a7a6997cc4efb3be4c7f2d78dfba916d3ecc48d62a16d6e",
+    "decoded_samples": 1679936,
+    "duration_seconds": 34.998666666666665,
+    "sample_rate": 48000,
+    "channels": 2
+  },
+  "video": {
+    "filename": "creative-workspace.webm",
+    "encoder": "VP9 CPU CRF36",
+    "bytes": 359586,
+    "sha256": "898dddcaf0571558afa04513a5759ec438291e81f303497c94a61467ca67f00e",
+    "width": 960,
+    "height": 676,
+    "frames": 165,
+    "last_frame_seconds": 6.56,
+    "silent": true
+  },
+  "scope": "Actual local ComfyUI generation, Web playback/navigation/ABC download, explicit Version save and reload. Separate16s Web transcription/download/refresh preserves prior Version.",
+  "limits": "Transcription hit the Runtime recording cache (native log explicitly reports reuse); fresh low-level inference evidence is reused from unchanged P1. No arbitrary transcription accuracy, benchmark or new subjective music-quality claim. Recording is silent; use MP3 for audio."
+}
