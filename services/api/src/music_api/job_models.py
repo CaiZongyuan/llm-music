@@ -16,7 +16,7 @@ class Job(Base):
     __tablename__ = "jobs"
     __table_args__ = (
         CheckConstraint("status IN ('queued','running','completed','failed','cancelled')"),
-        CheckConstraint("operation IN ('Transcribe','Generate','GenerateFromScore')"),
+        CheckConstraint("operation IN ('Transcribe','Generate','GenerateFromScore','Cover')"),
         CheckConstraint("progress IS NULL OR (progress >= 0 AND progress <= 1)"),
         CheckConstraint("status != 'completed' OR result_refs IS NOT NULL"),
     )

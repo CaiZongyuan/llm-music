@@ -109,6 +109,7 @@ class ComfyUIRuntime:
         stats: dict[str, object] | None = None
         nodes: frozenset[str] | None = None
         node_inputs: dict[str, dict[str, str]] = {}
+        node_enum_choices: dict[str, dict[str, tuple[str, ...]]] = {}
         inventory: dict[str, tuple[str, ...]] | None = None
         stats_at, nodes_at, inventory_at = None, None, None
         reasons: list[str] = []
@@ -132,6 +133,10 @@ class ComfyUIRuntime:
                 node_inputs[name] = {field: specification[0] for group in ("required", "optional")
                                      for field, specification in (inputs.get(group, {}).items() if isinstance(inputs.get(group), dict) else [])
                                      if isinstance(specification, list) and specification and isinstance(specification[0], str)}
+                node_enum_choices[name] = {field: tuple(specification[0]) for group in ("required", "optional")
+                                           for field, specification in (inputs.get(group, {}).items() if isinstance(inputs.get(group), dict) else [])
+                                           if isinstance(specification, list) and specification and isinstance(specification[0], list)
+                                           and all(isinstance(choice, str) for choice in specification[0])}
             nodes_at = datetime.now(timezone.utc)
         except (OSError, ValueError):
             reasons.append("capability_observation_unavailable")
@@ -149,7 +154,7 @@ class ComfyUIRuntime:
         attestation = read_runtime_evidence(self.settings.runtime_evidence_path, runtime_url=self.url, now=now,
                                            max_age_seconds=self.settings.diagnostics_max_age_seconds, requirements=self.registry.requirements())
         return RuntimeObservation("comfyui", self.url, now, stats is not None, stats, nodes, inventory,
-                                  stats_at, nodes_at, inventory_at, attestation, tuple(reasons), node_inputs)
+                                  stats_at, nodes_at, inventory_at, attestation, tuple(reasons), node_inputs, node_enum_choices)
 
     def capabilities(self, observation: RuntimeObservation | None = None) -> tuple[CapabilityObservation, ...]:
         value = observation or self.health()
@@ -173,6 +178,12 @@ class ComfyUIRuntime:
             if request.operation == "GenerateFromScore":
                 from music_api.score_input import effective_score_abc
                 values["abc"] = effective_score_abc(str(request.inputs["abc"]))[0]
+            if request.operation == "Cover":
+                from music_api.cover import cover_score_validation
+                checked = cover_score_validation(str(request.inputs["abc"]), str(request.inputs["mode"]))
+                if checked["effective_abc_sha256"] != request.inputs["effective_abc_sha256"] or checked["mode_transform_version"] != request.inputs["mode_transform_version"]:
+                    raise ValueError("Selected Cover input differs from its frozen effective input")
+                values["abc"] = checked["effective_abc"]
             for name, binding in mapping.items():
                 cast(dict[str, object], graph[str(binding["node"])]["inputs"])[str(binding["input"])] = values[name]
             outputs = cast(dict[str, dict[str, object]], workflow.manifest["output_mapping"])
@@ -183,6 +194,8 @@ class ComfyUIRuntime:
         capability = next(item for item in self.capabilities() if item.operation == request.operation)
         if not capability.ready:
             return SubmissionReceipt("rejected", code=capability.reasons[0], message="Current Runtime readiness is unverified.")
+        if request.operation == "Cover" and request.inputs.get("mode") not in capability.supported_modes:
+            return SubmissionReceipt("rejected", code="capability_missing", message="Selected Cover mode is no longer available.")
         prepared = validate(request,self.mode,self.url)
         graph = cast(dict[str, object],prepared["graph"])
         workflow = workflow_from(prepared)

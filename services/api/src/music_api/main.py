@@ -77,12 +77,13 @@ def create_app(settings: Settings | None = None, runtime: InferenceRuntime | Non
     from music_api.generation import configure_generation, router as generation_router
     from music_api.version_routes import router as version_router
     from music_api.reference_audio import ReferenceOriginRead, reference_origin, router as reference_router
+    from music_api.cover import router as cover_router
 
     configured = settings or Settings()
     event_broker = JobEventBroker()
     registry = registry or WorkflowRegistry()
     selected_runtime: InferenceRuntime = runtime or (FakeInferenceRuntime(registry=registry, max_age_seconds=configured.diagnostics_max_age_seconds,
-                                                                          result_factories={"Generate": generation_fixture, "GenerateFromScore": generation_fixture})
+                                                                          result_factories={"Generate": generation_fixture, "GenerateFromScore": generation_fixture, "Cover": generation_fixture})
                                                     if configured.runtime_mode == "fake" else ComfyUIRuntime(configured, registry))
     if selected_runtime.mode != configured.runtime_mode:
         raise ValueError("Injected Runtime mode differs from the configured data namespace")
@@ -258,4 +259,5 @@ def create_app(settings: Settings | None = None, runtime: InferenceRuntime | Non
     app.include_router(generation_router)
     app.include_router(version_router)
     app.include_router(reference_router)
+    app.include_router(cover_router)
     return app

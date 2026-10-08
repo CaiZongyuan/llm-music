@@ -1,0 +1,85 @@
+{
+  "schema_version": 1,
+  "id": "cover-yue2",
+  "version": "1.0.0",
+  "operation": "Cover",
+  "required_models": [
+    "yue2-bf16"
+  ],
+  "required_nodes": [
+    "YuE2Options",
+    "YuE2GenerateSong",
+    "SaveAudio",
+    "PreviewAny"
+  ],
+  "runtime_revision": "7a5dad695fe1cae25efcb2550530fb20ef68da3d",
+  "plugin_revision": "fc78df9dfb214f396aa281f5b03519cefff5b00a",
+  "input_mapping": {
+    "style": {
+      "node": "2",
+      "input": "style"
+    },
+    "lyrics": {
+      "node": "2",
+      "input": "lyrics"
+    },
+    "seed": {
+      "node": "2",
+      "input": "seed"
+    },
+    "max_seconds": {
+      "node": "1",
+      "input": "max_seconds"
+    },
+    "abc": {
+      "node": "2",
+      "input": "score_abc"
+    },
+    "mode": {
+      "node": "1",
+      "input": "cot"
+    }
+  },
+  "output_mapping": {
+    "audio": {
+      "node": "3",
+      "key": "audio"
+    },
+    "score": {
+      "node": "4",
+      "key": "text"
+    }
+  },
+  "core_node": "2",
+  "settings_node": "1",
+  "audio_duration_seconds": {
+    "minimum": 30,
+    "maximum": 40
+  },
+  "notes": "Melody Cover from an explicitly inspected chordless two-voice derivative; frozen Reference/transcription/edit lineage is application-owned.",
+  "required_node_inputs": {
+    "YuE2GenerateSong": {
+      "score_abc": "STRING"
+    }
+  },
+  "score_adapter": {
+    "version": "1.0.0",
+    "rules": [
+      "remove_matching_native_words_markers",
+      "guard_bare_score_with_neutral_section_comment",
+      "remove_music_chords_keep_both_voices"
+    ],
+    "invariants": "Retain original ABC and derived effective ABC; chord removal preserves both voices, notes, rhythm, meter, keys and tempo.",
+    "mode_transform_version": "1.0.0"
+  },
+  "supported_modes": [
+    "melody"
+  ],
+  "required_node_enum_values": {
+    "YuE2Options": {
+      "cot": [
+        "melody"
+      ]
+    }
+  }
+}

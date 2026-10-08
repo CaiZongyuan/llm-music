@@ -82,7 +82,7 @@ def capabilities(request: Request) -> CapabilitiesRead:
     return CapabilitiesRead(mode=observation.mode, checked_at=now, capabilities=[
         CapabilityRead(operation=item.operation, required_models=list(item.required_models), ready=item.ready,
                        observation=source(item.source, item.observed_at, now, settings.diagnostics_max_age_seconds),
-                       reasons=[reason(code) for code in item.reasons])
+                       reasons=[reason(code) for code in item.reasons], supported_modes=list(item.supported_modes))
         for item in observed_capabilities
     ])
 

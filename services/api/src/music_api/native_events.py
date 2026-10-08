@@ -25,6 +25,7 @@ CAPTIONS: dict[Operation, tuple[tuple[str, str], ...]] = {
                           ("Rebuilding the ", "loading_model"), ("Reading the embedded vocabulary", "loading_model"),
                           ("Composing", "generating_semantic"), ("Synthesizing audio", "synthesizing"), ("Decoding audio", "decoding_audio")),
 }
+CAPTIONS["Cover"] = CAPTIONS["GenerateFromScore"]
 
 
 class _CaptionContext:

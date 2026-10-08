@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Link } from '@tanstack/react-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { components } from '@llm-music/api-client';
@@ -26,7 +26,7 @@ function warningText(warnings: string[]) {
   return warnings.join('\n').replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&');
 }
 
-export function ScoreEditor({ projectId, score, initialABC }: { projectId: string; score?: Score; initialABC: string }) {
+export function ScoreEditor({ projectId, score, initialABC, generation }: { projectId: string; score?: Score; initialABC: string; generation?: ReactNode }) {
   const t = useMessages(editorMessages);
   const cache = useQueryClient();
   const [draft, edit, select, check] = useScoreDraft(projectId, score?.id ?? 'new', initialABC);
@@ -168,5 +168,5 @@ export function ScoreEditor({ projectId, score, initialABC }: { projectId: strin
       {save.isSuccess ? <p role="status">{t.saved}</p> : null}
     </section></div><section className="surface selected-score" aria-label={t.selected} data-selected-score-id={draft.selected?.source_score_id}>
       <h3>{t.selected}</h3><p>{draft.selected ? ready ? t.ready : t.dirty : t.none}</p>{draft.selected ? <><p className="hint">{t.frozen}</p><small>r{draft.selected.revision} · {t.parent}: {draft.selected.parent_version_id ?? t.noParent}</small><details><summary>{t.selectedABC}</summary><pre className="score-code">{draft.selected.abc}</pre></details><Link className="button" to="/projects/$projectId/scores/$scoreId" params={{ projectId, scoreId: draft.selected.source_score_id }}>{t.openSaved}</Link></> : null}
-    </section><ScoreGeneration projectId={projectId} /></>;
+    </section>{generation ?? <ScoreGeneration projectId={projectId} />}</>;
 }

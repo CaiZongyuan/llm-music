@@ -1,9 +1,9 @@
 """One readiness decision for diagnostics and native submission."""
 
 from datetime import datetime
-from typing import Mapping
+from typing import Mapping, cast
 
-from music_api.runtime_types import CapabilityObservation, RuntimeObservation, RuntimeRequirements
+from music_api.runtime_types import CapabilityObservation, CoverMode, RuntimeObservation, RuntimeRequirements
 from music_api.workflow_registry import WorkflowDefinition
 
 
@@ -27,6 +27,15 @@ def evaluate_readiness(observation: RuntimeObservation, requirements: RuntimeReq
                                                       for field, kind in fields.items())
                for node, fields in required_inputs.items()):
             reasons.append("capability_missing")
+    required_enums = workflow.manifest.get("required_node_enum_values", {})
+    observed_choices = observation.node_enum_choices or {}
+    if isinstance(required_enums, Mapping):
+        if any(not isinstance(fields, Mapping) or any(not isinstance(choices, list) or not set(choices).issubset(observed_choices.get(str(node), {}).get(str(field), ()))
+                                                      for field, choices in fields.items()) for node, fields in required_enums.items()):
+            reasons.append("capability_missing")
+    declared_modes = workflow.manifest.get("supported_modes", [])
+    modes = tuple(cast(CoverMode, mode) for mode in (declared_modes if isinstance(declared_modes, list) else [])
+                  if mode in {"melody", "full"} and mode in observed_choices.get("YuE2Options", {}).get("cot", ()))
     if observation.mode == "comfyui":
         if stale(observation.system_stats_observed_at, now, max_age_seconds):
             reasons.append("runtime_system_facts_stale")
@@ -69,4 +78,4 @@ def evaluate_readiness(observation: RuntimeObservation, requirements: RuntimeReq
                     reasons.append("model_evidence_unverified")
         # Generic Comfy /models inventories do not own the pinned YuE2 model-root layout.
     return CapabilityObservation(workflow.operation, workflow.required_models, not reasons,
-                                 observation.source, observation.observed_at, tuple(dict.fromkeys(reasons)))
+                                 observation.source, observation.observed_at, tuple(dict.fromkeys(reasons)), modes)

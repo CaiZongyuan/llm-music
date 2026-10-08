@@ -5,7 +5,7 @@ from uuid import UUID
 
 from pydantic import AwareDatetime, BaseModel, Field, JsonValue
 
-from music_api.runtime_types import Operation
+from music_api.runtime_types import CoverMode, Operation
 
 
 class DiagnosticReason(BaseModel):
@@ -28,6 +28,7 @@ class CapabilityRead(BaseModel):
     ready: bool
     observation: DiagnosticSource
     reasons: list[DiagnosticReason]
+    supported_modes: list[CoverMode] = Field(default_factory=list, description="Observed and declared Cover modes; empty for non-Cover or missing mode choices.")
 
 
 class CapabilitiesRead(BaseModel):

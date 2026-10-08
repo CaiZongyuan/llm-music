@@ -6,6 +6,7 @@ export type JobRead = components['schemas']['JobRead'];
 export type JobEventRead = components['schemas']['JobEventRead'];
 export type GenerateCreate = components['schemas']['GenerateCreate'];
 export type GenerateFromScoreCreate = components['schemas']['GenerateFromScoreCreate'];
+export type CoverCreate = components['schemas']['CoverCreate'];
 export type ErrorResponse = components['schemas']['ErrorResponse'];
 
 export function createMusicClient(options: ClientOptions) {

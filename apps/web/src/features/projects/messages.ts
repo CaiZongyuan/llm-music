@@ -6,6 +6,7 @@ export const projectMessages = defineMessages({
   empty: '从第一个项目开始', emptyBody: '为这次灵感起个名字，再加入一段参考音频。',
   open: '打开项目', count: '个项目', assets: '参考音频与素材', task: '创作任务', generate: '音乐生成', transcribe: '参考转谱', scores: '乐谱', lyrics: '歌词与输入', versions: '版本',
   workspace: '项目工作区', home: '返回我的项目', unnamed: '从一点灵感，走到一段喜欢的音乐。', record: '项目记录',
+  cover: '改编',
 }, {
   title: 'Make room for your next idea', subtitle: 'Keep reference audio and creative notes together. Return to saved projects whenever you want.',
   new: 'Start a music project', name: 'Project name', note: 'Creative notes', nameHint: 'For example: A walk after rain',
@@ -13,4 +14,5 @@ export const projectMessages = defineMessages({
   empty: 'Start your first project', emptyBody: 'Name this idea, then add a piece of reference audio.',
   open: 'Open project', count: 'projects', assets: 'Reference audio and assets', task: 'Creative jobs', generate: 'Generate music', transcribe: 'Reference transcription', scores: 'Scores', lyrics: 'Lyrics and inputs', versions: 'Versions',
   workspace: 'Project workspace', home: 'Back to my projects', unnamed: 'From a small idea to a piece of music you love.', record: 'Project record',
+  cover: 'Cover',
 });

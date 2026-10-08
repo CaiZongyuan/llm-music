@@ -134,6 +134,32 @@
       "sectionIds": ["start", "edit", "listen", "save", "regenerate", "recover", "ideas"]
     },
     {
+      "id": "cover",
+      "type": "tutorial",
+      "group": "play",
+      "path": "cover",
+      "titles": {
+        "zh-cn": "让参考乐句尝试新的伴奏",
+        "en": "Give a reference phrase another accompaniment"
+      },
+      "labels": {
+        "zh-cn": "melody 改编玩法",
+        "en": "Melody Cover ideas"
+      },
+      "sources": {
+        "zh-cn": "docs/learn/cover.md",
+        "en": "docs/learn/cover.en.md"
+      },
+      "sectionIds": [
+        "reference",
+        "inspect",
+        "select",
+        "generate",
+        "recover",
+        "ideas"
+      ]
+    },
+    {
       "id": "resources",
       "type": "guide",
       "group": "help",
@@ -353,6 +379,30 @@
         "selected-score",
         "save",
         "recovery"
+      ]
+    },
+    {
+      "id": "cover-api-guide",
+      "type": "guide",
+      "group": "technical",
+      "path": "cover-api",
+      "titles": {
+        "zh-cn": "可检查的 melody Cover API",
+        "en": "Inspectable melody Cover API"
+      },
+      "labels": {
+        "zh-cn": "改编 API 与来源",
+        "en": "Cover API and origins"
+      },
+      "sources": {
+        "zh-cn": "docs/guides/cover-api.md",
+        "en": "docs/guides/cover-api.en.md"
+      },
+      "sectionIds": [
+        "reference",
+        "selection",
+        "result",
+        "recover"
       ]
     },
     {

@@ -130,8 +130,9 @@ def derive_reference(database: Database, session: Session, storage: Storage, pro
                       duration_seconds=facts.duration_seconds, channels=facts.channels, sample_rate=facts.sample_rate, sample_width_bits=facts.sample_width_bits)
         session.add(asset)
         session.flush()
-        session.add(ReferenceOrigin(reference_asset_id=identifier, source_version_id=version.id, source_asset_id=source.id,
-                                    source_sha256=source.sha256, start_frame=0, frame_count=768000, sample_rate=48000, derivation_version="1.0.0"))
+        origin = ReferenceOrigin(reference_asset_id=identifier, source_version_id=version.id, source_asset_id=source.id,
+                                 source_sha256=source.sha256, start_frame=0, frame_count=768000, sample_rate=48000, derivation_version="1.0.0")
+        session.add(origin)
         session.commit()
         keep = True
         return asset, True

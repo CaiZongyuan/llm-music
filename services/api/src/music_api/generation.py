@@ -44,15 +44,20 @@ def audio_snapshot(asset: Asset) -> dict[str, object]:
 
 def register_candidate(session: Session, job: Job, result: ImportedBundle) -> Mapping[str, str]:
     audio, abc = result.assets["audio"], result.assets["abc"]
-    if job.operation not in {"Generate", "GenerateFromScore"} or audio.project_id != job.project_id or abc.project_id != job.project_id or result.score.project_id != job.project_id:
+    if job.operation not in {"Generate", "GenerateFromScore", "Cover"} or audio.project_id != job.project_id or abc.project_id != job.project_id or result.score.project_id != job.project_id:
         raise DomainError(409, "candidate_result_invalid", "Generation output ownership differs from its Job.",
                           "Retain the result evidence and restore the same-Project Job mapping.")
-    if job.operation == "GenerateFromScore":
+    if job.operation in {"GenerateFromScore", "Cover"}:
         selected = job.provenance.get("selected_score")
         expected_hash = selected.get("effective_abc_sha256") if isinstance(selected, dict) else None
         if abc.sha256 != expected_hash:
             raise DomainError(503, "score_result_mismatch", "Generated Score differs from the selected inference input.",
                               "Retain the Job evidence and inspect the Runtime mapping; no Candidate was saved.")
+    if job.operation == "Cover":
+        result.score.source_reference_asset_id = str(job.inputs["reference_asset_id"])
+        result.score.source_score_id = str(job.inputs["source_score_id"])
+        parent = job.inputs.get("parent_version_id")
+        result.score.parent_version_id = str(parent) if parent is not None else None
     candidate = Candidate(id=str(uuid4()), project_id=job.project_id, job_id=job.id,
                           audio_asset_id=audio.id, score_id=result.score.id, inputs=deepcopy(job.inputs),
                           provenance=deepcopy(job.provenance),
@@ -65,6 +70,7 @@ def register_candidate(session: Session, job: Job, result: ImportedBundle) -> Ma
 def configure_generation(jobs: JobService) -> None:
     jobs.register_result("Generate", register_candidate, validate_generation)
     jobs.register_result("GenerateFromScore", register_candidate, validate_generation)
+    jobs.register_result("Cover", register_candidate, validate_generation)
 
 
 router = APIRouter(responses={404: {"model": ErrorResponse}, 422: {"model": ErrorResponse}, 503: {"model": ErrorResponse}})

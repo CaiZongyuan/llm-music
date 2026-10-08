@@ -14,7 +14,7 @@ const date = (value: unknown) => typeof value === 'string' && Number.isFinite(Da
 function isEvent(value: unknown, projectId: string, jobId: string): value is JobEventRead {
   if (!record(value) || value.type !== 'job.updated' || !Number.isSafeInteger(value.sequence) || Number(value.sequence) < 1 || !record(value.job)) return false;
   const job = value.job;
-  return job.id === jobId && job.project_id === projectId && typeof job.operation === 'string' && ['Transcribe', 'Generate', 'GenerateFromScore'].includes(job.operation)
+  return job.id === jobId && job.project_id === projectId && typeof job.operation === 'string' && ['Transcribe', 'Generate', 'GenerateFromScore', 'Cover'].includes(job.operation)
     && typeof job.status === 'string' && ['queued', 'running', 'completed', 'failed', 'cancelled'].includes(job.status)
     && (job.phase === null || typeof job.phase === 'string')
     && (job.progress === undefined || job.progress === null || (typeof job.progress === 'number' && Number.isFinite(job.progress) && job.progress >= 0 && job.progress <= 1))

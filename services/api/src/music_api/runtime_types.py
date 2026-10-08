@@ -7,8 +7,9 @@ from typing import Callable, Literal, Mapping, Protocol
 from uuid import UUID
 
 
-Operation = Literal["Transcribe", "Generate", "GenerateFromScore"]
-OPERATIONS: tuple[Operation, ...] = ("Transcribe", "Generate", "GenerateFromScore")
+Operation = Literal["Transcribe", "Generate", "GenerateFromScore", "Cover"]
+OPERATIONS: tuple[Operation, ...] = ("Transcribe", "Generate", "GenerateFromScore", "Cover")
+CoverMode = Literal["melody", "full"]
 RuntimeMode = Literal["fake", "comfyui"]
 JobState = Literal["queued", "running", "completed", "failed", "cancelled"]
 ArtifactRole = Literal["abc", "midi", "audio"]
@@ -87,6 +88,7 @@ class RuntimeObservation:
     attestation: RuntimeAttestation | None = None
     reasons: tuple[str, ...] = ()
     node_inputs: Mapping[str, Mapping[str, str]] | None = None
+    node_enum_choices: Mapping[str, Mapping[str, tuple[str, ...]]] | None = None
 
 
 @dataclass(frozen=True)
@@ -97,6 +99,7 @@ class CapabilityObservation:
     source: str
     observed_at: datetime | None
     reasons: tuple[str, ...] = ()
+    supported_modes: tuple[CoverMode, ...] = ()
 
 
 @dataclass(frozen=True)

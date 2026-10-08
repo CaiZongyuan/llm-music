@@ -21,6 +21,13 @@ class GenerateFromScoreCreate(GenerateCreate):
     parent_version_id: UUID | None = Field(default=None, description="Optional same-Project Version owning the source Score or retained as its explicit editing parent; retained on Version save.")
 
 
+class CoverCreate(GenerateFromScoreCreate):
+    mode: Literal["melody"] = Field(description="Explicit supported Cover mode; full is delivered separately after melody acceptance.")
+    reference_asset_id: UUID
+    effective_abc_sha256: str = Field(pattern=r"^[0-9a-f]{64}$", description="Hash of the effective ABC the creator inspected and selected.")
+    mode_transform_version: Literal["1.0.0"]
+
+
 class CandidateRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     id: UUID
@@ -28,7 +35,7 @@ class CandidateRead(BaseModel):
     job_id: UUID
     audio_asset_id: UUID
     score_id: UUID
-    inputs: GenerateFromScoreCreate | GenerateCreate
+    inputs: CoverCreate | GenerateFromScoreCreate | GenerateCreate
     provenance: dict[str, object]
     output_snapshot: dict[str, object]
     created_at: datetime
