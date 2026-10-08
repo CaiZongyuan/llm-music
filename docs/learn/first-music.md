@@ -46,11 +46,13 @@ uv run --project services/api --no-sync python services/api/examples/generate_sa
 
 ## 4. 先听，再看曲谱 {#listen}
 
-<ol><li>播放下载的 <code>audio.flac</code>。先完整听一次，再听人声是否可懂、伴奏是否贴合情绪、结尾有没有突兀中断。</li><li>打开 <code>score.abc</code>，或用自己的 ABC 阅读工具查看。对照音频中的旋律和节奏，记下一处想继续尝试的地方。</li><li>记下“我想保留什么”和“下一次只改什么”。声音能播放与文件校验通过，不等于音乐一定满意。</li></ol><p>这时它仍是 Candidate。当前生成路径提供音频与 ABC；<a href="./reference.md">参考音频转谱</a>提供原 MIDI，也可在<a href="./edit-score.md">内置编辑器</a>中修改 ABC、试听并导出对应 MIDI。内置 A/B 比较尚未交付。</p>
+<ol><li>在候选结果选择“试听这段音乐”，等待底部播放器读取，再选择“播放”。先完整听一次，再听人声是否可懂、伴奏是否贴合情绪、结尾有没有突兀中断。也可以播放已下载的 <code>audio.flac</code>。</li><li>选择“查看乐谱”，对照音频中的旋律和节奏，记下一处想继续尝试的地方。下载的 <code>score.abc</code> 也可在自己的 ABC 阅读工具中打开。</li><li>记下“我想保留什么”和“下一次只改什么”。声音能播放与文件校验通过，不等于音乐一定满意。</li></ol><p>这时它仍是 Candidate。生成提供音频与 ABC；<a href="./reference.md">参考音频转谱</a>提供原 MIDI，也可在<a href="./edit-score.md">内置编辑器</a>中修改 ABC、试听并导出对应 MIDI。</p>
 
 ## 5. 喜欢了，再明确保存 {#save}
 
 <p>给这个结果一个能记住意图的名字，例如“Morning · warm folk”。保存会留下这次输入、结果与来源信息；以后试其他配方不会覆盖这份音频或曲谱。</p>
+
+<p>在同一个 Project 留下第二份 Version 后，进入“版本”，在“版本 A”和“版本 B”选择这两份作品，再选择“使用这对版本”。用底部播放器回听相同秒数的位置，记下哪一份更贴近你的目标。未保存 Candidate 可以单独试听，明确保存后才进入比较选项；只有一份版本时仍可单独试听。具体操作与恢复方法见<a href="./variations.md#compare">A/B 比较玩法</a>。</p>
 
 <p>还不满意就保留 Candidate 继续尝试，不必为了每一次生成都保存 Version。用同一 Candidate、名称和父版本重复保存会返回同一 Version。</p>
 
