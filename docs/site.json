@@ -527,6 +527,16 @@
       "sectionIds": ["generate", "listen", "save", "recover"]
     },
     {
+      "id": "web-runtime-guide",
+      "type": "guide",
+      "group": "help",
+      "path": "web-runtime",
+      "titles": { "zh-cn": "创作前检查服务、模型与任务", "en": "Check services, models and jobs before creating" },
+      "labels": { "zh-cn": "创作准备与使用设置", "en": "Readiness and settings" },
+      "sources": { "zh-cn": "docs/guides/web-runtime.md", "en": "docs/guides/web-runtime.en.md" },
+      "sectionIds": ["readiness", "facts", "recover", "settings"]
+    },
+    {
       "id": "documentation-guide",
       "type": "guide",
       "group": "technical",

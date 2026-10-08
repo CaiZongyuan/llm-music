@@ -61,6 +61,8 @@ jobs:
         run: pnpm test:web:transcription
       - name: Exercise generation failure, durable save and damaged media recovery
         run: pnpm test:web:generation -- generation-recovery.controlled.ts
+      - name: Exercise Runtime observations, model states and read-only settings recovery
+        run: pnpm test:web:runtime
       - name: Retain browser results and process ownership receipts
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
@@ -69,6 +71,8 @@ jobs:
           path: |
             tests/browser/test-results/
             tests/browser/playwright-report/
+            tests/browser/runtime-results/
+            tests/browser/runtime-report/
             tests/browser/.artifacts/
           include-hidden-files: true
           if-no-files-found: ignore
