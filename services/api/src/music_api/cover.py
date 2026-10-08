@@ -22,27 +22,29 @@ from music_api.vendor.yue2_music.abc_tools import parse_abc, strip_chords
 
 
 class CoverInputValidate(ScoreValidate):
-    mode: Literal["melody"]
+    mode: Literal["melody", "full"]
 
 
 class CoverValidationRead(ScoreValidationRead):
     effective_abc: str
-    mode: str
+    mode: Literal["melody", "full"]
     mode_transform_version: str
     source_chord_count: int = Field(ge=0)
+    warnings: list[str] = Field(default_factory=list, description="full_without_written_chords means full is legal but has no explicit harmony guidance.")
 
 
 def cover_score_validation(abc: str, mode: str) -> dict[str, object]:
-    if mode != "melody":
-        raise DomainError(422, "cover_mode_unsupported", "This release supports melody Cover only.", "Keep the Score; choose the available melody mode explicitly.")
+    if mode not in {"melody", "full"}:
+        raise DomainError(422, "cover_mode_unsupported", "This Cover mode is unsupported.", "Keep the Score; explicitly choose melody or full when available.")
     original = selected_score_validation(abc)
     adapted = str(original["effective_abc"])
     source = parse_abc(adapted)
     chord_count = sum(len(voice.chords) for voice in source.voices.values())
-    effective = strip_chords(adapted, keep_voice="both")
+    effective = strip_chords(adapted, keep_voice="both") if mode == "melody" else adapted
     return {**original, "effective_abc": effective, "effective_abc_sha256": hashlib.sha256(effective.encode("utf-8")).hexdigest(),
-            "transformations": list(cast(list[str], original["transformations"])) + (["remove_music_chords_keep_both_voices"] if chord_count else []),
-            "mode": mode, "mode_transform_version": "1.0.0", "source_chord_count": chord_count}
+            "transformations": list(cast(list[str], original["transformations"])) + (["remove_music_chords_keep_both_voices"] if mode == "melody" and chord_count else []),
+            "mode": mode, "mode_transform_version": "1.0.0", "source_chord_count": chord_count,
+            "warnings": ["full_without_written_chords"] if mode == "full" and not chord_count else []}
 
 
 def cover_snapshot(session: Session, storage: Storage, project_id: UUID, inputs: dict[str, object]) -> dict[str, object]:

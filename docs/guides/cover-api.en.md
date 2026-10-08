@@ -1,4 +1,4 @@
-# Inspectable melody Cover API
+# Inspectable Cover API
 
 Follow the [creator tutorial](../learn/cover.en.md) to obtain an explicitly selected saved transcription/edit Score. These HTTP routes belong to FastAPI. Generated client types and reference pages share Pydantic/OpenAPI. The API needs no Torch; actual transcription/generation still requires the ready single-GPU Runtime.
 
@@ -14,17 +14,17 @@ Submit this Reference id through existing `/transcriptions`. The frozen origin g
 
 Save the inspected edit through `/scores` and use its actual new Score id. Cover requires request abc to match that immutable saved file exactly.
 
-CPU-only `POST /projects/{project_id}/cover-inputs/validate` accepts abc and mode="melody". It creates no persistent object or inference. The response includes original hash, effective_abc/hash, transformations, adapter/parser, mode_transform_version1.0.0 and source chord count. Inspect and audition effective input before explicitly submitting. Adaptation removes only recognized internal control markers, guards bare sections and omits chords from parsed music lines while retaining both voices and musical events.
+CPU-only `POST /projects/{project_id}/cover-inputs/validate` accepts abc and mode="melody" or "full". It creates no persistent object or inference. The response includes original hash, effective_abc/hash, transformations, adapter/parser, mode_transform_version1.0.0, source chord count and warnings. Adaptation removes recognized internal control markers and guards bare sections. Melody omits chords from parsed music lines; full retains written chords. Both retain voices and musical events. Chordless full returns full_without_written_chords: input is legal but has no explicit harmony guidance. Inspect, explicitly select and submit full if desired.
 
-`POST /projects/{project_id}/jobs/cover` takes CoverCreate: Generate/GFS style, lyrics, seed, max_seconds35, abc, source_score_id, parent_version_id plus reference_asset_id, mode, effective_abc_sha256 and mode_transform_version. This release accepts melody only. Digest/revision must match the inspected effective input; the application does not silently select another input.
+`POST /projects/{project_id}/jobs/cover` takes CoverCreate: Generate/GFS style, lyrics, seed, max_seconds35, abc, source_score_id, parent_version_id plus reference_asset_id, mode, effective_abc_sha256 and mode_transform_version. Mode accepts melody/full. Digest/revision must match the inspected effective input; the application does not silently select another input.
 
 The saved Score chain must belong to the same Project, reference that exact Reference and end at its completed Transcribe Job. Parent must be the actual Reference source Version ornull for an upload. An arbitrary same-Project parent is insufficient. After Reference, source Score or draft changes, inspect/select again even if text is identical.
 
 ## Run, inspect and explicitly save {#result}
 
-Submission returns202 JobRead/operation Cover. Existing Job HTTP/WS, cancel and retry use the same serial queue. Cover supported_modes in `/runtime/capabilities` comes from observed cot choices and registered modes. Missing melody, stale observations, revision mismatch or missing models reject before scheduling; there is no full/Generate fallback.
+Submission returns202 JobRead/operation Cover. Existing Job HTTP/WS, cancel and retry use the same serial queue. Cover supported_modes in `/runtime/capabilities` is the intersection of observed cot choices and registered modes. Full alone permits explicit full submission; melody alone permits explicit melody submission. No usable mode, an absent chosen mode, stale observations, revision mismatch or missing models reject before scheduling. There is no mode/Generate fallback.
 
-Job/Candidate retains the original request. Provenance freezes actual cot=melody, original/effective ABC/hashes/revisions and the Reference→original transcription→saved edit source chain. Result Score must match the frozen effective hash. Only complete FLAC decode and application import create a Candidate; explicit `/versions` save retains the submitted parent. Historical records and files remain.
+Job/Candidate retains the original request. Provenance freezes actual cot=melody or cot=full matching mode, original/effective ABC/hashes/revisions and the Reference→original transcription→saved edit source chain. New Jobs use Cover registry2.0.0. Shipped1.0.0 definitions and historical snapshots remain; restart uses the original frozen proof. Result Score must match the frozen effective hash. Only complete FLAC decode and application import create a Candidate; explicit `/versions` save retains the submitted parent. Historical records and files remain.
 
 ## Failure and unknown acknowledgements {#recover}
 

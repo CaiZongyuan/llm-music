@@ -22,7 +22,7 @@ Prepare 16 seconds of Reference Audio and get ABC and MIDI. Check the score agai
 
 ## 3. Compare by listening, not just file existence {#inspect}
 
-<ol><li>Play the original Reference Audio and listen again to the phrase you noted.</li><li>Read the ABC text or use your own ABC reader to inspect bars, meter, and pitch. Open MIDI in your existing MIDI player or music software.</li><li>Compare melodic movement and rhythm with the original. Note where a phrase differs. A downloadable score is not necessarily an exact transcription.</li></ol><p>The application validates complete files and imports the Score; that does not establish accuracy for arbitrary music. The <a href="./edit-score.en.md">integrated editor</a> can correct notes, audition, save and regenerate in the formal Web. Continue with <a href="./cover.en.md">melody Cover</a> while retaining the inspectable Reference origin.</p>
+<ol><li>Play the original Reference Audio and listen again to the phrase you noted.</li><li>Read the ABC text or use your own ABC reader to inspect bars, meter, and pitch. Open MIDI in your existing MIDI player or music software.</li><li>Compare melodic movement and rhythm with the original. Note where a phrase differs. A downloadable score is not necessarily an exact transcription.</li></ol><p>The application validates complete files and imports the Score; that does not establish accuracy for arbitrary music. The <a href="./edit-score.en.md">integrated editor</a> can correct notes, audition, save and regenerate in the formal Web. Continue with <a href="./cover.en.md">melody/full Cover</a> while retaining the inspectable Reference origin.</p>
 
 ## If the format is rejected, fix export settings {#recovery}
 
@@ -30,4 +30,4 @@ Prepare 16 seconds of Reference Audio and get ABC and MIDI. Check the score agai
 
 ## Next idea: use the reference as a listening question {#next}
 
-<p>Note one feature of the fragment: a sparser rhythm, a smoother melody, or the contour of a phrase. Inspect, save and select this Score, then use <a href="./cover.en.md">melody Cover</a> to change only style and hear another accompaniment.</p><p><a href="./variations.en.md">Try changes to style and lyrics →</a></p>
+<p>Note one feature of the fragment: a sparser rhythm, a smoother melody, or the contour of a phrase. Inspect, save and select this Score, then use <a href="./cover.en.md">melody/full Cover</a> to change only style and hear another accompaniment.</p><p><a href="./variations.en.md">Try changes to style and lyrics →</a></p>

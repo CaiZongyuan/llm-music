@@ -36,6 +36,8 @@ def evaluate_readiness(observation: RuntimeObservation, requirements: RuntimeReq
     declared_modes = workflow.manifest.get("supported_modes", [])
     modes = tuple(cast(CoverMode, mode) for mode in (declared_modes if isinstance(declared_modes, list) else [])
                   if mode in {"melody", "full"} and mode in observed_choices.get("YuE2Options", {}).get("cot", ()))
+    if workflow.operation == "Cover" and not modes:
+        reasons.append("capability_missing")
     if observation.mode == "comfyui":
         if stale(observation.system_stats_observed_at, now, max_age_seconds):
             reasons.append("runtime_system_facts_stale")

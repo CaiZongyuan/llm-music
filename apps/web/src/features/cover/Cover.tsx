@@ -16,6 +16,7 @@ import { versionsOptions } from '../versions/queries';
 import { acknowledgedJob, CoverGeneration, rejectedBeforeJob } from './CoverGeneration';
 import { coverMessages } from './messages';
 import { ReferenceOrigin } from './ReferenceOrigin';
+import { setCoverMode, useCoverSelection } from './selection';
 import { referenceIntent, retainReferenceIntent, useReferenceIntent, type ReferenceIntent } from './submissions';
 import './cover.css';
 
@@ -36,6 +37,7 @@ function InspectedScore({ projectId, scoreId, referenceId, blocked, jobId, onJob
 }
 export function Cover({ projectId, selection, onSelect }: { projectId: string; selection: CoverRouteSelection; onSelect: (value: CoverRouteSelection) => void }) {
   const t = useMessages(coverMessages), cache = useQueryClient();
+  const { mode } = useCoverSelection(projectId);
   const assets = useQuery(assetsOptions(projectId)), versions = useQuery(versionsOptions(projectId)), jobs = useQuery(projectJobsOptions(projectId));
   const readiness = useQuery(capabilitiesOptions());
   const references = assets.data?.filter(asset => asset.kind === 'reference_audio') ?? [];
@@ -104,7 +106,7 @@ export function Cover({ projectId, selection, onSelect }: { projectId: string; s
       <p className="hint">{t.profile}</p>{reference && !profile ? <p className="error-box" role="alert">{t.unsupported}</p> : null}<CapabilityReadiness operation="Transcribe" />
       <button className="primary" type="button" disabled={!profile || transcribe.isPending || transcriptActive || transcriptUncertain || readiness.isError || !operationReady(readiness.data, 'Transcribe')} onClick={() => { if (referenceId) transcribe.mutate({ reference_asset_id: referenceId }); }}>{transcribe.isPending ? t.transcribing : t.transcribe}</button>
       {transcribe.isError ? <><ErrorNotice error={transcribe.error} /><p>{t.transcriptionUnknown}</p></> : null}
-    </div></div><div className="cover-mode"><h3>{t.mode}</h3><label><input type="radio" name="cover-mode" value="melody" checked readOnly />{t.melody}</label><label><input type="radio" name="cover-mode" value="full" disabled />{t.full}</label><p className="hint">{t.modeHelp}</p></div>
+    </div></div><div className="cover-mode"><h3>{t.mode}</h3><label><input type="radio" name="cover-mode" value="melody" checked={mode === 'melody'} onChange={() => setCoverMode(projectId, 'melody')} />{t.melody}</label><label><input type="radio" name="cover-mode" value="full" checked={mode === 'full'} onChange={() => setCoverMode(projectId, 'full')} />{t.full}</label><p className="hint">{t.modeHelp}</p></div>
     </section><section className="surface cover-transcription" aria-label={t.transcription}><div className="section-heading"><h3>{t.transcription}</h3><button type="button" onClick={() => void jobs.refetch()}>{t.readJobs}</button></div>
       {jobs.isError ? <ErrorNotice error={jobs.error} onRetry={() => void jobs.refetch()} /> : null}<div className="cover-attempts">{transcriptions.map(job => <button type="button" key={job.id} aria-pressed={job.id === transcriptionId} onClick={() => { patch({ transcriptionJobId: job.id, scoreId }); transcribe.reset(); }}>{t.chooseTranscription}: <code>{job.id}</code></button>)}</div>
       {transcriptionId ? <JobState key={transcriptionId} projectId={projectId} jobId={transcriptionId} onRetry={job => patch({ transcriptionJobId: job.id, scoreId })} /> : <p className="hint">{t.noScoreHelp}</p>}

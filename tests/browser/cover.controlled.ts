@@ -8,28 +8,29 @@ import { withParent } from './score-generation-fixtures.js';
 import {
   EDITED_FULL, EDITED_MELODY, FULL_ABC, LYRICS, MELODY_ABC, NEXT_FULL, SEED, STYLE,
   abcBytes, assetBytes, completedJob, control, coverUrl, derivedSeed, expectedInput, expectReferenceWav,
-  fillCover, generateCover, holdMountedOrigin, inspectAndSelect, labels, openCover, projectOnly,
-  referencePath, selectCurrentMelody, selectMelody, transcribe, uploadedSeed, uploadReference, type Api,
+  expectFullMusic, fillCover, generateCover, holdMountedOrigin, inspectAndSelect, labels, modeLabels, openCover, projectOnly,
+  referencePath, selectCurrentMelody, selectFull, selectMelody, transcribe, uploadedSeed, uploadReference, type Api,
 } from './cover-fixtures.js';
 
 test.beforeEach(async () => { await control({}); });
 
-async function expectOutput(api: Api, projectId: string, jobId: string, candidateId: string, inputs: CoverCreate) {
+async function expectOutput(api: Api, projectId: string, jobId: string, candidateId: string, inputs: CoverCreate, effective = EDITED_MELODY) {
   const path = { project_id: projectId };
   const job = received(await api.GET('/projects/{project_id}/jobs/{job_id}', { params: { path: { ...path, job_id: jobId } } }));
   const candidate = received(await api.GET('/projects/{project_id}/candidates/{candidate_id}', { params: { path: { ...path, candidate_id: candidateId } } }));
   expect(job).toMatchObject({ operation: 'Cover', status: 'completed', inputs });
   expect(candidate).toMatchObject({ job_id: jobId, inputs });
   expect(job.provenance).toMatchObject({
+    workflow_id: 'cover-yue2', workflow_version: '2.0.0', settings: { cot: inputs.mode },
     selected_score: { source_score_id: inputs.source_score_id, parent_version_id: inputs.parent_version_id,
-      mode: 'melody', effective_abc: EDITED_MELODY, effective_abc_sha256: hash(Buffer.from(EDITED_MELODY)),
-      abc_sha256: hash(Buffer.from(EDITED_FULL)), mode_transform_version: '1.0.0' },
+      mode: inputs.mode, effective_abc: effective, effective_abc_sha256: hash(Buffer.from(effective)),
+      abc_sha256: hash(Buffer.from(inputs.abc)), mode_transform_version: '1.0.0' },
     cover_source: { reference_asset_id: inputs.reference_asset_id },
   });
   expect(candidate.provenance).toEqual(job.provenance);
   const score = received(await api.GET('/projects/{project_id}/scores/{score_id}', { params: { path: { ...path, score_id: candidate.score_id } } }));
   expect(score).toMatchObject({ source_reference_asset_id: inputs.reference_asset_id, source_score_id: inputs.source_score_id, parent_version_id: inputs.parent_version_id });
-  expect(await abcBytes(api, projectId, score)).toBe(EDITED_MELODY);
+  expect(await abcBytes(api, projectId, score)).toBe(effective);
   return { job, candidate, score };
 }
 
@@ -239,7 +240,7 @@ test('missing observed melody choice blocks Cover without a full fallback and pr
   await page.locator('.cover-generation').getByRole('button', { name: 'Check readiness again', exact: true }).click();
   await expect(page.getByRole('button', { name: labels.en.generate, exact: true })).toBeDisabled();
   const capabilities = received(await api.GET('/runtime/capabilities'));
-  expect(capabilities.capabilities.find(value => value.operation === 'Cover')).toMatchObject({ ready: false, supported_modes: [] });
+  expect(capabilities.capabilities.find(value => value.operation === 'Cover')).toMatchObject({ ready: true, supported_modes: ['full'] });
   expect(capabilities.capabilities.find(value => value.operation === 'GenerateFromScore')).toMatchObject({ ready: true });
   const expected = expectedInput(reference.id, selected, original.id);
   const blocked = await api.POST('/projects/{project_id}/jobs/cover', { params: { path: { project_id: project.id } }, body: expected });
@@ -249,11 +250,18 @@ test('missing observed melody choice blocks Cover without a full fallback and pr
     body: { abc: EDITED_FULL, source_score_id: selected, parent_version_id: original.id, style: STYLE, lyrics: LYRICS, seed: SEED + 1, max_seconds: 35 } }));
   const oldConsumer = await completedJob(api, project.id, gfs);
   expect(oldConsumer.operation).toBe('GenerateFromScore');
+  await page.locator('.cover-mode input[value="full"]').check();
+  await expect(page.getByRole('button', { name: modeLabels('en', 'full').generate, exact: true })).toBeDisabled();
+  await inspectAndSelect(page, reference.id, selected, 'en', EDITED_FULL, 'full');
+  const usableFull = await generateCover(page, 'en', 'full');
+  await expectOutput(api, project.id, usableFull.job.id, usableFull.candidateId, expectedInput(reference.id, selected, original.id, EDITED_FULL, EDITED_FULL, 'full'), EDITED_FULL);
   await control({});
   await page.locator('.cover-generation').getByRole('button', { name: 'Check readiness again', exact: true }).click();
+  await page.locator('.cover-mode input[value="melody"]').check();
+  await inspectAndSelect(page, reference.id, selected);
   await expect(page.getByRole('button', { name: labels.en.generate, exact: true })).toBeEnabled();
   await expect(page.locator('.cover-selection')).toHaveAttribute('data-selected-score-id', selected);
-  await info.attach('observed-melody-enum-boundary', { body: JSON.stringify({ capabilities, blockedStatus: blocked.response.status, oldConsumer, expected }, null, 2), contentType: 'application/json' });
+  await info.attach('observed-melody-enum-boundary', { body: JSON.stringify({ capabilities, blockedStatus: blocked.response.status, oldConsumer, usableFull, expected }, null, 2), contentType: 'application/json' });
 });
 
 // C08: failed/cancelled generation is separate from completed Transcribe.
@@ -314,7 +322,7 @@ for (const [scenario, code] of [['runtime_out_of_memory', 'runtime_out_of_memory
     const failed = received(await api.GET('/projects/{project_id}/jobs/{job_id}', { params: { path: { ...path, job_id: job.id } } }));
     expect(failed).toMatchObject({ status: 'failed', result: null, error: { code }, inputs: expectedInput(reference.id, selected, original.id) });
     await expect(page.locator('.cover-generation .candidate-detail')).toHaveAttribute('data-candidate-id', previous.candidateId);
-    await expect(page.getByText('Previously completed Cover Candidate', { exact: true })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Previously completed Cover Candidate · melody', exact: true })).toBeVisible();
     expect(received(await api.GET('/projects/{project_id}/candidates', { params: { path } }))).toEqual(originalCandidates);
     expect(received(await api.GET('/projects/{project_id}/assets', { params: { path } }))).toEqual(originalAssets);
     expect(received(await api.GET('/projects/{project_id}/versions', { params: { path } }))).toEqual([original]);
@@ -453,7 +461,10 @@ test('empty/invalid/unselected inputs and late effective validation cannot submi
   await expect(page.getByText('No intermediate Score yet', { exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: labels.en.generate, exact: true })).toBeDisabled();
   const full = page.locator('.cover-mode input[value="full"]');
-  await expect(full).toBeDisabled();
+  await expect(full).toBeEnabled();
+  await full.check();
+  await expect(page.getByRole('button', { name: modeLabels('en', 'full').generate, exact: true })).toBeDisabled();
+  await page.locator('.cover-mode input[value="melody"]').check();
   const reference = await uploadReference(api, project.id);
   const { score } = await transcribe(api, project.id, reference);
   await openCover(page, project.id, reference.id, score);
@@ -504,8 +515,6 @@ test('empty/invalid/unselected inputs and late effective validation cannot submi
   await page.locator('.cover-generation').getByRole('textbox', { name: labels.en.style, exact: true }).fill(' ');
   await page.getByRole('button', { name: labels.en.generate, exact: true }).click();
   await expect(page.locator('.cover-generation')).toContainText('Enter music style and lyrics.');
-  const unsupported = await page.request.post(`/api/projects/${project.id}/cover-inputs/validate`, { data: { abc: EDITED_FULL, mode: 'full' } });
-  expect(unsupported.status()).toBe(422);
   expect(received(await api.GET('/projects/{project_id}/jobs', { params: { path: { project_id: project.id } } })).filter(value => value.operation === 'Cover')).toEqual([]);
 });
 
@@ -692,5 +701,265 @@ for (const fault of ['lost durable acknowledgement', 'before-commit persistence 
     expect(writes).toEqual([{ candidate_id: candidateId, name: firstName }, { candidate_id: candidateId, name: firstName }]);
     expect(received(await api.GET('/projects/{project_id}/versions/{version_id}', { params: { path: { ...path, version_id: original.id } } }))).toEqual(original);
     await info.attach('cover-frozen-version-intent', { body: JSON.stringify({ fault, writes, firstRead, versions, original }, null, 2), contentType: 'application/json' });
+  });
+}
+
+test('full Cover retains literal written chords and both voices, plays and explicitly saves a true-parent Version', async ({ page, baseURL }, info) => {
+  const { api, project, reference, score, original, transcribedJob } = await derivedSeed(baseURL);
+  const path = { project_id: project.id }, oldAudio = await assetBytes(api, project.id, original.audio_asset_id);
+  const oldReference = await assetBytes(api, project.id, reference.id);
+  const selected = await selectFull(page, project.id, reference.id, score);
+  const midi = expectFullMusic(await downloadMidi(page, labels.en.midi));
+  await page.getByRole('button', { name: labels.en.audition, exact: true }).click();
+  await expect.poll(async () => (await mediaState(page)).time).toBeGreaterThan(.1);
+  expect((await mediaState(page)).duration).toBeCloseTo(10.2, 4);
+  expect((await mediaState(page)).error).toBeNull();
+  const native = await page.locator('#persistent-player audio').elementHandle();
+  if (!native) throw new Error('No sole native full MIDI Player');
+  await page.setViewportSize({ width: 390, height: 960 });
+  if (await page.locator('html').getAttribute('data-theme') !== 'dark') await page.locator('.preferences button').click();
+  await page.locator('.preferences select').selectOption('zh-CN');
+  await expect(page.getByRole('button', { name: modeLabels('zh-CN', 'full').generate, exact: true })).toBeEnabled();
+  await control({ scenario: 'source_metadata' });
+  const generated = await generateCover(page, 'zh-CN', 'full');
+  await control({});
+  const expected = expectedInput(reference.id, selected, original.id, EDITED_FULL, EDITED_FULL, 'full');
+  const actual = await expectOutput(api, project.id, generated.job.id, generated.candidateId, expected, EDITED_FULL);
+  expect(actual.job.provenance).toMatchObject({ selected_score: { source_chord_count: 4, warnings: [] },
+    cover_source: { transcribe_job_id: transcribedJob.id, transcribed_score_id: score.id } });
+  expect(received(await api.GET('/projects/{project_id}/versions', { params: { path } }))).toEqual([original]);
+  await page.getByRole('button', { name: labels['zh-CN'].listen, exact: true }).click();
+  const player = page.locator('#persistent-player');
+  await expect(player.getByRole('button', { name: labels['zh-CN'].play, exact: true })).toBeEnabled();
+  await player.getByRole('button', { name: labels['zh-CN'].play, exact: true }).click();
+  await expect.poll(async () => (await mediaState(page)).time).toBeGreaterThan(.1);
+  expect((await mediaState(page)).duration).toBeCloseTo(34.9986667, 4);
+  expect(await native.evaluate(element => element === document.querySelector('#persistent-player audio'))).toBe(true);
+  await expect(page.locator('audio')).toHaveCount(1);
+  await page.getByRole('textbox', { name: labels['zh-CN'].name, exact: true }).fill('保留和弦的晨间改编');
+  await page.getByRole('button', { name: labels['zh-CN'].save, exact: true }).click();
+  await page.getByRole('link', { name: labels['zh-CN'].saved, exact: true }).click();
+  await page.reload();
+  await page.getByText(labels['zh-CN'].snapshot, { exact: true }).click();
+  await expect(page.locator('.input-snapshot [data-submitted-abc]')).toHaveText(EDITED_FULL);
+  await expect(page.locator('.input-snapshot [data-effective-abc]')).toHaveText(EDITED_FULL);
+  await expect(page.locator('.input-snapshot').getByText('full', { exact: true })).toBeVisible();
+  await expect(page.locator(`.input-snapshot a[href="/projects/${project.id}/scores/${selected}"]`)).toHaveText(labels['zh-CN'].source);
+  await expect(page.locator('html')).toHaveAttribute('lang', 'zh-CN');
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+  const geometry = await page.locator('.input-snapshot small').evaluateAll(elements => elements.map(element => {
+    const box = element.getBoundingClientRect(), range = document.createRange();
+    range.selectNodeContents(element);
+    return { text: element.textContent, left: box.left, right: box.right, scrollWidth: element.scrollWidth,
+      contentRight: range.getBoundingClientRect().right, overflowWrap: getComputedStyle(element).overflowWrap };
+  }));
+  await info.attach('full-version-viewport-boundary', { body: JSON.stringify({ viewport: 390, geometry, expected, ...actual, midi }, null, 2), contentType: 'application/json' });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(390);
+  const versions = received(await api.GET('/projects/{project_id}/versions', { params: { path } }));
+  expect(versions).toHaveLength(2);
+  expect(versions.find(version => version.id !== original.id)).toMatchObject({ parent_version_id: original.id, candidate_id: generated.candidateId, inputs: expected, provenance: actual.candidate.provenance });
+  expect(received(await api.GET('/projects/{project_id}/versions/{version_id}', { params: { path: { ...path, version_id: original.id } } }))).toEqual(original);
+  expect(hash(await assetBytes(api, project.id, original.audio_asset_id))).toBe(hash(oldAudio));
+  expect(hash(await assetBytes(api, project.id, reference.id))).toBe(hash(oldReference));
+  expect(await abcBytes(api, project.id, score)).toBe(FULL_ABC);
+  await info.attach('full-written-chord-version-loop', { body: JSON.stringify({ scope: 'Production browser/public HTTP/WS + CPU tones, no acoustic model fidelity claim', expected, ...actual, versions, midi }, null, 2), contentType: 'application/json' });
+});
+
+test('chordless full is legal, warns before explicit selection and does not invent written harmony or a parent', async ({ page, baseURL }, info) => {
+  const { api, project, reference, score } = await uploadedSeed(baseURL);
+  await openCover(page, project.id, reference.id, score);
+  await page.locator('.cover-mode input[value="full"]').check();
+  await page.getByRole('textbox', { name: labels.en.abc, exact: true }).fill(EDITED_MELODY);
+  await expect(page.getByText(labels.en.current, { exact: true })).toBeVisible();
+  await page.getByRole('button', { name: labels.en.saveScore, exact: true }).click();
+  await expect(page.getByText(labels.en.ready, { exact: true })).toBeVisible();
+  const selected = await page.locator('.selected-score').getAttribute('data-selected-score-id');
+  if (!selected || selected === score.id) throw new Error('No saved chordless full edit');
+  const checkedResponse = page.waitForResponse(response => response.request().method() === 'POST' && response.url().endsWith('/cover-inputs/validate'));
+  await page.getByRole('button', { name: modeLabels('en', 'full').inspect, exact: true }).click();
+  const checked: components['schemas']['CoverValidationRead'] = await (await checkedResponse).json();
+  expect(checked).toMatchObject({ mode: 'full', source_chord_count: 0, warnings: ['full_without_written_chords'], effective_abc: EDITED_MELODY });
+  await expect(page.locator('.cover-effective')).toContainText('This Score has no written chords. full can still generate');
+  await expect(page.getByRole('button', { name: modeLabels('en', 'full').generate, exact: true })).toBeDisabled();
+  await page.getByRole('button', { name: modeLabels('en', 'full').select, exact: true }).click();
+  await expect(page.locator('.cover-selection')).toHaveAttribute('data-mode', 'full');
+  expectMusic(await downloadMidi(page, labels.en.midi), true);
+  const generated = await generateCover(page, 'en', 'full');
+  const expected = expectedInput(reference.id, selected, null, EDITED_MELODY, EDITED_MELODY, 'full');
+  const actual = await expectOutput(api, project.id, generated.job.id, generated.candidateId, expected, EDITED_MELODY);
+  expect(actual.job.provenance).toMatchObject({ selected_score: { warnings: ['full_without_written_chords'], source_chord_count: 0 } });
+  expect(received(await api.GET('/projects/{project_id}/versions', { params: { path: { project_id: project.id } } }))).toEqual([]);
+  expect(await abcBytes(api, project.id, score)).toBe(FULL_ABC);
+  await info.attach('explicit-chordless-full-warning', { body: JSON.stringify({ checked, expected, ...actual }, null, 2), contentType: 'application/json' });
+});
+
+for (const capability of ['remove_full_enum', 'remove_cover_enums'] as const) {
+  test(`${capability}: selected full remains selected but cannot submit or fall back; available melody is explicit`, async ({ page, baseURL }, info) => {
+    const { api, project, reference, score, original } = await derivedSeed(baseURL);
+    const selected = await selectFull(page, project.id, reference.id, score);
+    await fillCover(page);
+    await control({ capability });
+    await page.locator('.cover-generation').getByRole('button', { name: 'Check readiness again', exact: true }).click();
+    const full = page.locator('.cover-mode input[value="full"]');
+    await expect(full).toBeChecked();
+    await expect(page.getByRole('button', { name: modeLabels('en', 'full').generate, exact: true })).toBeDisabled();
+    const available = capability === 'remove_full_enum' ? ['melody'] : [];
+    const capabilities = received(await api.GET('/runtime/capabilities'));
+    expect(capabilities.capabilities.find(value => value.operation === 'Cover')).toMatchObject({ ready: available.length > 0, supported_modes: available });
+    const path = { project_id: project.id }, prior = received(await api.GET('/projects/{project_id}/jobs', { params: { path } }));
+    const expected = expectedInput(reference.id, selected, original.id, EDITED_FULL, EDITED_FULL, 'full');
+    const rejected = await api.POST('/projects/{project_id}/jobs/cover', { params: { path }, body: expected });
+    expect(rejected.response.status).toBe(503);
+    expect(received(await api.GET('/projects/{project_id}/jobs', { params: { path } }))).toEqual(prior);
+    if (available.length) {
+      await page.locator('.cover-mode input[value="melody"]').check();
+      await expect(page.getByRole('button', { name: labels.en.generate, exact: true })).toBeDisabled();
+      await inspectAndSelect(page, reference.id, selected);
+      const generated = await generateCover(page);
+      await expectOutput(api, project.id, generated.job.id, generated.candidateId, expectedInput(reference.id, selected, original.id));
+    } else {
+      const melody = await api.POST('/projects/{project_id}/jobs/cover', { params: { path }, body: expectedInput(reference.id, selected, original.id) });
+      expect(melody.response.status).toBe(503);
+      expect(received(await api.GET('/projects/{project_id}/jobs', { params: { path } }))).toEqual(prior);
+      await control({});
+      await page.locator('.cover-generation').getByRole('button', { name: 'Check readiness again', exact: true }).click();
+      await expect(page.getByRole('button', { name: modeLabels('en', 'full').generate, exact: true })).toBeEnabled();
+    }
+    expect(received(await api.GET('/projects/{project_id}/versions/{version_id}', { params: { path: { ...path, version_id: original.id } } }))).toEqual(original);
+    expect(await abcBytes(api, project.id, score)).toBe(FULL_ABC);
+    await info.attach('independent-full-availability', { body: JSON.stringify({ capability, capabilities, rejectedStatus: rejected.response.status, expected, original }, null, 2), contentType: 'application/json' });
+  });
+}
+
+test('switching away and back with identical effective ABC requires new selection and late full validation cannot replace it', async ({ page, baseURL }, info) => {
+  const { api, project, reference, score } = await uploadedSeed(baseURL);
+  await openCover(page, project.id, reference.id, score);
+  await page.getByRole('textbox', { name: labels.en.abc, exact: true }).fill(EDITED_MELODY);
+  await expect(page.getByText(labels.en.current, { exact: true })).toBeVisible();
+  await page.getByRole('button', { name: labels.en.saveScore, exact: true }).click();
+  await expect(page.getByText(labels.en.ready, { exact: true })).toBeVisible();
+  const selected = await page.locator('.selected-score').getAttribute('data-selected-score-id');
+  if (!selected) throw new Error('No saved chordless selection for mode identity test');
+  await inspectAndSelect(page, reference.id, selected);
+  const full = page.locator('.cover-mode input[value="full"]'), melody = page.locator('.cover-mode input[value="melody"]');
+  await full.check();
+  await expect(page.getByRole('button', { name: modeLabels('en', 'full').generate, exact: true })).toBeDisabled();
+  await inspectAndSelect(page, reference.id, selected, 'en', EDITED_MELODY, 'full');
+  let release!: () => void, fetched!: () => void, checks = 0;
+  const held = new Promise<void>(resolve => { release = resolve; });
+  const firstValidated = new Promise<void>(resolve => { fetched = resolve; });
+  const endpoint = `**/api/projects/${project.id}/cover-inputs/validate`;
+  await page.route(endpoint, async route => {
+    const ordinal = ++checks, response = await route.fetch();
+    if (ordinal === 1) { fetched(); await held; }
+    await route.fulfill({ response });
+  });
+  try {
+    await page.getByRole('button', { name: modeLabels('en', 'full').inspect, exact: true }).click();
+    await firstValidated;
+    await melody.check();
+    await full.check();
+    await expect(page.locator('.cover-selection')).toHaveAttribute('data-mode', 'full');
+    await expect(page.locator('.cover-selection [data-selected-effective-abc]')).toHaveText(EDITED_MELODY);
+    await expect(page.getByRole('button', { name: modeLabels('en', 'full').generate, exact: true })).toBeDisabled();
+    await inspectAndSelect(page, reference.id, selected, 'en', EDITED_MELODY, 'full');
+    await fillCover(page);
+    await expect(page.getByRole('button', { name: modeLabels('en', 'full').generate, exact: true })).toBeEnabled();
+    const delivered = page.waitForResponse(response => response.request().method() === 'POST' && response.url().endsWith('/cover-inputs/validate'));
+    release();
+    await (await delivered).finished();
+    await expect(page.getByRole('button', { name: modeLabels('en', 'full').generate, exact: true })).toBeEnabled();
+    const generated = await generateCover(page, 'en', 'full');
+    const expected = expectedInput(reference.id, selected, null, EDITED_MELODY, EDITED_MELODY, 'full');
+    const actual = await expectOutput(api, project.id, generated.job.id, generated.candidateId, expected, EDITED_MELODY);
+    const jobs = received(await api.GET('/projects/{project_id}/jobs', { params: { path: { project_id: project.id } } }));
+    expect(jobs.filter(job => job.operation === 'Transcribe')).toHaveLength(1);
+    expect(jobs.filter(job => job.operation === 'Cover')).toHaveLength(1);
+    await info.attach('identical-ABC-mode-epoch-late-validation', { body: JSON.stringify({ checks, expected, ...actual, jobs }, null, 2), contentType: 'application/json' });
+  } finally { release(); }
+});
+
+test('a lost full Cover ACK keeps its captured full chords and source despite later melody/style edits and reload', async ({ page, baseURL }, info) => {
+  const { api, project, reference, score, original } = await derivedSeed(baseURL);
+  const selected = await selectFull(page, project.id, reference.id, score);
+  await fillCover(page);
+  let accepted!: JobRead;
+  const writes: unknown[] = [];
+  await page.route(`**/api/projects/${project.id}/jobs/cover`, async route => {
+    writes.push(route.request().postDataJSON());
+    const response = await route.fetch();
+    accepted = await response.json();
+    await route.abort('failed');
+  });
+  await page.getByRole('button', { name: modeLabels('en', 'full').generate, exact: true }).click();
+  const recovery = page.locator('.submission-recovery');
+  await expect(recovery).toContainText('Submission is unconfirmed');
+  const expected = expectedInput(reference.id, selected, original.id, EDITED_FULL, EDITED_FULL, 'full');
+  expect(accepted.inputs).toEqual(expected);
+  await page.locator('.cover-mode input[value="melody"]').check();
+  await page.getByRole('textbox', { name: labels.en.abc, exact: true }).fill(NEXT_FULL);
+  await page.locator('.cover-generation').getByRole('textbox', { name: labels.en.style, exact: true }).fill('later melody request never submitted');
+  await page.reload();
+  await expect(recovery).toContainText('Submission is unconfirmed');
+  await recovery.getByText(labels.en.snapshot, { exact: true }).click();
+  await expect(recovery.locator('[data-submitted-abc]')).toHaveText(EDITED_FULL);
+  await expect(recovery.locator('[data-effective-abc]')).toHaveText(EDITED_FULL);
+  await expect(recovery.locator('.input-snapshot').getByText('full', { exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: labels.en.generate, exact: true })).toBeDisabled();
+  await recoverJob(page, accepted);
+  const region = page.locator('.cover-generation .candidate-detail'), candidateId = await region.getAttribute('data-candidate-id');
+  if (!candidateId) throw new Error('No recovered actual full Candidate');
+  const actual = await expectOutput(api, project.id, accepted.id, candidateId, expected, EDITED_FULL);
+  expect(writes).toEqual([expected]);
+  const jobs = received(await api.GET('/projects/{project_id}/jobs', { params: { path: { project_id: project.id } } }));
+  expect(jobs.filter(job => job.operation === 'Cover')).toHaveLength(1);
+  expect(received(await api.GET('/projects/{project_id}/versions', { params: { path: { project_id: project.id } } }))).toEqual([original]);
+  await info.attach('frozen-full-unconfirmed-intent', { body: JSON.stringify({ writes, expected, ...actual, jobs }, null, 2), contentType: 'application/json' });
+});
+
+for (const [scenario, code] of [['hold', 'cancelled'], ['runtime_out_of_memory', 'runtime_out_of_memory'], ['wrong_score', 'score_result_mismatch'], ['import_failure', 'result_persistence_failed']] as const) {
+  test(`full ${code} keeps the previous full result and intermediate; explicit retry stays full while the current choice is melody`, async ({ page, baseURL }, info) => {
+    const { api, project, reference, score, original, transcribedJob } = await derivedSeed(baseURL);
+    const selected = await selectFull(page, project.id, reference.id, score);
+    const previous = await generateCover(page, 'en', 'full');
+    const path = { project_id: project.id };
+    const assets = received(await api.GET('/projects/{project_id}/assets', { params: { path } }));
+    const hashes = await Promise.all(assets.map(async asset => ({ id: asset.id, sha256: hash(await assetBytes(api, project.id, asset.id)) })));
+    const candidates = received(await api.GET('/projects/{project_id}/candidates', { params: { path } }));
+    await control({ scenario });
+    const posted = page.waitForResponse(response => response.request().method() === 'POST' && response.url().endsWith('/jobs/cover'));
+    await page.getByRole('button', { name: modeLabels('en', 'full').generate, exact: true }).click();
+    const job: JobRead = await (await posted).json();
+    await page.locator('.cover-mode input[value="melody"]').check();
+    await page.getByRole('textbox', { name: labels.en.abc, exact: true }).fill(NEXT_FULL);
+    const monitor = page.locator('.cover-generation .job-monitor');
+    if (scenario === 'hold') await monitor.getByRole('button', { name: 'Request cancellation', exact: true }).click();
+    await expect(monitor.locator(scenario === 'hold' ? '.tag.cancelled' : '.tag.failed')).toBeVisible();
+    const failed = received(await api.GET('/projects/{project_id}/jobs/{job_id}', { params: { path: { ...path, job_id: job.id } } }));
+    const expected = expectedInput(reference.id, selected, original.id, EDITED_FULL, EDITED_FULL, 'full');
+    expect(failed).toMatchObject({ status: scenario === 'hold' ? 'cancelled' : 'failed', result: null, inputs: expected });
+    if (scenario !== 'hold') expect(failed.error).toMatchObject({ code });
+    await expect(page.locator('.cover-generation .candidate-detail')).toHaveAttribute('data-candidate-id', previous.candidateId);
+    await expect(page.getByRole('heading', { name: 'Previously completed Cover Candidate · full', exact: true })).toBeVisible();
+    expect(received(await api.GET('/projects/{project_id}/assets', { params: { path } }))).toEqual(assets);
+    expect(received(await api.GET('/projects/{project_id}/candidates', { params: { path } }))).toEqual(candidates);
+    expect(received(await api.GET('/projects/{project_id}/versions', { params: { path } }))).toEqual([original]);
+    for (const value of hashes) expect(hash(await assetBytes(api, project.id, value.id))).toBe(value.sha256);
+    await control({});
+    const retriedResponse = page.waitForResponse(response => response.request().method() === 'POST' && response.url().endsWith('/retry'));
+    await monitor.getByRole('button', { name: 'Create a new retry job', exact: true }).click();
+    const retried: JobRead = await (await retriedResponse).json();
+    expect(retried.id).not.toBe(job.id);
+    expect(retried.inputs).toEqual(failed.inputs);
+    await expect(page.locator('.cover-generation .candidate-detail .record-details code').filter({ hasText: retried.id })).toHaveCount(1);
+    const candidateId = await page.locator('.cover-generation .candidate-detail').getAttribute('data-candidate-id');
+    if (!candidateId) throw new Error('No explicit full retry Candidate');
+    const actual = await expectOutput(api, project.id, retried.id, candidateId, expected, EDITED_FULL);
+    const jobs = received(await api.GET('/projects/{project_id}/jobs', { params: { path } }));
+    expect(jobs.filter(value => value.operation === 'Transcribe')).toEqual([transcribedJob]);
+    await expect(page.getByRole('textbox', { name: labels.en.abc, exact: true })).toHaveValue(NEXT_FULL);
+    await expect(page.locator('.cover-mode input[value="melody"]')).toBeChecked();
+    expect(received(await api.GET('/projects/{project_id}/versions', { params: { path } }))).toEqual([original]);
+    await info.attach('full-failure-mode-preserving-retry', { body: JSON.stringify({ scenario, code, failed, retried, previous, expected, hashes, ...actual, jobs }, null, 2), contentType: 'application/json' });
   });
 }

@@ -719,10 +719,10 @@ export interface components {
             parent_version_id?: string | null;
             /**
              * Mode
-             * @description Explicit supported Cover mode; full is delivered separately after melody acceptance.
-             * @constant
+             * @description Explicit Cover mode: melody omits written chord symbols; full retains them. Both keep the two musical voices.
+             * @enum {string}
              */
-            mode: "melody";
+            mode: "melody" | "full";
             /**
              * Reference Asset Id
              * Format: uuid
@@ -745,9 +745,9 @@ export interface components {
             abc: string;
             /**
              * Mode
-             * @constant
+             * @enum {string}
              */
-            mode: "melody";
+            mode: "melody" | "full";
         };
         /** CoverValidationRead */
         CoverValidationRead: {
@@ -765,12 +765,20 @@ export interface components {
             parser: string;
             /** Effective Abc */
             effective_abc: string;
-            /** Mode */
-            mode: string;
+            /**
+             * Mode
+             * @enum {string}
+             */
+            mode: "melody" | "full";
             /** Mode Transform Version */
             mode_transform_version: string;
             /** Source Chord Count */
             source_chord_count: number;
+            /**
+             * Warnings
+             * @description full_without_written_chords means full is legal but has no explicit harmony guidance.
+             */
+            warnings?: string[];
         };
         /** DiagnosticReason */
         DiagnosticReason: {

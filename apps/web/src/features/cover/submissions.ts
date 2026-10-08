@@ -13,9 +13,9 @@ const uuid = (value: unknown): value is string => typeof value === 'string' && /
 
 export function coverInputs(value: Record<string, unknown>): CoverCreate | null {
   const base = scoreGenerationInputs(value);
-  if (!base || value.mode !== 'melody' || !uuid(value.reference_asset_id) || typeof value.effective_abc_sha256 !== 'string'
+  if (!base || !(value.mode === 'melody' || value.mode === 'full') || !uuid(value.reference_asset_id) || typeof value.effective_abc_sha256 !== 'string'
     || !/^[\da-f]{64}$/.test(value.effective_abc_sha256) || value.mode_transform_version !== '1.0.0') return null;
-  return { ...base, mode: 'melody', reference_asset_id: value.reference_asset_id, effective_abc_sha256: value.effective_abc_sha256, mode_transform_version: '1.0.0' };
+  return { ...base, mode: value.mode, reference_asset_id: value.reference_asset_id, effective_abc_sha256: value.effective_abc_sha256, mode_transform_version: '1.0.0' };
 }
 function stored(kind: string, projectId: string): unknown {
   try { return JSON.parse(sessionStorage.getItem(key(kind, projectId)) ?? 'null'); } catch { return null; }

@@ -166,8 +166,8 @@ def test_missing_melody_enum_with_existing_nodes_does_not_create_work_or_disable
         base = "/projects/" + project["id"]
         reference, saved, _ = cover_selection(client, base)
         capabilities = {item["operation"]: item for item in client.get("/runtime/capabilities").json()["capabilities"]}
-        assert capabilities["Cover"]["ready"] is False
-        assert capabilities["Cover"]["supported_modes"] == []
+        assert capabilities["Cover"]["ready"] is True
+        assert capabilities["Cover"]["supported_modes"] == ["full"]
         assert capabilities["GenerateFromScore"]["ready"] is True
         prior = client.get(base + "/jobs").json()
         refused = client.post(base + "/jobs/cover", json=selected_inputs(reference, saved))
@@ -183,7 +183,7 @@ def test_missing_melody_enum_with_existing_nodes_does_not_create_work_or_disable
 
 @pytest.mark.parametrize("case,status,code", [("reference",409,"cover_source_mismatch"), ("standalone",409,"cover_source_mismatch"),
     ("abc",409,"cover_selection_mismatch"), ("hash",409,"cover_selection_mismatch"), ("parent",409,"source_parent_mismatch"),
-    ("full",422,"invalid_request"), ("foreign",404,"score_not_found")])
+    ("unsupported_mode",422,"invalid_request"), ("foreign",404,"score_not_found")])
 def test_cover_rejects_false_source_or_unreviewed_input_before_a_job_exists(tmp_path: Path, case, status, code) -> None:
     with TestClient(create_app(Settings(data_dir=tmp_path))) as client:
         project = client.post("/projects", json={"name": "Morning cover"}).json()
@@ -201,8 +201,8 @@ def test_cover_rejects_false_source_or_unreviewed_input_before_a_job_exists(tmp_
             value["effective_abc_sha256"] = "0" * 64
         elif case == "parent":
             value["parent_version_id"] = source_version(client, base)["id"]
-        elif case == "full":
-            value["mode"] = "full"
+        elif case == "unsupported_mode":
+            value["mode"] = "off"
         else:
             other = client.post("/projects", json={"name": "Other"}).json()
             value["source_score_id"] = client.post("/projects/" + other["id"] + "/scores", json={"abc": SELECTED}).json()["id"]
@@ -283,18 +283,21 @@ class CoverFaults(FakeInferenceRuntime):
         if operation == "Cover" and self.case == "wrong_score":
             return replace(result, artifacts=tuple(replace(item, data=item.data + b"\n% wrong output") if item.role == "abc" else item for item in result.artifacts))
         if operation == "Cover" and self.case == "source_metadata":
-            return replace(result, provenance={"settings": {"cot": "full"}, "selected_score": {"mode": "full"}, "cover_source": {"reference_asset_id": "foreign"}})
+            hostile_mode = "melody" if self._requests[handle][0].inputs["mode"] == "full" else "full"
+            return replace(result, provenance={"settings": {"cot": hostile_mode}, "selected_score": {"mode": hostile_mode}, "cover_source": {"reference_asset_id": "foreign"}})
         return result
 
 
 @pytest.mark.parametrize("case", ["wrong_score", "source_metadata"])
-def test_cover_import_cannot_replace_frozen_music_mode_or_source(tmp_path: Path, case) -> None:
+@pytest.mark.parametrize("mode,expected", [("melody", EFFECTIVE), ("full", SELECTED)])
+def test_cover_import_cannot_replace_frozen_music_mode_or_source(tmp_path: Path, case, mode, expected) -> None:
     with TestClient(create_app(Settings(data_dir=tmp_path), runtime=CoverFaults(case))) as client:
         project = client.post("/projects", json={"name": "Morning cover"}).json()
         base = "/projects/" + project["id"]
         reference, saved, transcribed = cover_selection(client, base)
         before = client.get(base + "/assets").json()
-        submitted = client.post(base + "/jobs/cover", json=selected_inputs(reference, saved))
+        inputs = dict(selected_inputs(reference, saved), mode=mode, effective_abc_sha256=hashlib.sha256(expected.encode()).hexdigest())
+        submitted = client.post(base + "/jobs/cover", json=inputs)
         assert submitted.status_code == 202
         job = wait_job(client, project["id"], submitted.json()["id"])
         if case == "wrong_score":
@@ -304,20 +307,21 @@ def test_cover_import_cannot_replace_frozen_music_mode_or_source(tmp_path: Path,
         else:
             assert job["status"] == "completed", job
             candidate = client.get(base + "/candidates/" + job["result"]["candidate_id"]).json()
-            assert candidate["provenance"]["settings"]["cot"] == "melody"
-            assert candidate["provenance"]["selected_score"]["mode"] == "melody"
+            assert candidate["provenance"]["settings"]["cot"] == mode
+            assert candidate["provenance"]["selected_score"]["mode"] == mode
             assert candidate["provenance"]["cover_source"]["reference_asset_id"] == reference["id"]
             assert candidate["provenance"]["cover_source"]["transcribe_job_id"] == transcribed["id"]
         assert client.get(base + "/assets/" + saved["abc_asset_id"] + "/content").text == SELECTED
 
 
-def test_cancel_and_explicit_retry_keep_original_cover_input_without_retranscribing(tmp_path: Path) -> None:
+@pytest.mark.parametrize("mode,expected", [("melody", EFFECTIVE), ("full", SELECTED)])
+def test_cancel_and_explicit_retry_keep_original_cover_input_without_retranscribing(tmp_path: Path, mode, expected) -> None:
     runtime = CoverFaults("hold")
     with TestClient(create_app(Settings(data_dir=tmp_path), runtime=runtime)) as client:
         project = client.post("/projects", json={"name": "Morning cover"}).json()
         base = "/projects/" + project["id"]
         reference, saved, transcribed = cover_selection(client, base)
-        selected = selected_inputs(reference, saved)
+        selected = dict(selected_inputs(reference, saved), mode=mode, effective_abc_sha256=hashlib.sha256(expected.encode()).hexdigest())
         first = client.post(base + "/jobs/cover", json=selected).json()
         second = client.post(base + "/jobs/cover", json=dict(selected, seed=2026440002)).json()
         cancelled_queued = client.post(base + "/jobs/" + second["id"] + "/cancel").json()

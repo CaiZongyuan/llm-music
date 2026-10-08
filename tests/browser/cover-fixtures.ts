@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { createMusicClient, type CoverCreate, type JobRead, type components } from '@llm-music/api-client';
 import { expect, type Page } from '@playwright/test';
 import { hash, runDir } from './generation-fixtures.js';
-import { received } from './score-fixtures.js';
+import { inspectMidi, received } from './score-fixtures.js';
 import { withParent } from './score-generation-fixtures.js';
 
 // Worked four-bar fixtures are deliberately literal. Neither expected ABC nor
@@ -27,6 +27,15 @@ export const labels = {
   'zh-CN': { abc: 'ABC 乐谱文本', current: '谱面和 MIDI 对应当前草稿。', saveScore: '保存并选定此 Score', selectScore: '选定已保存 Score', ready: '已保存 Score 对应当前有效草稿。', inspect: '检查 melody 输入', select: '选定此 melody 输入', audition: '试听有效输入 MIDI', midi: '导出有效输入 MIDI', generate: '生成 melody 改编', style: '音乐风格', lyrics: '歌词', seed: '随机种子', play: '播放', pause: '暂停', name: '版本名称', save: '保存为版本', saved: '查看已存版本', snapshot: '提交时的输入', listen: '试听这段音乐', source: '查看提交的来源乐谱' },
 };
 export type Locale = keyof typeof labels;
+export type CoverMode = CoverCreate['mode'];
+export function modeLabels(locale: Locale, mode: CoverMode) {
+  if (mode === 'melody') return labels[locale];
+  return { ...labels[locale],
+    inspect: locale === 'en' ? 'Inspect full input' : '检查 full 输入',
+    select: locale === 'en' ? 'Select this full input' : '选定此 full 输入',
+    generate: locale === 'en' ? 'Generate full Cover' : '生成 full 改编',
+  };
+}
 
 export async function control(value: Record<string, string>) {
   const path = resolve(runDir!, 'cover-control.json');
@@ -91,8 +100,8 @@ export async function uploadedSeed(baseURL: string | undefined) {
   return { ...seeded, reference, ...await transcribe(seeded.api, seeded.project.id, reference) };
 }
 
-export function expectedInput(referenceId: string, sourceScoreId: string, parent: string | null, abc = EDITED_FULL, effective = EDITED_MELODY): CoverCreate {
-  return { abc, source_score_id: sourceScoreId, reference_asset_id: referenceId, parent_version_id: parent, mode: 'melody',
+export function expectedInput(referenceId: string, sourceScoreId: string, parent: string | null, abc = EDITED_FULL, effective = EDITED_MELODY, mode: CoverMode = 'melody'): CoverCreate {
+  return { abc, source_score_id: sourceScoreId, reference_asset_id: referenceId, parent_version_id: parent, mode,
     effective_abc_sha256: hash(Buffer.from(effective)), mode_transform_version: '1.0.0', style: STYLE, lyrics: LYRICS, seed: SEED, max_seconds: 35 };
 }
 
@@ -131,7 +140,17 @@ export async function selectMelody(page: Page, projectId: string, referenceId: s
   return selectCurrentMelody(page, referenceId, score.id, locale, edited);
 }
 
+export async function selectFull(page: Page, projectId: string, referenceId: string, score: Score, locale: Locale = 'en') {
+  await openCover(page, projectId, referenceId, score, locale);
+  await page.locator('.cover-mode input[value="full"]').check();
+  return selectCurrentMode(page, referenceId, score.id, locale, true, 'full');
+}
+
 export async function selectCurrentMelody(page: Page, referenceId: string, sourceScoreId: string, locale: Locale = 'en', edited = true) {
+  return selectCurrentMode(page, referenceId, sourceScoreId, locale, edited, 'melody');
+}
+
+async function selectCurrentMode(page: Page, referenceId: string, sourceScoreId: string, locale: Locale, edited: boolean, mode: CoverMode) {
   const t = labels[locale];
   if (edited) await page.getByRole('textbox', { name: t.abc, exact: true }).fill(EDITED_FULL);
   await expect(page.getByText(t.current, { exact: true })).toBeVisible();
@@ -139,19 +158,20 @@ export async function selectCurrentMelody(page: Page, referenceId: string, sourc
   await expect(page.getByText(t.ready, { exact: true })).toBeVisible();
   const selected = await page.locator('.selected-score').getAttribute('data-selected-score-id');
   if (!selected || edited && selected === sourceScoreId) throw new Error('No independently saved selected Score');
-  await inspectAndSelect(page, referenceId, selected, locale, edited ? EDITED_MELODY : MELODY_ABC);
+  const effective = mode === 'full' ? edited ? EDITED_FULL : FULL_ABC : edited ? EDITED_MELODY : MELODY_ABC;
+  await inspectAndSelect(page, referenceId, selected, locale, effective, mode);
   return selected;
 }
 
-export async function inspectAndSelect(page: Page, referenceId: string, selectedId: string, locale: Locale = 'en', effective = EDITED_MELODY) {
-  const t = labels[locale];
+export async function inspectAndSelect(page: Page, referenceId: string, selectedId: string, locale: Locale = 'en', effective = EDITED_MELODY, mode: CoverMode = 'melody') {
+  const t = modeLabels(locale, mode);
   await page.getByRole('button', { name: t.inspect, exact: true }).click();
   await expect(page.locator('.cover-effective [data-effective-abc]')).toHaveText(effective);
   await page.getByRole('button', { name: t.select, exact: true }).click();
   const selection = page.locator('.cover-selection');
   await expect(selection).toHaveAttribute('data-selected-score-id', selectedId);
   await expect(selection).toHaveAttribute('data-reference-id', referenceId);
-  await expect(selection).toHaveAttribute('data-mode', 'melody');
+  await expect(selection).toHaveAttribute('data-mode', mode);
 }
 
 export async function fillCover(page: Page, locale: Locale = 'en') {
@@ -161,10 +181,10 @@ export async function fillCover(page: Page, locale: Locale = 'en') {
   await region.getByRole('textbox', { name: t.seed, exact: true }).fill(String(SEED));
 }
 
-export async function generateCover(page: Page, locale: Locale = 'en') {
+export async function generateCover(page: Page, locale: Locale = 'en', mode: CoverMode = 'melody') {
   await fillCover(page, locale);
   const posted = page.waitForResponse(response => response.request().method() === 'POST' && response.url().endsWith('/jobs/cover'));
-  await page.getByRole('button', { name: labels[locale].generate, exact: true }).click();
+  await page.getByRole('button', { name: modeLabels(locale, mode).generate, exact: true }).click();
   const response = await posted;
   expect(response.status()).toBe(202);
   const job: JobRead = await response.json();
@@ -174,6 +194,30 @@ export async function generateCover(page: Page, locale: Locale = 'en') {
   const candidateId = await region.getAttribute('data-candidate-id');
   if (!candidateId) throw new Error('No resulting public Cover Candidate');
   return { job, candidateId };
+}
+
+export function expectFullMusic(bytes: Buffer) {
+  const facts = inspectMidi(bytes);
+  expect(facts.meters).toEqual([{ numerator: 4, denominator: 4 }]);
+  const pitches = [67, 69, 71, 72, 74, 71, 65, 64, 62, 60, 62, 64, 65, 67, 69, 67, 64, 62, 64, 65, 62, 60];
+  const starts = [0, .3125, .625, .9375, 1.25, 1.875, 2.5, 2.8125, 3.125, 3.4375, 3.75, 5, 5.3125, 5.625, 5.9375, 6.25, 6.875, 7.5, 7.8125, 8.125, 8.4375, 8.75];
+  const accompaniment = [...facts.notes];
+  // Remove exactly one literal Ins event per note; remaining voices are the
+  // written C/Am/F/G accompaniment, not values read from a native transform.
+  pitches.forEach((pitch, index) => {
+    const at = accompaniment.findIndex(note => note.pitch === pitch && note.start === starts[index]);
+    expect(at).toBeGreaterThanOrEqual(0);
+    accompaniment.splice(at, 1);
+  });
+  expect(accompaniment).toHaveLength(32);
+  const chords = [[0, 4, 7], [0, 4, 9], [0, 5, 9], [2, 7, 11]];
+  chords.forEach((chord, bar) => {
+    const notes = accompaniment.filter(note => note.start >= bar * 2.5 && note.start < (bar + 1) * 2.5);
+    expect(notes).toHaveLength(8);
+    expect([...new Set(notes.map(note => note.pitch % 12))].sort((a, b) => a - b)).toEqual(chord);
+    expect(notes.map(note => note.start - bar * 2.5)).toEqual([0, .625, .625, .625, 1.25, 1.875, 1.875, 1.875]);
+  });
+  return { ...facts, accompaniment };
 }
 
 // Hold the mounted public origin read after the real server has answered. This

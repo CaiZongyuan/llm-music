@@ -63,6 +63,10 @@ class ControlledCoverRuntime(FakeInferenceRuntime):
         observed = super().health()
         if control().get("capability") == "remove_melody_enum":
             return replace(observed, node_enum_choices={"YuE2Options": {"cot": ("full", "off")}})
+        if control().get("capability") == "remove_full_enum":
+            return replace(observed, node_enum_choices={"YuE2Options": {"cot": ("melody", "off")}})
+        if control().get("capability") == "remove_cover_enums":
+            return replace(observed, node_enum_choices={"YuE2Options": {"cot": ("off",)}})
         return observed
 
     def capabilities(self, observation=None):
@@ -95,7 +99,8 @@ class ControlledCoverRuntime(FakeInferenceRuntime):
         if operation == "Cover" and scenario == "wrong_score":
             return replace(result, artifacts=tuple(replace(item, data=item.data + b"\n% external wrong result") if item.role == "abc" else item for item in result.artifacts))
         if operation == "Cover" and scenario == "source_metadata":
-            return replace(result, provenance={"settings": {"cot": "full"}, "selected_score": {"mode": "full", "effective_abc": "wrong"}, "cover_source": {"reference_asset_id": "wrong"}})
+            hostile_mode = "melody" if self._requests[handle][0].inputs["mode"] == "full" else "full"
+            return replace(result, provenance={"settings": {"cot": hostile_mode}, "selected_score": {"mode": hostile_mode, "effective_abc": "wrong"}, "cover_source": {"reference_asset_id": "wrong"}})
         return result
 
 

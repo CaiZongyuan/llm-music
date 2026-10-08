@@ -68,6 +68,8 @@ test('both creator journeys recover all persisted identities and bytes after an 
   const midiAsset = received(await api.GET('/projects/{project_id}/assets/{asset_id}', { params: { path: { ...path, asset_id: midiId } } }));
   expect(hash(firstMidi)).toBe(midiAsset.sha256);
   await page.locator('.tabs').getByRole('link', { name: 'Generate music', exact: true }).click();
+  // The lazy route can update its URL while the previous Score form is visible.
+  await expect(page.getByRole('button', { name: 'Generate a music clip', exact: false })).toBeVisible();
   await inputs(page, 'en');
   const candidateId = await completedCandidate(page, 'en');
   const candidate = received(await api.GET('/projects/{project_id}/candidates/{candidate_id}', { params: { path: { ...path, candidate_id: candidateId } } }));
