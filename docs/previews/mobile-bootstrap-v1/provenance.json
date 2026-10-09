@@ -1,0 +1,31 @@
+{
+    "capturedAt":  "2026-10-09T16:44:23.3439043Z",
+    "sourceCommit":  "5631c140ebed5bd0cda1150f9f3229a42eb6d8a4",
+    "workingCopy":  true,
+    "scope":  "isolated-bootstrap-preview",
+    "androidDevice":  "emulator-5562",
+    "avd":  "Shengjian_Expo57",
+    "expoGo":  "57.0.9",
+    "maestro":  "2.11.0",
+    "webViewport":  {
+                        "height":  844,
+                        "width":  390
+                    },
+    "sourceSha256":  {
+                         "package.json":  "336964c85c93211c33896aebca236aa39222148802dc444847dc3b19f869aaad",
+                         "pnpm-workspace.yaml":  "f656cdb800929f94520f1ed3d33222b929af48a83f723baf5a9624894a177b9d",
+                         "pnpm-lock.yaml":  "56509671b601565f76611dcc8a69e40d1241d5cf3f38a70ad5a62264453210e6",
+                         "apps/mobile/package.json":  "35314b856830715e2b96c2c1f5c75f131b07a222f6ea64044dd3a455e185ad6b",
+                         "apps/mobile/app.json":  "d5115fc468ecc0d5dd4d44c899f83d131303df562586475656d5c37f2bc53174",
+                         "apps/mobile/tsconfig.json":  "2c427a7bc50569dc5167d39425793d8bba22eeffcb213fff05f6274980784508",
+                         "apps/mobile/src/app/_layout.tsx":  "d93ac12ccbee814ea3602cc324ba76964eabec9e996eec282f5e38bd7f77facb",
+                         "apps/mobile/src/app/index.tsx":  "848eebd7fb582e7d44d27c98e501c2f78248bb4b801064ac57b2cd347d32fef3",
+                         "apps/mobile/src/constants/theme.ts":  "8137975d12cc4cab18d12f4e282f4408d3fbd04f133e21ba83bda93ed9f7b92d",
+                         "apps/mobile/src/screens/bootstrap.tsx":  "0d09c91359fc9b52ef58b3a5b9f46c6542fef5ca5d1baf1b03f56b1aea54ec74",
+                         "apps/mobile/.maestro/bootstrap.yaml":  "04bca14c071034252e25e57f967ce0c9b15e548a228d1119b523977680b26c2b",
+                         "scripts/test-mobile.ps1":  "cfba9a8a022f8085f7e42ff1b1e1aae400f66a6b76f69803ef0c31fe618e3ae2"
+                     },
+    "androidScreenshotSha256":  "119605373971dc1ec4704dd68425b49abccecfbbba8686c7ef5da3883f85dece",
+    "webScreenshotSha256":  "5f6f2662a02cc88081502fed4d279c6a75d8967957c6133306600e29888596a6",
+    "publicMaestroRun":  ".scratch/mobile-bootstrap/maestro-20261010-003524-692/junit.xml"
+}

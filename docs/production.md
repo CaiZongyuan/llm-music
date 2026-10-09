@@ -1,8 +1,9 @@
 # Local AI Music Workbench  
 ## Architecture & Implementation Plan
 
-**更新日期：2026-10-06**  
-**阶段：Pre-Implementation / Architecture Locked**
+**更新日期：2026-10-10**
+
+**阶段：Web 架构基线 / 移动端初始化验证**
 
 ---
 
@@ -84,7 +85,7 @@ ComfyUI / Native YuE2 / audio.cpp / Future Runtime
 
 ## 2.1 当前正式开发目标
 
-当前只开发和测试：
+Web 基线的完整链路为：
 
 ```text
 Web
@@ -98,7 +99,7 @@ YuE2 / SheetSage2
 RTX 3070 Ti 8GB
 ```
 
-这是当前唯一需要跑通的完整链路。
+这是 Web 阶段的完整链路。移动端作为下一独立阶段规划，范围见 2.3。
 
 ---
 
@@ -126,21 +127,35 @@ Electron Main / Preload
 
 ## 2.3 React Native
 
-React Native 当前明确列为：
+2026-10-09 确认将移动端纳入 Web 之后的独立阶段，保留 Web 工作台。移动端首版是便携客户端，先完成：
 
-> **Non-goal。**
+```text
+Generate
+ ↓
+Listen to Candidate
+ ↓
+Explicitly Save Version
+```
 
-当前不创建 mobile app，不建立 Expo workspace，也不为了未来移动端提前设计复杂 abstraction。
+首阶段验收 Android，iOS 适配与验收另行规划。首版不复制完整的乐谱编辑、转谱、Cover 与版本比较工作台。决策及取舍见 [ADR-005](adr/0005-mobile-companion-scope.md)。
 
-只需要保证：
+移动端沿用 Project、Asset、Job、Candidate 与 Version 的现有定义，通过 FastAPI 访问同一套创作数据，不直接连接 ComfyUI。接口边界仍为：
 
 ```text
 FastAPI = clean HTTP / WebSocket API
 ```
 
-即可。
+开发与测试均在 Windows 运行，使用 Expo SDK 57；日常优先 Expo Go，最终交付独立 Android APK，并用项目自己的二进制验证原生配置。手机首版通过局域网连接保持运行的 GPU 电脑。生成在后端继续执行，返回 App 时以 HTTP 恢复状态；首版只做前台试听，锁屏播放和完成推送列入后续能力。
 
-未来任何客户端都可以自然接入：
+首次连接由电脑显示地址与短时配对码，手机手工输入并保存设备凭据，电脑可撤销配对；继续维持单用户工作台。设备授权覆盖 HTTP、WebSocket 与音频读取，决策见 [ADR-006](adr/0006-mobile-lan-pairing.md)。局域网入口需要单独实现，不能由当前 loopback 启动方式推导为已支持。
+
+首版操作包括项目列表/新建、风格与歌词输入、生成、任务状态/取消/明确重试、播放/暂停/seek、命名保存 Version 和查看已有版本。手机保留编辑草稿；断网保留输入，恢复连接后读取原任务，提交结果未知时先核对已有记录。扫码配对、录音/素材上传/分享与离线音乐库列入后续按需扩展。
+
+验收要求 Android 模拟器、至少一台 Android 真机及独立 APK。日常 Maestro 使用隔离 Fake Runtime，覆盖中文/多行歌词、正常/空/加载/失败状态、连接与重启恢复、未知结果及重复提交控制；交付时运行真实 GPU 的生成、试听、明确保存闭环，并验证原始 FLAC 播放/seek。UI、音频及 GPU 证据分别记录。
+
+三轮产品选择已经确认，完整方案及执行顺序见 [移动端方案访谈](design/mobile-interview.md)。移动端复用已确认的黑色 Acid Hardware 视觉方向，新增流程遵循交互预览与反馈确认规则。2026-10-10 用户明确授权先初始化 mobile 并试跑，已创建 `apps/mobile` 和隔离启动预览，实际结果见 [初始化验证](verification/mobile-bootstrap.md)。正式项目创作与配对流程继续按预览、规格及实施顺序推进。
+
+其他客户端仍可通过该边界接入：
 
 ```text
 Web
@@ -1535,6 +1550,8 @@ max_seconds ≈ 30–40
 cot = full
 ```
 
+应用层更新（2026-10）：正式产品的 `max_seconds` 开放为 0–360，默认 0 = 自动（跟随歌词，模型下限约 40 秒，硬上限 360 秒）。第一轮 P0 的 30–40 秒 baseline 记录保持原样；新档位的真机验证记录见 `docs/verification/`。
+
 Attention backend：
 
 先使用插件推荐且在当前环境稳定的实现。
@@ -2185,10 +2202,10 @@ Ready
 
 # 52. 当前 Non-goals
 
-当前明确不做：
+Web MVP 的 non-goals 如下。移动端已进入下一阶段规划；其局域网配对与鉴权是新增边界，不改变 Web MVP 原有范围。公网访问、账号体系、锁屏播放和完成推送不属于移动端首版。
 
 ```text
-React Native
+完整移动音乐工作台
 Cloud SaaS
 Multi-user
 Authentication
@@ -2250,7 +2267,7 @@ apps/desktop
 apps/mobile
 ```
 
-等真正开发时再创建。
+移动端范围见 2.3；完成方案确认并真正进入开发时再创建。
 
 ---
 
@@ -2527,7 +2544,7 @@ localhost only
 
 不要把 ComfyUI 暴露到局域网。
 
-如果以后需要：
+移动端下一阶段已确定需要局域网：
 
 ```text
 remote control
@@ -2540,6 +2557,8 @@ FastAPI
 ```
 
 进入，并单独增加鉴权。
+
+该入口目前处于规划阶段。ComfyUI 仍仅监听本机；既有 API loopback 启动默认值保持作为本地入口。移动端采用可撤销的设备配对，其局域网接入、HTTP/WebSocket/音频鉴权及撤销机制另行实现及验收，见 [ADR-006](adr/0006-mobile-lan-pairing.md)。
 
 ---
 
@@ -2701,7 +2720,7 @@ Cleanup
 
 最终整个团队应始终遵守以下原则：
 
-> **Web 是当前唯一正式客户端。**
+> **保留 Web 工作台，移动端作为下一独立阶段。**
 
 > **FastAPI 是产品业务核心。**
 
@@ -2727,7 +2746,7 @@ Cleanup
 
 > **Electron 当前只保持兼容性，不参与开发和测试。**
 
-> **移动端当前完全不进入 scope。**
+> **移动端首版先完成生成、试听候选结果与明确保存版本，Android 先验收。**
 
 > **任何抽象都必须服务真实需求，不为假想未来提前增加复杂度。**
 

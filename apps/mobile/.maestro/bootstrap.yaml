@@ -1,0 +1,52 @@
+appId: host.exp.exponent
+name: Expo Go bootstrap on Android
+env:
+  EXPO_URL: exp://127.0.0.1:18081
+---
+- launchApp
+- openLink: ${EXPO_URL}
+- tapOn:
+    text: Continue
+    optional: true
+- tapOn:
+    text: Close
+    optional: true
+- extendedWaitUntil:
+    visible:
+      id: bootstrap-ready
+    timeout: 90000
+- assertVisible: 移动端已启动
+- tapOn:
+    id: bootstrap-counter-button
+- assertVisible: 点击次数：1
+- tapOn:
+    id: bootstrap-input
+- inputText: "风格：清晨的电子音乐\n第一句歌词"
+- hideKeyboard
+- tapOn:
+    id: bootstrap-echo-button
+- assertVisible:
+    id: bootstrap-echo
+    text: "风格：清晨的电子音乐\n第一句歌词"
+- tapOn:
+    id: bootstrap-fail
+- assertVisible: 预览状态：失败
+- tapOn:
+    id: bootstrap-load
+- assertVisible: 预览状态：加载中
+- tapOn:
+    id: bootstrap-complete
+- assertVisible: 预览状态：就绪
+- tapOn:
+    id: bootstrap-reset
+- assertVisible: 预览状态：空
+- takeScreenshot: bootstrap-android
+- stopApp
+- launchApp
+- openLink: ${EXPO_URL}
+- extendedWaitUntil:
+    visible:
+      id: bootstrap-ready
+    timeout: 30000
+- assertVisible: 点击次数：0
+- assertVisible: 尚未输入文本
