@@ -3,4 +3,5 @@ node_modules/
 .scratch/
 /logs/
 /output/
+/.venv/
 docs/previews/__pycache__/
