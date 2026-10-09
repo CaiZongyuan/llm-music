@@ -1,0 +1,18 @@
+{
+  "asset": "logo-mark.webp",
+  "kind": "generated-brand-asset",
+  "sha256": "242443a7e29816e44827f44f6402bdaf1ac3a6cfb374c7b492d2024bf5c7967a",
+  "source": {
+    "mode": "imagegen CLI (per AGENTS.md)",
+    "model": "gpt-image-2.5-sunburst",
+    "prompt_file": "output/imagegen/prompts/logo-a-panel-emblem.txt (untracked; no-augment variant)",
+    "requested_size": "1024x1024",
+    "delivered_size": "1254x1254",
+    "generated_at": "2026-10-09"
+  },
+  "data": {
+    "description": "Acid Hardware brand mark for 声间 (Shengjian): seven-bar audio waveform inside four thin technical corner brackets, acid chartreuse on pure black, no text. Visual language matches the confirmed ui-acid-v1 direction (docs/ui/ui-direction.md, SPEC-014 #96).",
+    "variant_note": "Second flat-color variant (a2) selected over the first for the absence of a dark halo; a CJK-character variant was generated but not adopted (glow, non-square delivery)."
+  },
+  "reuse": "Derived from untracked working file output/imagegen/logo-a2-panel-emblem.png: alpha flattened onto #050505, downscaled to 512x512, saved as WebP q90. No other retouching. Candidate for app icon / favicon wiring during SPEC-014 implementation."
+}

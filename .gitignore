@@ -1,0 +1,6 @@
+.worktrees/
+node_modules/
+.scratch/
+/logs/
+/output/
+docs/previews/__pycache__/

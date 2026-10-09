@@ -1,0 +1,18 @@
+{
+  "asset": "logo-wordmark.webp",
+  "kind": "generated-brand-asset",
+  "sha256": "afa8036c292b7c6f00c97cdc3f5ddea7032e28ea62df735e00d038341923926f",
+  "source": {
+    "mode": "imagegen CLI (per AGENTS.md)",
+    "model": "gpt-image-2.5-sunburst",
+    "prompt_file": "output/imagegen/prompts/logo-b-wordmark.txt (untracked)",
+    "requested_size": "1024x1024",
+    "delivered_size": "1254x1254",
+    "generated_at": "2026-10-09"
+  },
+  "data": {
+    "description": "Acid Hardware wordmark for 声间 (Shengjian): \"SHENGJIAN\" in ultra-heavy wide uppercase grotesque with the final N built from rising waveform bars, tagline \"LOCAL AI MUSIC WORKBENCH\" in letter-spaced monospace, acid chartreuse on pure black. Both text strings verified rendered correctly, letter by letter.",
+    "variant_note": "Chosen as the constraint-cleanest of three candidates (perfectly flat, correct text); candidate order and rejection reasons recorded in docs/ui/ui-direction.md session notes."
+  },
+  "reuse": "Derived from untracked working file output/imagegen/logo-b-wordmark.png: alpha flattened onto #050505, full resolution kept, saved as WebP q90. No other retouching. Intended for README / documentation site header use."
+}
