@@ -1,0 +1,18 @@
+{
+  "asset": "logo-wordmark-zh.webp",
+  "kind": "generated-brand-asset",
+  "sha256": "456e5a04ada1e0e29f896843f013419e8f7a866378b5745d16cc9d5b1ea35da9",
+  "source": {
+    "mode": "imagegen CLI (per AGENTS.md)",
+    "model": "gpt-image-2.5-sunburst",
+    "prompt_file": "output/imagegen/prompts/logo-c3-cjk-pure-type.txt (untracked; regenerated variant after the first CJK attempt was rejected)",
+    "requested_size": "1024x1024",
+    "delivered_size": "1254x1254",
+    "generated_at": "2026-10-09"
+  },
+  "data": {
+    "description": "Primary Chinese wordmark for 声间 (Shengjian): the two characters in ultra-heavy geometric CJK display lettering with structurally correct strokes, caption \"SHENGJIAN\" in letter-spaced monospace, acid chartreuse on pure black. Chosen by the user as the overall brand logo; characters kept free of any merged decoration after the first CJK attempt broke the stroke structure of 间.",
+    "variant_note": "Third round of logo exploration: c2 (waveform underline) rejected for edge artifacts, c3 (pure type) adopted. Earlier candidates and rejection reasons recorded in docs/ui/ui-direction.md session notes."
+  },
+  "reuse": "Derived from untracked working file output/imagegen/logo-c3-cjk-pure-type.png: black margins trimmed to content plus 6% padding (1087x598); interior speckle blobs filled programmatically; the \"SHENGJIAN\" caption was re-typeset programmatically in Consolas Bold at the original size, letter-spacing and muted-gray color (source caption was grainy). Saved as lossless WebP. Intended display size up to ~500px wide; the character forms carry generation grain at large zoom. Used as the README.zh-CN.md header logo."
+}

@@ -1,7 +1,7 @@
 {
   "asset": "logo-mark.webp",
   "kind": "generated-brand-asset",
-  "sha256": "242443a7e29816e44827f44f6402bdaf1ac3a6cfb374c7b492d2024bf5c7967a",
+  "sha256": "b275e40e8ae8a88d7633106151f1be92b921694e20bf4b009fdec0d936e10c29",
   "source": {
     "mode": "imagegen CLI (per AGENTS.md)",
     "model": "gpt-image-2.5-sunburst",
@@ -14,5 +14,5 @@
     "description": "Acid Hardware brand mark for 声间 (Shengjian): seven-bar audio waveform inside four thin technical corner brackets, acid chartreuse on pure black, no text. Visual language matches the confirmed ui-acid-v1 direction (docs/ui/ui-direction.md, SPEC-014 #96).",
     "variant_note": "Second flat-color variant (a2) selected over the first for the absence of a dark halo; a CJK-character variant was generated but not adopted (glow, non-square delivery)."
   },
-  "reuse": "Derived from untracked working file output/imagegen/logo-a2-panel-emblem.png: alpha flattened onto #050505, downscaled to 512x512, saved as WebP q90. No other retouching. Candidate for app icon / favicon wiring during SPEC-014 implementation."
+  "reuse": "Derived from untracked working file output/imagegen/logo-a2-panel-emblem.png: downscaled to 512x512 and saved as lossless WebP. No other retouching. The favicon/navigation logo used by apps/web and apps/docs is a hand-written SVG redraw of this mark's measured geometry (public/favicon.svg), which supersedes this raster for small sizes; this file remains the raster reference."
 }
