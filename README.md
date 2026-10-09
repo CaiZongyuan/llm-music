@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="apps/docs/public/images/logo-wordmark.webp" alt="Shengjian — Local AI Music Workbench" width="420">
+<img src="apps/docs/public/images/logo-wordmark.webp" alt="Shengjian — Local AI Music Workbench" width="480">
 
 # 声间 · Shengjian
 

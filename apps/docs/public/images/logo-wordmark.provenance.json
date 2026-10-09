@@ -1,18 +1,15 @@
 {
   "asset": "logo-wordmark.webp",
-  "kind": "generated-brand-asset",
-  "sha256": "50683f70e8fd0093713d90d4bab66f86be46704d6120542f5559f6ef4098aed8",
+  "kind": "brand-asset-programmatic-rebuild",
+  "sha256": "f55e99967618efbef940e2760643fac987164d4aad7e4ccdd252efaba7784723",
   "source": {
-    "mode": "imagegen CLI (per AGENTS.md)",
-    "model": "gpt-image-2.5-sunburst",
-    "prompt_file": "output/imagegen/prompts/logo-b-wordmark.txt (untracked)",
-    "requested_size": "1024x1024",
-    "delivered_size": "1254x1254",
-    "generated_at": "2026-10-09"
+    "design_provenance": "ui-acid-v1 Acid Hardware direction (docs/ui/ui-direction.md) and the user-approved generated draft output/imagegen/prompts/logo-b-wordmark.txt (untracked)",
+    "rebuild": "Programmatic re-typeset after the generated raster proved unusable at pixel level. Wordmark: Arial Black (the confirmed prototype display face); trailing ascending waveform bars and tagline drawn in code; tagline: Consolas Bold, letter-spaced.",
+    "built_at": "2026-10-10"
   },
   "data": {
-    "description": "Acid Hardware wordmark for 声间 (Shengjian): \"SHENGJIAN\" in ultra-heavy wide uppercase grotesque with the final N built from rising waveform bars, tagline \"LOCAL AI MUSIC WORKBENCH\" in letter-spaced monospace, acid chartreuse on pure black. Both text strings verified rendered correctly, letter by letter.",
-    "variant_note": "Chosen as the constraint-cleanest of three candidates (perfectly flat, correct text); candidate order and rejection reasons recorded in docs/ui/ui-direction.md session notes."
+    "description": "Latin wordmark for Shengjian: \"SHENGJIAN\" in ultra-heavy wide uppercase grotesque with five ascending waveform bars rising after the final N, tagline \"LOCAL AI MUSIC WORKBENCH\" in letter-spaced monospace, acid chartreuse on near-black. Exact colors: #e1f607 / #7d8a7d / #050505.",
+    "variant_note": "Chosen as the constraint-cleanest of three generated candidates, then rebuilt programmatically for cleanliness; candidate rejection chain recorded in docs/ui/ui-direction.md session notes."
   },
-  "reuse": "Derived from untracked working file output/imagegen/logo-b-wordmark.png: black margins trimmed to content plus 6% padding (1254x300); interior speckle blobs filled programmatically; the generated tagline band was damaged at source pixel level, so \"LOCAL AI MUSIC WORKBENCH\" was re-typeset programmatically in Consolas Bold at the original size, letter-spacing and muted-gray color. Saved as lossless WebP. Intended display size up to ~500px wide; the letterforms carry generation grain at large zoom. Used as the README.md header logo."
+  "reuse": "Rendered entirely from system fonts on a #050505 canvas, trimmed to content, saved as lossless WebP (2700x388, wide strip). Clean at any zoom. Used as the README.md header logo (display width 480)."
 }

@@ -25,4 +25,4 @@
 - 状态:**方向已确认**;token 见 `docs/previews/ui-acid-v1/README.md`。
 - 完整交互预览:[`docs/previews/ui-acid-v1/`](../previews/ui-acid-v1/index.html)(关键操作可执行,空/加载/失败态,数据仅内存;作者已经浏览器实测,过程记录在该目录 README)。
 - 2026-10-09 确认:用户选定 Acid Hardware(「更有个性」),并决定**仅保留黑色主题**(移除浅色主题与切换);改造规格已发布为 [#96 SPEC-014](https://github.com/CaiZongyuan/llm-music/issues/96)(带 `ready-for-agent`)。测试接缝:既有 E2E 断言不变 + 新增 token 契约测试 + 实现后真实浏览器对照验收。
-- 品牌资产(2026-10-09/10 生成):主 logo = 中文「声间」字标,入 `apps/docs/public/images/logo-wordmark-zh.webp`;拉丁字标 `logo-wordmark.webp`(README.md 头图);标志 `logo-mark.webp`(小尺寸图标形态)。favicon 由标志几何重绘为 SVG,web 与文档站共用 `public/favicon.svg`。生成记录见同名 `*.provenance.json`;原始 PNG 与提示词在 `output/imagegen/`(gitignored)。
+- 品牌资产(2026-10-09/10):主 logo = 中文「声间」字标 `apps/docs/public/images/logo-wordmark-zh.webp`;拉丁字标 `logo-wordmark.webp`(README.md 头图);标志 `logo-mark.webp`(小尺寸图标形态)。生成草稿经多轮筛选后,两张字标因生成图存在像素级噪点/粘连,最终以系统字体(Arial Black / 微软雅黑 Bold 加粗 / Consolas Bold)程序化重建,任意尺寸干净;favicon 由标志几何重绘为 SVG,web 与文档站共用 `public/favicon.svg`。细节见同名 `*.provenance.json`;生成原始 PNG 与提示词在 `output/imagegen/`(gitignored)。
