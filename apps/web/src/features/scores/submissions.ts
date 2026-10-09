@@ -10,10 +10,11 @@ const storageKey = (projectId: string) => `llm-music:score-submission:1:${projec
 // UI knows. Never send a restored storage record automatically.
 export function scoreGenerationInputs(value: Record<string, unknown>): GenerateFromScoreCreate | null {
   if (typeof value.abc !== 'string' || typeof value.source_score_id !== 'string' || typeof value.style !== 'string' || typeof value.lyrics !== 'string'
-      || typeof value.seed !== 'number' || !Number.isSafeInteger(value.seed) || value.seed < 0 || value.max_seconds !== 35
+      || typeof value.seed !== 'number' || !Number.isSafeInteger(value.seed) || value.seed < 0
+      || typeof value.max_seconds !== 'number' || !Number.isSafeInteger(value.max_seconds) || value.max_seconds < 0 || value.max_seconds > 360
       || !(value.parent_version_id === null || value.parent_version_id === undefined || typeof value.parent_version_id === 'string')) return null;
   return { abc: value.abc, source_score_id: value.source_score_id, parent_version_id: value.parent_version_id,
-    style: value.style, lyrics: value.lyrics, seed: value.seed, max_seconds: 35 };
+    style: value.style, lyrics: value.lyrics, seed: value.seed, max_seconds: value.max_seconds };
 }
 
 export function scoreSubmission(projectId: string): ScoreSubmission | null {

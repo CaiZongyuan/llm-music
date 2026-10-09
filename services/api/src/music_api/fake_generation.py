@@ -15,9 +15,11 @@ ABC = (b'X:1\nT:\nM:4/4\nL:1/16\nQ:1/4=96\n'
        b'K:C\n% verse\nV: Vocal\n"C"C4 D4 E4 G4 | G4 E4 D4 C4 |\nV: Ins\nZ2 |\n')
 
 
-def flac_fixture() -> bytes:
+def flac_fixture(max_seconds: int | None = None) -> bytes:
+    """Test tone at the requested ceiling. Auto (0/None) renders the pinned 35 s fixture."""
     target = BytesIO()
-    rate, count = 48000, 1679936
+    rate = 48000
+    count = 1679936 if not max_seconds else 1679936 + (int(max_seconds) - 35) * rate
     with av.open(target, mode="w", format="flac") as container:
         stream = container.add_stream("flac", rate=rate)
         if not isinstance(stream, AudioStream):
@@ -37,9 +39,10 @@ def flac_fixture() -> bytes:
     return target.getvalue()
 
 
-def generation_fixture() -> RuntimeResult:
+def generation_fixture(inputs: dict[str, object] | None = None) -> RuntimeResult:
+    requested = int(inputs.get("max_seconds", 0)) if inputs else 0
     return RuntimeResult(
         (RuntimeArtifact("abc", ABC, "abc", "text/vnd.abc", "score.abc"),
-         RuntimeArtifact("audio", flac_fixture(), "flac", "audio/flac", "song.flac")),
+         RuntimeArtifact("audio", flac_fixture(requested), "flac", "audio/flac", "song.flac")),
         provenance={"runtime_kind": "fake", "validation_scope": "Original complete CPU fixtures; no model inference"},
         score_validation={"valid": True, "note_count": 8, "duration_seconds": 5})

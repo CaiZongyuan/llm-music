@@ -1,4 +1,4 @@
-写下想要的风格与几句歌词，先做出约 35 秒音乐。再尝试参考音频转谱，或改变一个输入，找到你愿意留下的版本。
+写下想要的风格与几句歌词，先做出一段音乐。再尝试参考音频转谱，或改变一个输入，找到你愿意留下的版本。
 
 <div class="hero-actions"><a class="primary-action" href="./first-music.md">做出第一段音乐 →</a><a class="secondary-action" href="./reference.md">从参考音频开始</a></div>
 

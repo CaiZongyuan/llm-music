@@ -4,7 +4,7 @@ Start with implemented short-fragment workflows. Later capabilities have their o
 
 | Your task | Actual scope |
 | --- | --- |
-| Generate from style and lyrics | Current 35-second profile; audio and ABC form a Candidate, then an explicitly saved Version. |
+| Generate from style and lyrics | Clip length defaults to auto (follows the lyrics) with an optional 5–360-second ceiling; audio and ABC form a Candidate, then an explicitly saved Version. |
 | Transcribe Reference Audio | 16-second PCM16 WAV: mono24k or stereo48k; a Score, ABC, and MIDI. |
 | Generate from a selected Score | [Edit and regenerate](edit-score.en.md#regenerate): check and independently save/select native two-voice ABC in the Web, then generate a Candidate with style and lyrics. Explicit save retains its source parent. The [API](../guides/generate-save-api.en.md#selected-score) supports the same operation. |
 | Edit and audition a Score | The [ABC editor](edit-score.en.md) offers notation, matching MIDI audition/export and independent Score saving. Previous Versions and Assets retain their original content. |

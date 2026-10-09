@@ -4,7 +4,7 @@
 
 | 想做的事 | 实际范围 |
 | --- | --- |
-| 从风格与歌词生成 | 当前 35 秒配置；生成音频与 ABC，得到 Candidate，再明确保存 Version。 |
+| 从风格与歌词生成 | 片段长度默认自动（跟随歌词），可设 5–360 秒上限；生成音频与 ABC，得到 Candidate，再明确保存 Version。 |
 | 参考音频转谱 | 16 秒 PCM16 WAV：mono24k 或 stereo48k，得到 Score、ABC 与 MIDI。 |
 | 从选定乐谱生成 | [编辑与重新生成](edit-score.md#regenerate)：在 Web 检查、独立保存选定原生双声部 ABC，再用风格与歌词生成 Candidate；显式保存保留来源 parent。[API](../guides/generate-save-api.md#selected-score) 也可使用同一操作。 |
 | 编辑与试听乐谱 | [ABC 编辑器](edit-score.md) 提供谱面、对应 MIDI 试听/导出与独立 Score 保存；旧 Version/Asset 保持原文。 |

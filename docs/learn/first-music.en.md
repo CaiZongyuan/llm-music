@@ -28,7 +28,7 @@ English, gentle folk pop, warm clear voice, acoustic guitar and piano, light bas
 
 ## 3. Generate once and keep this Job {#generate}
 
-<p>Use seed <code>2026192201</code> and keep <code>max_seconds=35</code>. Name the Project Morning song; keep later variations in this Project.</p><p>Open “Music generation” in the formal Web, enter the style, lyrics and seed above, then choose “Generate a music clip”. Follow the <a href="../guides/web-generation.en.md">workspace generation guide</a> to check the Job, listen, inspect the score and choose “Save as a version”. Read the phase when no percentage is available. A quiet period is not a reason to submit again. Expand the supplement below when you need command-line operations.</p>
+<p>Use seed <code>2026192201</code>. Clip length can stay empty for auto (follows the lyrics) or take a ceiling in seconds; this tutorial keeps the verified <code>max_seconds=35</code>. Name the Project Morning song; keep later variations in this Project.</p><p>Open “Music generation” in the formal Web, enter the style, lyrics and seed above, then choose “Generate a music clip”. Follow the <a href="../guides/web-generation.en.md">workspace generation guide</a> to check the Job, listen, inspect the score and choose “Save as a version”. Read the phase when no percentage is available. A quiet period is not a reason to submit again. Expand the supplement below when you need command-line operations.</p>
 
 <details class="creator-supplement"><summary>Supplementary entrypoint: use the existing CLI</summary>
 

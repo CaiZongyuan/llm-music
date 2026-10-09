@@ -28,7 +28,7 @@ English, gentle folk pop, warm clear voice, acoustic guitar and piano, light bas
 
 ## 3. 生成一次，保留这次任务 {#generate}
 
-<p>使用 seed <code>2026192201</code>，片段设置保持 <code>max_seconds=35</code>。把 Project 命名为 Morning song；后面的变体继续放在这个 Project 中。</p><p>打开正式 Web 的“音乐生成”，填入上面的风格、歌词与种子，选择“生成一段音乐”。按<a href="../guides/web-generation.md">工作区生成指南</a>检查任务、试听、看谱，再选择“保存为版本”。没有百分比时看阶段名称即可；暂时没变化不代表要重复提交。需要命令行操作时再展开下面的补充。</p>
+<p>使用 seed <code>2026192201</code>；片段长度可留空自动（跟随歌词）或填写上限秒数，本教程沿用已验证的 <code>max_seconds=35</code>。把 Project 命名为 Morning song；后面的变体继续放在这个 Project 中。</p><p>打开正式 Web 的“音乐生成”，填入上面的风格、歌词与种子，选择“生成一段音乐”。按<a href="../guides/web-generation.md">工作区生成指南</a>检查任务、试听、看谱，再选择“保存为版本”。没有百分比时看阶段名称即可；暂时没变化不代表要重复提交。需要命令行操作时再展开下面的补充。</p>
 
 <details class="creator-supplement"><summary>补充操作入口：使用现成 CLI</summary>
 

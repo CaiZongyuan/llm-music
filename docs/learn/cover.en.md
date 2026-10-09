@@ -4,7 +4,7 @@ Continue in the Morning song Project. Give the beginning of a saved Version, or 
 
 Open “Cover” in the Project. Choose existing Reference Audio, or select a saved Version with audio and save its **first16 seconds** as a new Reference. The application extracts PCM16 stereo48k WAV from that Version's actual audio Asset. The original stays unchanged. The origin retains source Version, source Audio Asset, starting frame, frame count and original file hash.
 
-Local uploads still require exactly16-second PCM16 WAV: mono24k or stereo48k. Uploaded references have no source parent. Naming a Version cannot establish an upload's origin; an unchanged35-second generated clip is not a supported transcription input.
+Local uploads still require exactly16-second PCM16 WAV: mono24k or stereo48k. Uploaded references have no source parent. Naming a Version cannot establish an upload's origin; an unchanged generated clip is not a supported transcription input.
 
 Listen to the reference and note one clear pitch or rhythm to check against transcription.
 
@@ -42,6 +42,6 @@ Name and save a Version when satisfied. A Version-derived Reference retains its 
 
 ## Next idea: keep the phrase and study accompaniment {#ideas}
 
-Use the same saved Score, lyrics, style and seed, and explicitly select melody and full in separate attempts. Inspect the effective ABC's chord difference, then listen to each Candidate. Note rhythmic density, melodic clarity, harmony and the ending before keeping useful Versions. Neither attempt needs another transcription; later mode/style changes do not rewrite earlier results. The current profile creates35-second clips; it does not prove long-song or arbitrary-reference quality.
+Use the same saved Score, lyrics, style and seed, and explicitly select melody and full in separate attempts. Inspect the effective ABC's chord difference, then listen to each Candidate. Note rhythmic density, melodic clarity, harmony and the ending before keeping useful Versions. Neither attempt needs another transcription; later mode/style changes do not rewrite earlier results. Clip length is selectable: auto (follows the lyrics) or a 5–360-second ceiling. This does not prove arbitrary-reference quality, and longer clips deserve your own checks.
 
 Use the [Cover API guide](../guides/cover-api.en.md) when you need scripts. Modes come from the [pinned plugin](https://github.com/pytraveler/YuE2-ComfyUI/blob/fc78df9dfb214f396aa281f5b03519cefff5b00a/yue2_comfy/transcribe.py). CPU fixtures verify operations and files, rather than real GPU music.

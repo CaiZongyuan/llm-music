@@ -21,7 +21,7 @@ from music_api.version_models import Candidate, Version
 from music_api.score_input import selected_score_validation
 
 
-def validate_generation(result: RuntimeResult) -> tuple[ImportMaterial, ...]:
+def validate_generation(result: RuntimeResult, inputs: Mapping[str, object]) -> tuple[ImportMaterial, ...]:
     abc = validate_score(result)
     audio_outputs = [artifact for artifact in result.artifacts if artifact.role == "audio"]
     if len(audio_outputs) != 1:
@@ -29,9 +29,9 @@ def validate_generation(result: RuntimeResult) -> tuple[ImportMaterial, ...]:
                           "Retain this Job and inspect the Runtime result; do not save an incomplete Candidate.")
     audio = audio_outputs[0]
     if audio.format != "flac":
-        raise DomainError(503, "generation_failed", "Audio format differs from the pinned G35 FLAC output.",
+        raise DomainError(503, "generation_failed", "Audio format differs from the pinned FLAC generation output.",
                           "Verify the selected generation workflow and keep its original output.")
-    facts = validate_flac(audio.data)
+    facts = validate_flac(audio.data, int(inputs.get("max_seconds", 0)))
     return (ImportMaterial("abc", abc.data, "abc", "text/vnd.abc", "score.abc"),
             ImportMaterial("audio", audio.data, "flac", "audio/flac", "generated.flac", facts))
 

@@ -6,7 +6,7 @@ import { ErrorNotice } from '../../components/States';
 import { api, ApiFailure, dataOf } from '../../lib/api';
 import { Candidate } from '../candidates/Candidate';
 import { candidatesOptions } from '../candidates/queries';
-import { useGenerationDraft } from '../generation/drafts';
+import { requestedCeiling, useGenerationDraft } from '../generation/drafts';
 import { generationMessages } from '../generation/messages';
 import { InputsSnapshot } from '../generation/InputsSnapshot';
 import { JobState } from '../jobs/JobState';
@@ -29,7 +29,7 @@ function rejectedBeforeJob(error: unknown) {
 export function ScoreGeneration({ projectId, selectionReady = true }: { projectId: string; selectionReady?: boolean }) {
   const t = useMessages(messages), g = useMessages(generationMessages);
   const score = useSyncExternalStore(subscribeSelectedScore, () => selectedScore(projectId));
-  const [validation, setValidation] = useState<'seed' | 'empty' | null>(null);
+  const [validation, setValidation] = useState<'seed' | 'seconds' | 'empty' | null>(null);
   const [jobsRead, setJobsRead] = useState(false);
   const pending = useRef(false);
   const mounted = useRef(true);
@@ -73,10 +73,12 @@ export function ScoreGeneration({ projectId, selectionReady = true }: { projectI
     if (!selected || !selectionReady || pending.current || existing?.state === 'submitting' || existing?.state === 'unconfirmed' || capability.isError || !operationReady(capability.data, 'GenerateFromScore') || (job.data && isActiveJob(job.data)) || (jobId && !job.isSuccess)) return;
     const seed = Number(draft.seed);
     if (!/^\d+$/.test(draft.seed) || !Number.isSafeInteger(seed) || seed < 0) { setValidation('seed'); return; }
+    const maxSeconds = requestedCeiling(draft.maxSeconds);
+    if (maxSeconds === null) { setValidation('seconds'); return; }
     if (!draft.style.trim() || !draft.lyrics.trim()) { setValidation('empty'); return; }
     setValidation(null); setJobsRead(false); pending.current = true;
     const intent: ScoreSubmission = Object.freeze({ id: crypto.randomUUID(), state: 'submitting', body: Object.freeze({ abc: selected.abc, source_score_id: selected.source_score_id, parent_version_id: selected.parent_version_id,
-      style: draft.style.trim(), lyrics: draft.lyrics.trim(), seed, max_seconds: 35 }) });
+      style: draft.style.trim(), lyrics: draft.lyrics.trim(), seed, max_seconds: maxSeconds }) });
     retainScoreSubmission(projectId, intent);
     submit.mutate(intent);
   }
@@ -93,8 +95,8 @@ export function ScoreGeneration({ projectId, selectionReady = true }: { projectI
     <div className="workspace-grid generation-grid"><div><section className="surface"><h2>{t.title}</h2><p className="hint">{t.help}</p><form onSubmit={event => { event.preventDefault(); generate(); }}>
       <label>{g.style}<textarea aria-label={g.style} rows={3} maxLength={1024} required value={draft.style} onChange={event => update({ style: event.target.value })} /><span className="field-help">{g.styleHelp}</span></label>
       <label>{g.lyrics}<textarea aria-label={g.lyrics} rows={5} maxLength={10000} required value={draft.lyrics} onChange={event => update({ lyrics: event.target.value })} /><span className="field-help">{g.lyricsHelp}</span></label>
-      <div className="field-row"><label>{g.seed}<input aria-label={g.seed} inputMode="numeric" required value={draft.seed} onChange={event => update({ seed: event.target.value })} /><span className="field-help">{g.seedHelp}</span></label><label>{g.seconds}<input readOnly value={g.duration} /></label></div>
-      {validation ? <p className="error-box" role="alert">{validation === 'seed' ? g.invalidSeed : g.emptyInput}</p> : null}
+      <div className="field-row"><label>{g.seed}<input aria-label={g.seed} inputMode="numeric" required value={draft.seed} onChange={event => update({ seed: event.target.value })} /><span className="field-help">{g.seedHelp}</span></label><label>{g.seconds}<input aria-label={g.seconds} inputMode="numeric" placeholder={g.autoSeconds} value={draft.maxSeconds} onChange={event => update({ maxSeconds: event.target.value })} /><span className="field-help">{g.secondsHelp}</span></label></div>
+      {validation ? <p className="error-box" role="alert">{validation === 'seed' ? g.invalidSeed : validation === 'seconds' ? g.invalidSeconds : g.emptyInput}</p> : null}
       {submit.isError && !uncertain ? <ErrorNotice error={submit.error} /> : null}
       <CapabilityReadiness operation="GenerateFromScore" />
       {!score ? <p className="hint">{t.none}</p> : null}

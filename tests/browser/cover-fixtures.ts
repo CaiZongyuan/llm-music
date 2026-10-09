@@ -102,7 +102,7 @@ export async function uploadedSeed(baseURL: string | undefined) {
 
 export function expectedInput(referenceId: string, sourceScoreId: string, parent: string | null, abc = EDITED_FULL, effective = EDITED_MELODY, mode: CoverMode = 'melody'): CoverCreate {
   return { abc, source_score_id: sourceScoreId, reference_asset_id: referenceId, parent_version_id: parent, mode,
-    effective_abc_sha256: hash(Buffer.from(effective)), mode_transform_version: '1.0.0', style: STYLE, lyrics: LYRICS, seed: SEED, max_seconds: 35 };
+    effective_abc_sha256: hash(Buffer.from(effective)), mode_transform_version: '1.0.0', style: STYLE, lyrics: LYRICS, seed: SEED, max_seconds: 0 };
 }
 
 export function expectReferenceWav(bytes: Buffer) {

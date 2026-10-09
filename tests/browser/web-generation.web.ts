@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import { createMusicClient } from '@llm-music/api-client';
 import { test, expect } from '@playwright/test';
-import { hash, labels, inputs, completedCandidate, mediaState, control, received } from './generation-fixtures.js';
+import { hash, labels, inputs, ceiling, completedCandidate, mediaState, control, received } from './generation-fixtures.js';
 
 test.beforeEach(async () => { await control({}); });
 
@@ -39,7 +39,7 @@ for (const locale of ['zh-CN', 'en'] as const) for (const theme of ['light', 'da
     const candidateId = await completedCandidate(page, locale);
     const candidate = received(await api.GET('/projects/{project_id}/candidates/{candidate_id}', { params: { path: { ...path, candidate_id: candidateId } } }));
     expect(received(await api.GET('/projects/{project_id}/versions', { params: { path } }))).toEqual([]);
-    expect(candidate.inputs).toMatchObject({ seed: 2026192201, max_seconds: 35 });
+    expect(candidate.inputs).toMatchObject({ seed: 2026192201, max_seconds: 0 });
     const asset = received(await api.GET('/projects/{project_id}/assets/{asset_id}', { params: { path: { ...path, asset_id: candidate.audio_asset_id } } }));
     const audioBytes = received(await api.GET('/projects/{project_id}/assets/{asset_id}/content', { params: { path: { ...path, asset_id: asset.id } }, parseAs: 'arrayBuffer' }));
     expect(hash(new Uint8Array(audioBytes))).toBe(asset.sha256);
@@ -124,6 +124,19 @@ for (const locale of ['zh-CN', 'en'] as const) for (const theme of ['light', 'da
     await inputs(page, locale, ' · 第二次');
     const second = await completedCandidate(page, locale);
     expect(second).not.toBe(candidateId);
+    // The clip length is user-selected: out-of-range input is rejected locally, a 60 s ceiling is submitted and honored.
+    await ceiling(page, locale, '2');
+    await page.getByRole('button', { name: t.submit }).click();
+    await expect(page.getByRole('alert')).toHaveText(t.invalidSeconds);
+    expect(received(await api.GET('/projects/{project_id}/jobs', { params: { path } }))).toHaveLength(2);
+    await inputs(page, locale, ' · 第三次');
+    await ceiling(page, locale, '60');
+    const thirdId = await completedCandidate(page, locale);
+    const third = received(await api.GET('/projects/{project_id}/candidates/{candidate_id}', { params: { path: { ...path, candidate_id: thirdId } } }));
+    expect(third.inputs).toMatchObject({ max_seconds: 60 });
+    const thirdAsset = received(await api.GET('/projects/{project_id}/assets/{asset_id}', { params: { path: { ...path, asset_id: third.audio_asset_id } } }));
+    expect(thirdAsset.duration_seconds).toBeGreaterThan(55);
+    expect(thirdAsset.duration_seconds).toBeLessThanOrEqual(62);
     expect(received(await api.GET('/projects/{project_id}/versions/{version_id}', { params: { path: { ...path, version_id: original.id } } }))).toEqual(original);
     expect(received(await api.GET('/projects/{project_id}/versions', { params: { path } }))).toEqual([original]);
     expect(hash(new Uint8Array(received(await api.GET('/projects/{project_id}/assets/{asset_id}/content', { params: { path: { ...path, asset_id: asset.id } }, parseAs: 'arrayBuffer' }))))).toBe(asset.sha256);

@@ -19,6 +19,6 @@
   },
   "core_node": "2",
   "settings_node": "1",
-  "audio_duration_seconds": {"minimum": 30, "maximum": 40},
+  "audio_duration_seconds": {"minimum": 1, "maximum": 362},
   "notes": "ComfyUI API-mode graph, not a Canvas export. YuE2Options pins the published sampling defaults and disables all ancillary model downloads. SaveAudio is deprecated upstream but is registered at the pinned Runtime and saves lossless FLAC. Only the GPU owner submits real jobs."
 }

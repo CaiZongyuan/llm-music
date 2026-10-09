@@ -35,7 +35,7 @@ def variable(value):
     return bytes(result)
 
 
-def transcription_fixture():
+def transcription_fixture(inputs: dict | None = None):
     pitches = [60, 62, 64, 65, 67, 64, 65, 64, 62, 60, 62, 64, 65, 67, 69, 67, 64, 62, 64, 65, 62, 60]
     durations = [240, 240, 240, 240, 480, 480, 240, 240, 240, 240, 960, 240, 240, 240, 240, 480, 480, 240, 240, 240, 240, 960]
     track = b"\x00\xff\x51\x03\x09\x89\x68"

@@ -56,7 +56,7 @@ def test_native_selected_input_mapping_and_active_restart_recover_without_resubm
                     time.sleep(0.02)
                 assert peer.get("/fixture/selected-inputs").json() == [dict(abc=SELECTED_ABC, **INPUTS)]
                 running = client.get(base + "/jobs/" + selected_id).json()
-                assert running["inputs"] == dict(selected, max_seconds=35)
+                assert running["inputs"] == dict(selected, max_seconds=0)
             with owned_api(data, url, receipt_path, registry, tmp_path, ORDINARY_RECOVERY) as client:
                 peer.post("/fixture/control", json={"action": "complete"}).raise_for_status()
                 completed = wait_job(client, project["id"], selected_id)

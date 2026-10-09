@@ -1,4 +1,4 @@
-Describe a style and write a few lyric lines. Make about 35 seconds of music, then try transcription or change one input to find a version you want to keep.
+Describe a style and write a few lyric lines. Make a first piece of music, then try transcription or change one input to find a version you want to keep.
 
 <div class="hero-actions"><a class="primary-action" href="./first-music.en.md">Make your first music →</a><a class="secondary-action" href="./reference.en.md">Start with Reference Audio</a></div>
 

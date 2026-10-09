@@ -5,7 +5,7 @@ import { api, ApiFailure, dataOf } from '../../lib/api';
 import { ErrorNotice } from '../../components/States';
 import { Candidate } from '../candidates/Candidate';
 import { candidatesOptions } from '../candidates/queries';
-import { useGenerationDraft } from '../generation/drafts';
+import { requestedCeiling, useGenerationDraft } from '../generation/drafts';
 import { InputsSnapshot } from '../generation/InputsSnapshot';
 import { generationMessages } from '../generation/messages';
 import { JobState } from '../jobs/JobState';
@@ -58,7 +58,7 @@ export function CoverGeneration({ projectId, referenceId, sourceScoreId, blocked
   const [draft, update] = useGenerationDraft(projectId, restored);
   const capabilities = useQuery(capabilitiesOptions()), candidates = useQuery(candidatesOptions(projectId));
   const jobs = useQuery({ ...projectJobsOptions(projectId), enabled: false, refetchInterval: false });
-  const [jobsRead, setJobsRead] = useState(false), [validation, setValidation] = useState<'seed' | 'empty' | null>(null);
+  const [jobsRead, setJobsRead] = useState(false), [validation, setValidation] = useState<'seed' | 'seconds' | 'empty' | null>(null);
   const pending = useRef(false);
   const submit = useMutation({ retry: false, mutationFn: async (intent: CoverSubmission) => {
     const result = await api.POST('/projects/{project_id}/jobs/cover', { params: { path: { project_id: projectId } }, body: intent.body });
@@ -76,11 +76,13 @@ export function CoverGeneration({ projectId, referenceId, sourceScoreId, blocked
     if (!canGenerate || !choice || current.choice !== choice || choice.mode !== current.mode || choice.modeRevision !== current.modeRevision) return;
     const seed = Number(draft.seed);
     if (!/^\d+$/.test(draft.seed) || !Number.isSafeInteger(seed) || seed < 0) { setValidation('seed'); return; }
+    const maxSeconds = requestedCeiling(draft.maxSeconds);
+    if (maxSeconds === null) { setValidation('seconds'); return; }
     if (!draft.style.trim() || !draft.lyrics.trim()) { setValidation('empty'); return; }
     setValidation(null); setJobsRead(false); pending.current = true;
     const body: CoverCreate = { abc: choice.score.abc, source_score_id: choice.score.source_score_id, parent_version_id: choice.score.parent_version_id,
       reference_asset_id: choice.referenceId, mode: choice.validation.mode, effective_abc_sha256: choice.validation.effective_abc_sha256, mode_transform_version: '1.0.0',
-      style: draft.style.trim(), lyrics: draft.lyrics.trim(), seed, max_seconds: 35 };
+      style: draft.style.trim(), lyrics: draft.lyrics.trim(), seed, max_seconds: maxSeconds };
     const intent: CoverSubmission = Object.freeze({ id: crypto.randomUUID(), body: Object.freeze(body), effectiveABC: choice.validation.effective_abc, state: 'submitting' });
     retainCoverSubmission(projectId, intent); submit.mutate(intent);
   }
@@ -105,8 +107,8 @@ export function CoverGeneration({ projectId, referenceId, sourceScoreId, blocked
       <div className="cover-selection" aria-label={t.selected} data-selected-score-id={choice?.score.source_score_id} data-reference-id={choice?.referenceId} data-mode={choice?.validation.mode}><h4>{t.selected}</h4><p>{choiceCurrent && choice ? coverModeText(t.selectedEffective, choice.validation.mode) : choice ? t.effectiveStale : coverModeText(t.noSelection, mode)}</p>{choice ? <><small>{choice.score.source_score_id} · {choice.referenceId} · {choice.validation.mode} · {t.frozen}</small><details><summary>{t.originalABC}</summary><pre className="score-code" data-selected-original-abc>{choice.score.abc}</pre></details><details><summary>{t.effectiveABC}</summary><pre className="score-code" data-selected-effective-abc>{choice.validation.effective_abc}</pre></details></> : null}</div>
     </section><div className="workspace-grid generation-grid"><section className="surface"><h2>{t.generateTitle}</h2><p className="hint">{t.generationHelp}</p><form onSubmit={event => { event.preventDefault(); generate(); }}>
       <label>{g.style}<textarea aria-label={g.style} rows={3} maxLength={1024} required value={draft.style} onChange={event => update({ style: event.target.value })} /></label><label>{g.lyrics}<textarea aria-label={g.lyrics} rows={5} maxLength={10000} required value={draft.lyrics} onChange={event => update({ lyrics: event.target.value })} /></label>
-      <div className="field-row"><label>{g.seed}<input aria-label={g.seed} inputMode="numeric" required value={draft.seed} onChange={event => update({ seed: event.target.value })} /></label><label>{g.seconds}<input readOnly value={g.duration} /></label></div>
-      {validation ? <p className="error-box" role="alert">{validation === 'seed' ? g.invalidSeed : g.emptyInput}</p> : null}{submit.isError && !uncertain ? <ErrorNotice error={submit.error} /> : null}
+      <div className="field-row"><label>{g.seed}<input aria-label={g.seed} inputMode="numeric" required value={draft.seed} onChange={event => update({ seed: event.target.value })} /></label><label>{g.seconds}<input aria-label={g.seconds} inputMode="numeric" placeholder={g.autoSeconds} value={draft.maxSeconds} onChange={event => update({ maxSeconds: event.target.value })} /></label></div>
+      {validation ? <p className="error-box" role="alert">{validation === 'seed' ? g.invalidSeed : validation === 'seconds' ? g.invalidSeconds : g.emptyInput}</p> : null}{submit.isError && !uncertain ? <ErrorNotice error={submit.error} /> : null}
       <CapabilityReadiness operation="Cover" mode={mode} /><button type="submit" className="primary" disabled={!canGenerate}>{submission?.state === 'submitting' ? g.submitting : coverModeText(t.generate, mode)}</button>
     </form>{submission?.state === 'submitting' ? <p role="status">{t.sending}</p> : null}</section><div><h2>{t.result}</h2>
       {uncertain && submission ? <section className="surface submission-recovery" role="alert"><h3>{t.unknown}</h3><p>{t.recover}</p><InputsSnapshot projectId={projectId} inputs={submission.body} provenance={{ selected_score: { effective_abc: submission.effectiveABC } }} />

@@ -8,7 +8,7 @@ This guide covers only the independent P0 verification tool. Run commands from t
 uv run --no-project --python 3.12.13 python runtime/comfyui/p0/generation.py prepare --output-dir data/runtime/p0/generate-prepared
 ```
 
-Inspect `input.json`, `request.json`, `manifest.json`, and `report.json` in that directory. The fixed input uses original repository lyrics, style, seed `2026100701`, and a 35-second ceiling. Decoded audio must be 30–40 seconds long. `workflows/generate/` contains the versioned API-mode graph, input mapping, and output mapping. Existing output directories are not overwritten.
+Inspect `input.json`, `request.json`, `manifest.json`, and `report.json` in that directory. The fixed input uses original repository lyrics, style, seed `2026100701`, and a 35-second ceiling (the P0 gate keeps its verified window; the application's `max_seconds` is selectable 0–360, where 0 follows the lyrics). Decoded audio must be 30–40 seconds long. `workflows/generate/` contains the versioned API-mode graph, input mapping, and output mapping. Existing output directories are not overwritten.
 
 The baseline is BF16, offload=on, low_vram=false, keep_model_loaded=false, cot=full, standard VAE, and the stable sdpa default. YuE2 uses non-quantized BF16 backbone weights; the standard VAE executes in FP32 under the pinned plugin. download=off and vocals_only=false. No Writer, ASR, LoRA, or other ancillary model path is included.
 

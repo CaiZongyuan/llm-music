@@ -9,7 +9,7 @@ import math
 from queue import Empty, Queue
 import threading
 import time
-from typing import Callable, cast
+from typing import Callable, Mapping, cast
 from uuid import UUID, uuid4
 
 from sqlalchemy.dialects.sqlite import insert
@@ -30,7 +30,7 @@ from music_api.runtime_errors import failure_detail
 
 
 log = logging.getLogger("music_api")
-ResultValidator = Callable[[RuntimeResult], tuple[ImportMaterial, ...]]
+ResultValidator = Callable[[RuntimeResult, Mapping[str, object]], tuple[ImportMaterial, ...]]
 SubscriptionFactory = Callable[[str, Operation, Callable[[RuntimeStatus], None]], Callable[[], None]]
 OPERATION_PHASES: dict[Operation, tuple[str, ...]] = {
     "Transcribe": ("loading_model", "transcribing"),
@@ -66,7 +66,7 @@ def validate_score(result: RuntimeResult) -> RuntimeArtifact:
     return abc
 
 
-def validate_transcription(result: RuntimeResult) -> tuple[ImportMaterial, ...]:
+def validate_transcription(result: RuntimeResult, inputs: Mapping[str, object]) -> tuple[ImportMaterial, ...]:
     for role in ("abc", "midi"):
         if len([item for item in result.artifacts if item.role == role]) != 1:
             raise DomainError(503, "transcription_failed", "Required " + role.upper() + " output is missing or duplicated.", "Retain the Job evidence and inspect the Runtime output; do not silently rerun inference.")
@@ -403,7 +403,7 @@ class JobService:
                     session.commit()
                 self.notify(identifier)
                 result = self.runtime.result(handle, operation)
-                materials = self.validators[operation](result)
+                materials = self.validators[operation](result, deepcopy(job.inputs))
                 with self.transition_lock:
                     import_result(self.database, self.storage, identifier, materials, result, self.registrars.get(operation))
                 self.notify(identifier)

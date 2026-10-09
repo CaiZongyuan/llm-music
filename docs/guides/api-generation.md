@@ -8,7 +8,7 @@
 uv run --no-project --python 3.12.13 python runtime/comfyui/p0/generation.py prepare --output-dir data/runtime/p0/generate-prepared
 ```
 
-检查该目录的 `input.json`、`request.json`、`manifest.json` 和 `report.json`。固定输入包含本仓库原创歌词、风格、seed `2026100701` 和 35 秒上限；接受的实际音频时长为 30–40 秒。`workflows/generate/` 保存版本化的 API-mode graph、输入映射和输出映射。已有输出目录不会被覆盖。
+检查该目录的 `input.json`、`request.json`、`manifest.json` 和 `report.json`。固定输入包含本仓库原创歌词、风格、seed `2026100701` 和 35 秒上限（P0 闸门保持已验证区间；应用层 `max_seconds` 可在 0–360 自选，0 为自动）；接受的实际音频时长为 30–40 秒。`workflows/generate/` 保存版本化的 API-mode graph、输入映射和输出映射。已有输出目录不会被覆盖。
 
 初始设置为 BF16、offload=on、low_vram=false、keep_model_loaded=false、cot=full、标准 VAE 和稳定默认 sdpa。YuE2 骨干使用非量化 BF16 权重；标准 VAE 按锁定插件实现以 FP32 执行。download=off、vocals_only=false；没有 Writer、ASR、LoRA 或其他附加模型路径。
 

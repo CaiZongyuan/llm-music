@@ -30,9 +30,9 @@ Continue Morning song. Keep the original recipe and change one dimension. Hear t
 
 | Experiment | Keep first | Listen for |
 | --- | --- | --- |
-| Change style only | Original lyrics, seed, 35-second setting | Instrument density, voice, and mood; style words are not exact arrangement commands. |
-| Change one lyric line | Original style, seed, other lyrics | Natural articulation and phrasing, and a memorable line; it may not appear in the 35-second result. |
-| Change seed only | Original style, complete lyrics, 35-second setting | A melody or structure that suits you better in another result; one difference is not a stable rule. |
+| Change style only | Original lyrics, seed, clip-length setting | Instrument density, voice, and mood; style words are not exact arrangement commands. |
+| Change one lyric line | Original style, seed, other lyrics | Natural articulation and phrasing, and a memorable line; it may not appear within this clip. |
+| Change seed only | Original style, complete lyrics, clip-length setting | A melody or structure that suits you better in another result; one difference is not a stable rule. |
 
 <p>Hear the whole piece first, then focus on your question. Record a short preference such as “B has clearer vocals; A has a more natural ending.” Keep the original result instead of comparing from memory.</p>
 

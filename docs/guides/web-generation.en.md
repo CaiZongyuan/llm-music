@@ -6,7 +6,7 @@ Continue with “A walk after rain”. Try a warm piano song, inspect the voice,
 
 1. Open “Generate music” in the project workspace. Enter “warm piano, a bright melody and clear vocals” in “Music style”.
 2. Write a short lyric in “Lyrics”. Use `[Verse]` and `[Chorus]` to organize sections. Keep seed `2026192201` to record this attempt.
-3. Confirm “Ready to create”, then choose “Generate a music clip”. Clip length is fixed at 35 seconds. The seed must be an integer from 0 to 9007199254740991.
+3. Confirm “Ready to create”, then choose “Generate a music clip”. Clip length defaults to auto (follows the lyrics); you can also enter a ceiling of 5–360 seconds. The result stays within the ceiling and may end earlier when the lyrics finish. The seed must be an integer from 0 to 9007199254740991.
 4. Follow phases under “Creative job”. Unknown progress shows the phase without an estimated percentage. A completed job produces a playable Candidate. It does not save a Version.
 
 Missing models or unavailable creative resources disable submission. Restore resources, then choose “Check readiness again”. Changing language or theme preserves current input.
@@ -50,5 +50,5 @@ Reloading inside the same Project restores only still-valid Version ids and the 
 - Version save fails or its acknowledgement is lost: name and Candidate remain. Choose “Reread saved versions” first to check whether it was saved. If recovery is needed, choose “Save the same version again”. It uses the first name and Candidate; later text edits do not change the recovery intent. Repeated saves of the same Candidate and name return the same Version without duplicate history.
 - Candidate or version reads fail: use the corresponding reread action. A read error does not become empty history.
 
-The single continuous player supports Asset listening, saved-Version A/B, seek and bounded regions. The Score page supports ABC editing, MIDI audition/export and generation from selected notation. Saved Versions show their relationships and support explicit continued creation; Cover supports both modes. Long-song generation remains a later stage. See the [workspace guide](web-workspace.en.md#launch) to start the formal Web and independent application service.
+The single continuous player supports Asset listening, saved-Version A/B, seek and bounded regions. The Score page supports ABC editing, MIDI audition/export and generation from selected notation. Saved Versions show their relationships and support explicit continued creation; Cover supports both modes. Clip length is selectable: auto (follows the lyrics) or a 5–360-second ceiling. See the [workspace guide](web-workspace.en.md#launch) to start the formal Web and independent application service.
 

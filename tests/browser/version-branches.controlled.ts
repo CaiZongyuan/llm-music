@@ -20,7 +20,7 @@ test('branching from saved Cover V2 uses V2, preserves old provenance, and saves
   await setInputs(page);
   const { job, body } = await generateFromCurrent(page);
   await info.attach('branch-origin-counterexample', { body: JSON.stringify({ original, chosen: cover, inheritedScoreParent: coverScore.parent_version_id, newerSibling: sibling, actualBody: body, acceptedJob: job }, null, 2), contentType: 'application/json' });
-  const expected = { abc: MELODY_ABC, source_score_id: coverScore.id, parent_version_id: cover.id, ...BRANCH_INPUTS, max_seconds: 35 };
+  const expected = { abc: MELODY_ABC, source_score_id: coverScore.id, parent_version_id: cover.id, ...BRANCH_INPUTS, max_seconds: 0 };
   expect(body).toEqual(expected);
   expect(job.inputs).toEqual(expected);
   const candidateId = await candidateOf(page, job.id);
@@ -165,7 +165,7 @@ test('failed and cancelled branch Jobs keep history; save failures and lost ackn
   await startBranch(page, project.id, cover);
   await page.getByRole('button', { name: labels.en.select, exact: true }).click();
   await setInputs(page);
-  const expected = { abc: MELODY_ABC, source_score_id: coverScore.id, parent_version_id: cover.id, ...BRANCH_INPUTS, max_seconds: 35 };
+  const expected = { abc: MELODY_ABC, source_score_id: coverScore.id, parent_version_id: cover.id, ...BRANCH_INPUTS, max_seconds: 0 };
   await control({ scenario: 'runtime_out_of_memory' });
   const failed = await generateFromCurrent(page);
   const failedRegion = page.locator(`.score-regeneration [data-job-id="${failed.job.id}"]`);
@@ -268,7 +268,7 @@ test('a late ordinary edit acknowledgement cannot replace an explicit branch sel
     await expect(page.locator('.selected-score')).toHaveAttribute('data-selected-score-id', branchEdit.id);
     await expect(page.getByText(labels.en.ready, { exact: true })).toBeVisible();
     const { job, body } = await generateFromCurrent(page);
-    expect(body).toEqual({ abc: EDITED_MELODY, source_score_id: branchEdit.id, parent_version_id: cover.id, ...BRANCH_INPUTS, max_seconds: 35 });
+    expect(body).toEqual({ abc: EDITED_MELODY, source_score_id: branchEdit.id, parent_version_id: cover.id, ...BRANCH_INPUTS, max_seconds: 0 });
     await candidateOf(page, job.id);
     expect(await savedVersions(api, project.id)).toEqual(immutable.versions);
     expect(await abcBytes(api, project.id, coverScore)).toBe(immutable.coverABC);
@@ -361,7 +361,7 @@ test('checking an old Version preserves drafts; only explicit reuse replaces inp
   await expect(page.locator('.selected-score')).toHaveAttribute('data-selected-score-id', selected.id);
   const { job, body } = await generateFromCurrent(page);
   expect(body).toEqual({ abc: EDITED_MELODY, source_score_id: selected.id, parent_version_id: cover.id,
-    style: cover.inputs.style, lyrics: cover.inputs.lyrics, seed: cover.inputs.seed, max_seconds: 35 });
+    style: cover.inputs.style, lyrics: cover.inputs.lyrics, seed: cover.inputs.seed, max_seconds: 0 });
   await candidateOf(page, job.id);
   expect(await savedVersions(api, project.id)).toHaveLength(3);
   await info.attach('explicit-reuse-and-edited-origin', { body: JSON.stringify({ origin: cover, selected, body, job, writes }, null, 2), contentType: 'application/json' });
@@ -414,7 +414,7 @@ test('ordinary Cover-output Score keeps its inherited source; unowned, missing a
   historyFacts.push({ stage: 'ordinary ready after Forward', ...await publicReadiness() });
   await info.attach('same-Score-public-history-readiness', { body: JSON.stringify({ cover, coverScore, historyFacts }, null, 2), contentType: 'application/json' });
   const submitted = await generateFromCurrent(page);
-  expect(submitted.body).toEqual({ abc: MELODY_ABC, source_score_id: coverScore.id, parent_version_id: original.id, ...BRANCH_INPUTS, max_seconds: 35 });
+  expect(submitted.body).toEqual({ abc: MELODY_ABC, source_score_id: coverScore.id, parent_version_id: original.id, ...BRANCH_INPUTS, max_seconds: 0 });
   await candidateOf(page, submitted.job.id);
   for (const origin of [sibling.id, randomUUID(), 'false', '42']) {
     await page.goto(`/projects/${project.id}/scores/${coverScore.id}?branchVersionId=${origin}`);

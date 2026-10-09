@@ -247,7 +247,7 @@ test('missing observed melody choice blocks Cover without a full fallback and pr
   expect(blocked.response.status).toBe(503);
   expect(received(await api.GET('/projects/{project_id}/jobs', { params: { path: { project_id: project.id } } })).filter(value => value.operation === 'Cover')).toEqual([]);
   const gfs = received(await api.POST('/projects/{project_id}/jobs/generate-from-score', { params: { path: { project_id: project.id } },
-    body: { abc: EDITED_FULL, source_score_id: selected, parent_version_id: original.id, style: STYLE, lyrics: LYRICS, seed: SEED + 1, max_seconds: 35 } }));
+    body: { abc: EDITED_FULL, source_score_id: selected, parent_version_id: original.id, style: STYLE, lyrics: LYRICS, seed: SEED + 1, max_seconds: 0 } }));
   const oldConsumer = await completedJob(api, project.id, gfs);
   expect(oldConsumer.operation).toBe('GenerateFromScore');
   await page.locator('.cover-mode input[value="full"]').check();
@@ -524,7 +524,7 @@ test('lost Reference creation ACK locks the first source choice and recovers one
   const { api, project, original, score } = await withParent(baseURL);
   const path = { project_id: project.id };
   const laterJob = await completedJob(api, project.id, received(await api.POST('/projects/{project_id}/jobs/generate-from-score', { params: { path },
-    body: { abc: MELODY_ABC, source_score_id: score.id, parent_version_id: original.id, style: 'another original direction', lyrics: LYRICS, seed: SEED + 3, max_seconds: 35 } })));
+    body: { abc: MELODY_ABC, source_score_id: score.id, parent_version_id: original.id, style: 'another original direction', lyrics: LYRICS, seed: SEED + 3, max_seconds: 0 } })));
   if (!laterJob.result?.candidate_id) throw new Error('No later public Candidate for competing Reference intent');
   const later = received(await api.POST('/projects/{project_id}/versions', { params: { path }, body: { candidate_id: laterJob.result.candidate_id, name: 'Later Version choice' } }));
   let first = true;

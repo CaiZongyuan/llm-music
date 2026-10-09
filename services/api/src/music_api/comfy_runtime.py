@@ -174,7 +174,7 @@ class ComfyUIRuntime:
             value = str(upload["subfolder"]) + "/" + str(upload["name"])
             cast(dict[str, object], graph[str(binding["node"])]["inputs"])[str(binding["input"])] = value
         else:
-            values = dict(request.inputs, max_seconds=35)
+            values = dict(request.inputs)
             if request.operation == "GenerateFromScore":
                 from music_api.score_input import effective_score_abc
                 values["abc"] = effective_score_abc(str(request.inputs["abc"]))[0]

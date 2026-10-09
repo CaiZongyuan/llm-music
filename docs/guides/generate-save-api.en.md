@@ -32,11 +32,11 @@ uv run --project services/api --no-sync python services/api/examples/generate_sa
 
 The terminal prints `project_id` and the Candidate. The download directory contains `audio.flac` and `score.abc`. Listen and inspect the Score before choosing to save. Fake Audio is an identified test tone. This command does not create a Version.
 
-The HTTP request is `POST /projects/{project_id}/jobs/generate`. Trimmed style and lyrics must be nonempty and contain at most 1024 and 10000 characters. Seed must be an integer from 0 to `2^63−1`. `max_seconds` supports only 35. Only this short-song profile is verified.
+The HTTP request is `POST /projects/{project_id}/jobs/generate`. Trimmed style and lyrics must be nonempty and contain at most 1024 and 10000 characters. Seed must be an integer from 0 to `2^63−1`. `max_seconds` accepts 0–360: 0 follows the lyrics (the model floor is about 40 seconds); any other value is a seconds ceiling. The result stays within the ceiling and may end earlier when the lyrics finish.
 
 The request returns `202` and an application Job id. Read `GET /projects/{project_id}/jobs/{job_id}`. The five states are queued, running, completed, failed, and cancelled. A successful result contains `candidate_id`, `audio_asset_id`, `abc_asset_id`, and `score_id`. The application marks completed only after Score validation, full FLAC decoding, and whole-output-set import.
 
-List Candidates with `GET /projects/{project_id}/candidates`, or read `/candidates/{candidate_id}`. A Candidate retains inputs, execution settings, Workflow/Runtime provenance, and output facts. G35 currently requires PCM16 FLAC, 48 kHz stereo, 30–40 seconds, and agreement between all decoded frames and the STREAMINFO declaration. Legal streaming FLAC with a zero declared sample count cannot yet be confirmed under this verified profile.
+List Candidates with `GET /projects/{project_id}/candidates`, or read `/candidates/{candidate_id}`. A Candidate retains inputs, execution settings, Workflow/Runtime provenance, and output facts. Generated output currently requires PCM16 FLAC, 48 kHz stereo; the duration must fall between 1 second and the ceiling +2 (360 +2 for auto), with agreement between all decoded frames and the STREAMINFO declaration. Legal streaming FLAC with a zero declared sample count cannot yet be confirmed under this verified profile.
 
 ## Generate from a selected Score {#selected-score}
 
@@ -52,7 +52,7 @@ uv run --project services/api --no-sync python services/api/examples/generate_sa
 
 `SOURCE_SCORE_ID` comes from the original Candidate's `score_id` or the transcription Job result. When starting from a saved Version, `SOURCE_VERSION_ID` must be the same-Project Version that owns this Score. Omit `--parent-version-id` when starting only from a transcribed Score. The command preserves the original Score, Assets and Version, and does not save a new Version automatically. Listen to the new `audio.flac` and judge whether the melody edit and style are worth keeping.
 
-The request is `POST /projects/{project_id}/jobs/generate-from-score`. It contains `abc`, `source_score_id`, optional `parent_version_id`, and Generate's style, lyrics, seed and `max_seconds=35`. ABC has a 100000-character limit. Source Score and parent must belong to this Project. Invalid or unsupported ABC is rejected before a Job is created. A missing capability is rejected explicitly; the operation cannot fall back to ordinary Generate.
+The request is `POST /projects/{project_id}/jobs/generate-from-score`. It contains `abc`, `source_score_id`, optional `parent_version_id`, and Generate's style, lyrics, seed and `max_seconds` (0–360; 0 follows the lyrics). ABC has a 100000-character limit. Source Score and parent must belong to this Project. Invalid or unsupported ABC is rejected before a Job is created. A missing capability is rejected explicitly; the operation cannot fall back to ordinary Generate.
 
 The formal [ABC editor](../learn/edit-score.en.md) can save edits independently. `POST /projects/{project_id}/scores/validate` checks `abc` with the pinned parser without a Job or GPU call. `POST /projects/{project_id}/scores` saves the original text as a new ABC Asset and Score, with optional `source_score_id`, `parent_version_id` and stable `save_id`. First save returns `201`. Replaying the same id, Project, source, parent and text hash returns `200` with the same Score; different intent returns `409 score_save_conflict`. `job_id=null` explicitly identifies independent saving, without an automatic Candidate or Version.
 

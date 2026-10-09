@@ -697,10 +697,10 @@ export interface components {
             seed: number;
             /**
              * Max Seconds
-             * @default 35
-             * @constant
+             * @description Audio ceiling in seconds; 0 follows the lyrics (the pinned model default).
+             * @default 0
              */
-            max_seconds?: 35;
+            max_seconds?: number;
             /**
              * Abc
              * @description Explicitly selected ABC; copied exactly into the Job input snapshot.
@@ -912,10 +912,10 @@ export interface components {
             seed: number;
             /**
              * Max Seconds
-             * @default 35
-             * @constant
+             * @description Audio ceiling in seconds; 0 follows the lyrics (the pinned model default).
+             * @default 0
              */
-            max_seconds?: 35;
+            max_seconds?: number;
         };
         /** GenerateFromScoreCreate */
         GenerateFromScoreCreate: {
@@ -927,10 +927,10 @@ export interface components {
             seed: number;
             /**
              * Max Seconds
-             * @default 35
-             * @constant
+             * @description Audio ceiling in seconds; 0 follows the lyrics (the pinned model default).
+             * @default 0
              */
-            max_seconds?: 35;
+            max_seconds?: number;
             /**
              * Abc
              * @description Explicitly selected ABC; copied exactly into the Job input snapshot.

@@ -49,8 +49,8 @@
   "core_node": "2",
   "settings_node": "1",
   "audio_duration_seconds": {
-    "minimum": 30,
-    "maximum": 40
+    "minimum": 1,
+    "maximum": 362
   },
   "notes": "Pinned score_abc input skips score planning. Exact ABC input and operation settings are retained; original G35 defaults and original lossless FLAC import are reused.",
   "required_node_inputs": {

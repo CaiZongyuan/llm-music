@@ -60,7 +60,7 @@ for (const locale of ['en', 'zh-CN'] as const) for (const theme of ['light', 'da
     const posted = page.waitForRequest(request => request.method() === 'POST' && request.url().endsWith('/jobs/generate-from-score'));
     const candidateId = await generateCandidate(page, locale);
     const body: unknown = (await posted).postDataJSON();
-    expect(body).toEqual({ abc: EDITED_ABC, source_score_id: selected, parent_version_id: original.id, style: STYLE, lyrics: LYRICS, seed: Number(SEED), max_seconds: 35 });
+    expect(body).toEqual({ abc: EDITED_ABC, source_score_id: selected, parent_version_id: original.id, style: STYLE, lyrics: LYRICS, seed: Number(SEED), max_seconds: 0 });
     const candidate = received(await api.GET('/projects/{project_id}/candidates/{candidate_id}', { params: { path: { ...path, candidate_id: candidateId } } }));
     const job = received(await api.GET('/projects/{project_id}/jobs/{job_id}', { params: { path: { ...path, job_id: candidate.job_id } } }));
     expect(job).toMatchObject({ operation: 'GenerateFromScore', status: 'completed', inputs: body });
@@ -134,7 +134,7 @@ test('editing while submission acknowledgement is held cannot change the actual 
     await page.getByRole('textbox', { name: 'ABC Score text', exact: true }).fill(NEXT_ABC);
     await page.getByRole('textbox', { name: 'Music style', exact: true }).fill('later drums, not submitted');
     await expect(page.getByText('Notation and MIDI match the current draft.', { exact: true })).toBeVisible();
-    const expected = { abc: EDITED_ABC, source_score_id: selected, parent_version_id: original.id, style: STYLE, lyrics: LYRICS, seed: Number(SEED), max_seconds: 35 };
+    const expected = { abc: EDITED_ABC, source_score_id: selected, parent_version_id: original.id, style: STYLE, lyrics: LYRICS, seed: Number(SEED), max_seconds: 0 };
     expect(submitted.inputs).toEqual(expected);
     release();
     await expect(page.locator('.score-regeneration .job-monitor')).toHaveAttribute('data-job-id', submitted.id);
@@ -236,7 +236,7 @@ test('cancelled Score generation preserves editable input and an explicit retry 
   const jobs = received(await api.GET('/projects/{project_id}/jobs', { params: { path } }));
   expect(jobs).toHaveLength(2);
   const retry = jobs.find(value => value.id !== first);
-  expect(retry).toMatchObject({ operation: 'GenerateFromScore', provenance: { retry_of_job_id: first }, inputs: { abc: EDITED_ABC, source_score_id: selected, parent_version_id: null, style: STYLE, lyrics: LYRICS, seed: Number(SEED), max_seconds: 35 } });
+  expect(retry).toMatchObject({ operation: 'GenerateFromScore', provenance: { retry_of_job_id: first }, inputs: { abc: EDITED_ABC, source_score_id: selected, parent_version_id: null, style: STYLE, lyrics: LYRICS, seed: Number(SEED), max_seconds: 0 } });
   await expect(page.getByRole('textbox', { name: 'ABC Score text', exact: true })).toHaveValue(NEXT_ABC);
   await expect(page.getByRole('textbox', { name: 'Music style', exact: true })).toHaveValue('later style after cancellation');
   expect(received(await api.GET('/projects/{project_id}/versions', { params: { path } }))).toEqual([]);
@@ -284,7 +284,7 @@ test('a lost initial generation acknowledgement survives reload and recovers the
   await page.getByRole('button', { name: 'Generate from selected Score', exact: true }).click();
   const recovery = page.locator('.submission-recovery');
   await expect(recovery).toContainText('Submission is unconfirmed');
-  const expected = { abc: EDITED_ABC, source_score_id: selected, parent_version_id: null, style: STYLE, lyrics: LYRICS, seed: Number(SEED), max_seconds: 35 };
+  const expected = { abc: EDITED_ABC, source_score_id: selected, parent_version_id: null, style: STYLE, lyrics: LYRICS, seed: Number(SEED), max_seconds: 0 };
   expect(accepted.inputs).toEqual(expected);
   await page.getByRole('textbox', { name: 'ABC Score text', exact: true }).fill(NEXT_ABC);
   await page.getByRole('textbox', { name: 'Music style', exact: true }).fill('later unrelated style');
@@ -330,7 +330,7 @@ for (const acknowledgement of ['empty body', 'missing Job identity'] as const) {
     const responded = page.waitForResponse(response => response.request().method() === 'POST' && response.url().endsWith('/jobs/generate-from-score'));
     await page.getByRole('button', { name: 'Generate from selected Score', exact: true }).click();
     await responded;
-    const expected = { abc: EDITED_ABC, source_score_id: selected, parent_version_id: original.id, style: STYLE, lyrics: LYRICS, seed: Number(SEED), max_seconds: 35 };
+    const expected = { abc: EDITED_ABC, source_score_id: selected, parent_version_id: original.id, style: STYLE, lyrics: LYRICS, seed: Number(SEED), max_seconds: 0 };
     expect(accepted.inputs).toEqual(expected);
     expect(received(await api.GET('/projects/{project_id}/jobs/{job_id}', { params: { path: { project_id: project.id, job_id: accepted.id } } })).inputs).toEqual(expected);
     const recovery = page.locator('.submission-recovery');

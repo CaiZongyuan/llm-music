@@ -26,7 +26,7 @@ class FakeInferenceRuntime:
     mode: RuntimeMode = "fake"
 
     def __init__(self, results: Mapping[Operation, RuntimeResult] | None = None, registry: WorkflowRegistry | None = None,
-                 output_dir: Path | None = None, result_factories: Mapping[Operation, Callable[[], RuntimeResult]] | None = None,
+                 output_dir: Path | None = None, result_factories: Mapping[Operation, Callable[[dict[str, object]], RuntimeResult]] | None = None,
                  max_age_seconds: float = 300) -> None:
         self.registry = registry or WorkflowRegistry()
         self.output_dir = output_dir
@@ -61,7 +61,7 @@ class FakeInferenceRuntime:
             return SubmissionReceipt("rejected", code="capability_missing", message="Selected fake Cover mode is unavailable.")
         handle = str(uuid4())
         if request.operation in self.result_factories:
-            self.results[request.operation] = self.result_factories[request.operation]()
+            self.results[request.operation] = self.result_factories[request.operation](request.inputs)
         result = self.results[request.operation]
         if request.operation == "GenerateFromScore":
             from music_api.score_input import effective_score_abc, selected_score_validation

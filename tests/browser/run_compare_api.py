@@ -73,7 +73,7 @@ def inspect_complete_audio(data: bytes, count: int) -> dict:
             "scope": "CPU generated test tone; no GPU or original music crop"}
 
 
-def compare_fixture():
+def compare_fixture(inputs: dict | None = None):
     result = generation_fixture()
     profile = control().get("audio", "long")
     short = profile in {"short", "short-original"}

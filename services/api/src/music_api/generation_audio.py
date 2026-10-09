@@ -1,4 +1,4 @@
-"""Validate finalized G35 FLAC with declared counts and every decoded PCM frame."""
+"""Validate finalized generated FLAC with declared counts and every decoded PCM frame."""
 
 from io import BytesIO
 
@@ -9,7 +9,7 @@ from music_api.audio import AudioFacts
 from music_api.errors import DomainError
 
 
-def validate_flac(data: bytes) -> AudioFacts:
+def validate_flac(data: bytes, max_seconds: int) -> AudioFacts:
     if len(data) < 42 or data[:4] != b"fLaC" or data[4] & 0x7F != 0 or int.from_bytes(data[5:8], "big") != 34:
         raise DomainError(422, "generated_audio_invalid", "Runtime Audio is not a complete FLAC stream header.",
                           "Keep the failed Job and Runtime output; verify the pinned generation workflow.")
@@ -22,9 +22,9 @@ def validate_flac(data: bytes) -> AudioFacts:
     expected = packed & ((1 << 36) - 1)
     if expected == 0:
         raise DomainError(422, "generated_audio_unverified", "FLAC declares an unknown total sample count.",
-                          "This finalized G35 profile requires a declared sample count; retain the legal streaming FLAC for owner verification.")
+                          "This finalized generation profile requires a declared sample count; retain the legal streaming FLAC for owner verification.")
     if rate != 48000 or channels != 2 or width != 16:
-        raise DomainError(422, "generated_audio_profile_mismatch", "Audio layout differs from the verified G35 PCM16 stereo 48 kHz profile.",
+        raise DomainError(422, "generated_audio_profile_mismatch", "Audio layout differs from the verified PCM16 stereo 48 kHz generation profile.",
                           "Verify the selected workflow/profile before accepting this output.")
     count = 0
     try:
@@ -48,7 +48,10 @@ def validate_flac(data: bytes) -> AudioFacts:
         raise DomainError(422, "generated_audio_incomplete", "Decoded Audio sample count differs from its declared complete stream.",
                           "Retain the incomplete output and inspect the Runtime; do not save it as a Candidate.")
     duration = count / rate
-    if not 30 <= duration <= 40:
-        raise DomainError(422, "generated_audio_profile_mismatch", "Decoded Audio duration is outside the verified short generation profile.",
-                          "Use the pinned G35 workflow and retain this failed output for diagnosis.")
+    # The ceiling stops the singing stage; the song may end earlier than requested,
+    # so only the upper bound is binding. Auto (0) follows the lyrics up to the model cap.
+    ceiling = 362 if max_seconds == 0 else max_seconds + 2
+    if not 1 <= duration <= ceiling:
+        raise DomainError(422, "generated_audio_profile_mismatch", "Decoded Audio duration is outside the requested generation ceiling.",
+                          "Retain this failed output for diagnosis and submit a ceiling that matches the requested clip length.")
     return AudioFacts(duration, channels, rate, width, count)

@@ -46,7 +46,7 @@ def test_recover_projects_owned_terminal_state_from_only_its_queue_bulk_history_
         assert audio.data.startswith(b"fLaC") and b"X:" in abc.data and b"K:" in abc.data
         assert audio.data == expected_audio.content
         assert result.score_validation is not None and result.score_validation["valid"] is True
-        assert {material.role for material in validate_generation(result)} == {"abc","audio"}
+        assert {material.role for material in validate_generation(result, request.inputs)} == {"abc","audio"}
         peer.post("/fixture/edit",json={"action":"wrong_graph"}).raise_for_status()
         reads.clear()
         rejected = restored.recover(owned)

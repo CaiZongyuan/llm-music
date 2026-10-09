@@ -51,7 +51,7 @@ test('Swagger validates inputs and saves a generated Candidate as one stable Ver
   await getCandidate.getByPlaceholder('project_id').fill(projectId);
   await getCandidate.getByPlaceholder('candidate_id').fill(candidateId);
   const candidate = await execute(page, getCandidate, 'GET', base + '/candidates/' + candidateId, 200);
-  expect(candidate).toMatchObject({ id: candidateId, project_id: projectId, job_id: jobId, inputs: { ...inputs, max_seconds: 35 }, provenance: { runtime_kind: 'fake' } });
+  expect(candidate).toMatchObject({ id: candidateId, project_id: projectId, job_id: jobId, inputs: { ...inputs, max_seconds: 0 }, provenance: { runtime_kind: 'fake' } });
 
   const getScore = await operation(page, 'GET', '/projects/{project_id}/scores/{score_id}');
   await getScore.getByPlaceholder('project_id').fill(projectId);

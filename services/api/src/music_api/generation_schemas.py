@@ -12,7 +12,7 @@ class GenerateCreate(BaseModel):
     style: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=1024)]
     lyrics: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=10000)]
     seed: int = Field(ge=0, le=(1 << 63) - 1, strict=True)
-    max_seconds: Literal[35] = 35
+    max_seconds: int = Field(default=0, ge=0, le=360, description="Audio ceiling in seconds; 0 follows the lyrics (the pinned model default).")
 
 
 class GenerateFromScoreCreate(GenerateCreate):

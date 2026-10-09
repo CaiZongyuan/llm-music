@@ -53,8 +53,8 @@
   "core_node": "2",
   "settings_node": "1",
   "audio_duration_seconds": {
-    "minimum": 30,
-    "maximum": 40
+    "minimum": 1,
+    "maximum": 362
   },
   "notes": "Explicit melody/full Cover from an inspected two-voice Score. Full retains written harmony; chordless full is legal with a warning. Frozen Reference/transcription/edit lineage is application-owned.",
   "required_node_inputs": {

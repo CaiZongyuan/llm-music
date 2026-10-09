@@ -27,7 +27,7 @@ def generation_app(tmp_path: Path, result=None):
 
 
 def test_production_contract_and_idle_start_do_not_encode_generation_audio(tmp_path: Path, monkeypatch) -> None:
-    def premature_encoding():
+    def premature_encoding(max_seconds=None):
         raise AssertionError("OpenAPI and idle startup must not generate the CPU audio fixture")
 
     monkeypatch.setattr("music_api.fake_generation.flac_fixture", premature_encoding)
@@ -72,7 +72,7 @@ def test_complete_generation_is_unsaved_candidate_with_owned_audio_and_score(tmp
         assert job["status"] == "completed", job
         candidate = client.get(base + "/candidates/" + job["result"]["candidate_id"]).json()
         assert candidate["job_id"] == job["id"]
-        assert candidate["inputs"] == dict(INPUTS, max_seconds=35)
+        assert candidate["inputs"] == dict(INPUTS, max_seconds=0)
         assert candidate["provenance"]["runtime_kind"] == "fake"
         assert candidate["provenance"]["settings"]["quantization"] == "bf16"
         assert candidate["provenance"]["settings"]["offload"] == "on"
@@ -118,7 +118,7 @@ def test_explicit_save_is_stable_and_other_intent_cannot_overwrite_it(tmp_path: 
         assert response.status_code == 201, response.json()
         version = response.json()
         assert version["name"] == "First morning"
-        assert version["inputs"] == dict(INPUTS, max_seconds=35)
+        assert version["inputs"] == dict(INPUTS, max_seconds=0)
         repeated = client.post(base + "/versions", json=intent)
         assert repeated.status_code == 200
         assert repeated.json() == version
@@ -200,7 +200,7 @@ def test_changed_generation_inputs_and_branches_preserve_prior_versions(tmp_path
             response = client.post(base + "/versions", json=intent)
             assert response.status_code == 201, response.json()
             version = response.json()
-            assert version["inputs"] == dict(inputs, max_seconds=35)
+            assert version["inputs"] == dict(inputs, max_seconds=0)
             assert version["parent_version_id"] == (versions[0]["id"] if versions else None)
             versions.append(version)
             for identifier in [version["audio_asset_id"], version["output_snapshot"]["score"]["abc_asset_id"]]:
@@ -210,6 +210,38 @@ def test_changed_generation_inputs_and_branches_preserve_prior_versions(tmp_path
             assert client.get(base + "/versions/" + version["id"]).json() == version
         for identifier, original in original_contents.items():
             assert client.get(base + "/assets/" + identifier + "/content").content == original
+
+
+def test_generation_accepts_a_user_selected_clip_ceiling(tmp_path: Path) -> None:
+    with TestClient(generation_app(tmp_path)) as client:
+        project = client.post("/projects", json={"name": "Morning song"}).json()
+        base = "/projects/" + project["id"]
+        submitted = client.post(base + "/jobs/generate", json=dict(INPUTS, max_seconds=60)).json()
+        job = wait_job(client, project["id"], submitted["id"])
+        assert job["status"] == "completed", job
+        candidate = client.get(base + "/candidates/" + job["result"]["candidate_id"]).json()
+        assert candidate["inputs"]["max_seconds"] == 60
+        assert abs(candidate["output_snapshot"]["audio"]["duration_seconds"] - 60) <= 2
+
+
+def test_generation_rejects_ceilings_outside_the_model_range(tmp_path: Path) -> None:
+    with TestClient(generation_app(tmp_path)) as client:
+        project = client.post("/projects", json={"name": "Morning song"}).json()
+        base = "/projects/" + project["id"]
+        response = client.post(base + "/jobs/generate", json=dict(INPUTS, max_seconds=361))
+        assert response.status_code == 422
+        assert response.json()["error"]["code"] == "invalid_request"
+
+
+def test_generated_audio_must_not_exceed_its_requested_ceiling(tmp_path: Path) -> None:
+    with TestClient(generation_app(tmp_path, generated_result(flac_reference()))) as client:
+        project = client.post("/projects", json={"name": "Morning song"}).json()
+        base = "/projects/" + project["id"]
+        submitted = client.post(base + "/jobs/generate", json=dict(INPUTS, max_seconds=5)).json()
+        job = wait_job(client, project["id"], submitted["id"])
+        assert job["status"] == "failed", job
+        assert job["error"]["code"] == "generated_audio_profile_mismatch"
+        assert client.get(base + "/candidates").json() == []
 
 
 def test_candidate_and_parent_references_must_belong_to_the_target_project(tmp_path: Path) -> None:

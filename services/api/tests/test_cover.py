@@ -105,7 +105,7 @@ def test_version_audio_becomes_actual_first_sixteen_seconds_reference_with_inher
             container.mux(packet)
     result = generation_fixture()
     result = replace(result, artifacts=tuple(RuntimeArtifact("audio", encoded.getvalue(), "flac", "audio/flac", "original.flac") if item.role == "audio" else item for item in result.artifacts))
-    runtime = FakeInferenceRuntime(result_factories={"Generate": lambda: result})
+    runtime = FakeInferenceRuntime(result_factories={"Generate": lambda inputs: result})
     with TestClient(create_app(settings, runtime=runtime)) as client:
         project = client.post("/projects", json={"name": "Morning cover"}).json()
         base = "/projects/" + project["id"]

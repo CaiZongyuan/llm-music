@@ -32,11 +32,11 @@ uv run --project services/api --no-sync python services/api/examples/generate_sa
 
 终端输出 `project_id` 和 Candidate，下载目录包含 `audio.flac`、`score.abc`。试听音频、阅读乐谱，再决定是否保存。fake 音频是明确标识的测试音调。命令不会创建 Version。
 
-HTTP 请求为 `POST /projects/{project_id}/jobs/generate`。style 与 lyrics 去掉首尾空白后必须非空，分别最多 1024 和 10000 个字符。seed 必须是 0 到 `2^63−1` 的整数。`max_seconds` 仅支持 35；当前只验证短歌配置。
+HTTP 请求为 `POST /projects/{project_id}/jobs/generate`。style 与 lyrics 去掉首尾空白后必须非空，分别最多 1024 和 10000 个字符。seed 必须是 0 到 `2^63−1` 的整数。`max_seconds` 接受 0–360：0 为自动（跟随歌词，模型下限约 40 秒），其余为上限秒数；实际时长不超过上限，歌词唱完会提前结束。
 
 请求返回 `202` 与应用 Job id。查询 `GET /projects/{project_id}/jobs/{job_id}`；五种状态为 queued、running、completed、failed、cancelled。成功结果包含 `candidate_id`、`audio_asset_id`、`abc_asset_id` 和 `score_id`。应用完成 Score 校验、FLAC 全解码和整个输出集导入后，才标记 completed。
 
-Candidate 可从 `GET /projects/{project_id}/candidates` 列表，或 `/candidates/{candidate_id}` 读取。它保留输入、运行参数、Workflow/Runtime provenance 和输出事实。G35 输出当前要求 FLAC PCM16、48 kHz、双声道、30–40 秒，并且全解码帧数与 STREAMINFO 声明一致。声明样本数为零的合法流式 FLAC 暂不能在这个已验证配置中完成确认。
+Candidate 可从 `GET /projects/{project_id}/candidates` 列表，或 `/candidates/{candidate_id}` 读取。它保留输入、运行参数、Workflow/Runtime provenance 和输出事实。生成输出当前要求 FLAC PCM16、48 kHz、双声道；实际时长须在 1 秒到上限 +2 秒之间（自动档按模型上限 360 秒计），并且全解码帧数与 STREAMINFO 声明一致。声明样本数为零的合法流式 FLAC 暂不能在这个已验证配置中完成确认。
 
 ## 从选定乐谱生成 {#selected-score}
 
@@ -52,7 +52,7 @@ uv run --project services/api --no-sync python services/api/examples/generate_sa
 
 `SOURCE_SCORE_ID` 来自原 Candidate 的 `score_id` 或转谱 Job 的结果。若从已保存 Version 开始，`SOURCE_VERSION_ID` 必须是拥有该 Score 的同 Project Version；仅从转谱 Score 开始时省略 `--parent-version-id`。命令不会改写原 Score、素材或 Version，也不会自动保存新 Version。下载新 `audio.flac` 后，判断改动后的旋律与风格是否值得保留。
 
-这对应 `POST /projects/{project_id}/jobs/generate-from-score`，请求包含 `abc`、`source_score_id`、可选 `parent_version_id`，以及 Generate 的 style、lyrics、seed 和 `max_seconds=35`。ABC 最多 100000 个字符；源 Score 与 parent 必须属于同一个 Project。非法或不支持的 ABC 在创建 Job 前拒绝。没有该 capability 时明确拒绝，不能改用普通 Generate。
+这对应 `POST /projects/{project_id}/jobs/generate-from-score`，请求包含 `abc`、`source_score_id`、可选 `parent_version_id`，以及 Generate 的 style、lyrics、seed 和 `max_seconds`（0–360，0 为自动）。ABC 最多 100000 个字符；源 Score 与 parent 必须属于同一个 Project。非法或不支持的 ABC 在创建 Job 前拒绝。没有该 capability 时明确拒绝，不能改用普通 Generate。
 
 正式 [ABC 编辑器](../learn/edit-score.md) 已能独立保存修改。`POST /projects/{project_id}/scores/validate` 用当前锁定解析器检查 `abc`，没有 Job 或 GPU 调用。`POST /projects/{project_id}/scores` 保存原文到新的 ABC Asset 与 Score，接受可选 `source_score_id`、`parent_version_id` 和稳定 `save_id`。首次返回 `201`；以同一保存 id、Project、来源、parent 与原文哈希重放返回 `200` 与同一 Score，不同意图返回 `409 score_save_conflict`。`job_id=null` 明确表示独立保存，没有自动 Candidate 或 Version。
 

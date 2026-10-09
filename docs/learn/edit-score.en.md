@@ -24,7 +24,7 @@ Continue the Morning song Project and pick one melody change. Edit a few notes, 
 
 ## 5. Try another style with this phrase {#regenerate}
 
-1. Under “Regenerate from selected Score”, keep Morning song's lyrics and seed. Change only “Music style” to a lighter piano arrangement. Clip length remains 35 seconds.
+1. Under “Regenerate from selected Score”, keep Morning song's lyrics and seed. Change only “Music style” to a lighter piano arrangement. Clip length keeps the 35-second ceiling from the previous step.
 2. Confirm “The saved Score matches this valid draft” and generation readiness, then choose “Generate from selected Score”. The Job's “Submitted inputs” retains the actual ABC, selected source Score and source parent Version.
 3. You can keep editing while the Job runs. Later changes do not replace submitted notation; check and save/select again before another generation. Wait for cancellation confirmation. Explicit retry creates a new Job with the failed Job's inputs.
 4. The new result is a Candidate. Choose “Listen to this music” and inspect the voice, melody, rhythm and ending in the bottom Player. The simple MIDI audition and generated song serve different listening tasks. Music continues in the same Player on Lyrics and Versions.

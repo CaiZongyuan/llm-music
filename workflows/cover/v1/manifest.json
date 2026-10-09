@@ -53,8 +53,8 @@
   "core_node": "2",
   "settings_node": "1",
   "audio_duration_seconds": {
-    "minimum": 30,
-    "maximum": 40
+    "minimum": 1,
+    "maximum": 362
   },
   "notes": "Melody Cover from an explicitly inspected chordless two-voice derivative; frozen Reference/transcription/edit lineage is application-owned.",
   "required_node_inputs": {

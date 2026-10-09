@@ -10,7 +10,7 @@ import { versionsOptions } from '../versions/queries';
 import { assetKeys } from '../assets/queries';
 import { scoreKeys } from '../scores/queries';
 import { useMessages } from '../preferences/Preferences';
-import { useGenerationDraft } from './drafts';
+import { requestedCeiling, useGenerationDraft } from './drafts';
 import { generationMessages } from './messages';
 import { CapabilityReadiness, capabilitiesOptions, operationReady } from '../runtime/capabilities';
 import './generation.css';
@@ -18,28 +18,31 @@ import './generation.css';
 type GenerateSearch = { jobId?: string; candidateId?: string };
 function restoredInputs(inputs?: Record<string, unknown>): GenerateCreate | undefined {
   if (typeof inputs?.style !== 'string' || typeof inputs.lyrics !== 'string' || typeof inputs.seed !== 'number') return;
-  return { style: inputs.style, lyrics: inputs.lyrics, seed: inputs.seed, max_seconds: 35 };
+  return { style: inputs.style, lyrics: inputs.lyrics, seed: inputs.seed,
+    max_seconds: typeof inputs.max_seconds === 'number' && Number.isSafeInteger(inputs.max_seconds) && inputs.max_seconds >= 0 ? inputs.max_seconds : 0 };
 }
 
 function GenerateForm({ projectId, initial, onSubmit }: { projectId: string; initial?: GenerateCreate; onSubmit: (jobId: string) => void }) {
   const t = useMessages(generationMessages);
   const [draft, update] = useGenerationDraft(projectId, initial);
-  const [validation, setValidation] = useState<'seed' | 'empty' | null>(null);
+  const [validation, setValidation] = useState<'seed' | 'seconds' | 'empty' | null>(null);
   const submit = useSubmitGenerate(projectId);
   const capability = useQuery(capabilitiesOptions());
   function generate() {
     if (capability.isError || !operationReady(capability.data, 'Generate')) return;
     const seed = Number(draft.seed);
     if (!/^\d+$/.test(draft.seed) || !Number.isSafeInteger(seed) || seed < 0) { setValidation('seed'); return; }
+    const maxSeconds = requestedCeiling(draft.maxSeconds);
+    if (maxSeconds === null) { setValidation('seconds'); return; }
     if (!draft.style.trim() || !draft.lyrics.trim()) { setValidation('empty'); return; }
     setValidation(null);
-    submit.mutate({ style: draft.style, lyrics: draft.lyrics, seed, max_seconds: 35 }, { onSuccess: job => onSubmit(job.id) });
+    submit.mutate({ style: draft.style, lyrics: draft.lyrics, seed, max_seconds: maxSeconds }, { onSuccess: job => onSubmit(job.id) });
   }
   return <section className="surface"><h2>{t.title}</h2><p className="hint">{t.intro}</p><form onSubmit={event => { event.preventDefault(); if (!submit.isPending) generate(); }}>
     <label>{t.style}<textarea aria-label={t.style} rows={3} maxLength={1024} required value={draft.style} onChange={event => update({ style: event.target.value })} /><span className="field-help">{t.styleHelp}</span></label>
     <label>{t.lyrics}<textarea aria-label={t.lyrics} rows={8} maxLength={10000} required value={draft.lyrics} onChange={event => update({ lyrics: event.target.value })} /><span className="field-help">{t.lyricsHelp}</span></label>
-    <div className="field-row"><label>{t.seed}<input aria-label={t.seed} inputMode="numeric" required value={draft.seed} onChange={event => update({ seed: event.target.value })} /><span className="field-help">{t.seedHelp}</span></label><label>{t.seconds}<input readOnly value={t.duration} /></label></div>
-    {validation ? <p className="error-box" role="alert">{validation === 'seed' ? t.invalidSeed : t.emptyInput}</p> : null}
+    <div className="field-row"><label>{t.seed}<input aria-label={t.seed} inputMode="numeric" required value={draft.seed} onChange={event => update({ seed: event.target.value })} /><span className="field-help">{t.seedHelp}</span></label><label>{t.seconds}<input aria-label={t.seconds} inputMode="numeric" placeholder={t.autoSeconds} value={draft.maxSeconds} onChange={event => update({ maxSeconds: event.target.value })} /><span className="field-help">{t.secondsHelp}</span></label></div>
+    {validation ? <p className="error-box" role="alert">{validation === 'seed' ? t.invalidSeed : validation === 'seconds' ? t.invalidSeconds : t.emptyInput}</p> : null}
     {submit.isError ? <ErrorNotice error={submit.error} /> : null}
     <CapabilityReadiness operation="Generate" />
     <button className="primary" disabled={submit.isPending || capability.isError || !operationReady(capability.data, 'Generate')}>{submit.isPending ? t.submitting : t.submit} →</button><p className="field-help">{t.decide}</p>

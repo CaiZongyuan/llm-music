@@ -66,7 +66,8 @@ def reference_origin(session: Session, reference: Asset) -> ReferenceOrigin | No
 
 
 def first_reference_wav(data: bytes) -> bytes:
-    validate_flac(data)
+    # Ceiling 0 checks the app-wide generated-audio envelope; any saved clip length is accepted here.
+    validate_flac(data, 0)
     parts: list[bytes] = []
     remaining = 768000
     with av.open(BytesIO(data), format="flac", mode="r") as container:

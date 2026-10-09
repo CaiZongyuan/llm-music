@@ -16,7 +16,7 @@
 
 `POST /projects/{project_id}/cover-inputs/validate` 接受 `abc` 与 `mode="melody"` 或 `"full"`；只做CPU检查，不创建持久对象或推理任务。返回原文hash、`effective_abc`及其hash、转换、adapter/parser、mode_transform_version1.0.0、原和弦数量及 `warnings`。适配移除精确识别的内部控制标记、保护裸谱section；melody 仅从解析音乐行去和弦，full 保留已写出的和弦。两个声部与音乐事件保留。full 无和弦时返回 `full_without_written_chords`：输入合法但没有显式和声提示，仍可检查、明确选定并提交 full。
 
-`POST /projects/{project_id}/jobs/cover` 的 CoverCreate 包含 Generate/GFS的 style、lyrics、seed、max_seconds35、abc、source_score_id、parent_version_id，以及 reference_asset_id、mode、effective_abc_sha256、mode_transform_version。mode 支持 melody/full。hash/revision必须等于刚才实际选定的有效输入；应用不会静默换成另一份。
+`POST /projects/{project_id}/jobs/cover` 的 CoverCreate 包含 Generate/GFS的 style、lyrics、seed、max_seconds（0–360，0 为自动）、abc、source_score_id、parent_version_id，以及 reference_asset_id、mode、effective_abc_sha256、mode_transform_version。mode 支持 melody/full。hash/revision必须等于刚才实际选定的有效输入；应用不会静默换成另一份。
 
 选定 Score链必须属于同一 Project，关联该 Reference，并最终指向它已完成的 Transcribe Job。parent必须是该 Reference实际source Version，或上传参考的null；任意同项目parent不能代替来源。换参考、source Score或草稿后重新检查选定，即使文本相同。
 

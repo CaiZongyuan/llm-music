@@ -37,7 +37,7 @@ test('a late save of A cannot replace the currently selected B for generation', 
     const posted = page.waitForRequest(request => request.method() === 'POST' && request.url().endsWith('/jobs/generate-from-score'));
     await page.getByRole('button', { name: 'Generate from selected Score', exact: true }).click();
     const body: unknown = (await posted).postDataJSON();
-    expect(body).toEqual({ style: 'gentle folk pop, warm piano', lyrics: '[Verse]\nAfter rain, we walk into morning.', seed: 2026420001, max_seconds: 35, abc: NEXT_ABC, source_score_id: b.id, parent_version_id: null });
+    expect(body).toEqual({ style: 'gentle folk pop, warm piano', lyrics: '[Verse]\nAfter rain, we walk into morning.', seed: 2026420001, max_seconds: 0, abc: NEXT_ABC, source_score_id: b.id, parent_version_id: null });
     const monitor = page.locator('.job-monitor');
     await expect(monitor).toBeVisible();
     const jobId = await monitor.getAttribute('data-job-id');
