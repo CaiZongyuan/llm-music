@@ -1,7 +1,7 @@
 # #65 创作者文档方向预览
 
 - 票据：[#65](https://github.com/CaiZongyuan/llm-music/issues/65)，父规格 [#13](https://github.com/CaiZongyuan/llm-music/issues/13)。
-- 预览目录：[documentation-v2](../previews/documentation-v2/README.md)。
+- 预览目录：[documentation-v2](https://github.com/CaiZongyuan/llm-music/blob/aec081f8e5254a9dc1f7ba4b606ffd7211add679/docs/previews/documentation-v2/README.md)。
 - 接口与实际指南基线：`f02bd5310ea29845f1900a53271e71df30f5169b`。
 - 状态：**已确认**。用户确认了具体提交 `316d99d89fa1058adf9bdf41b9e7c33cdb32a43b` 的创作者预览；原 v1 的布局、导航、双语与主题确认继续有效。
 

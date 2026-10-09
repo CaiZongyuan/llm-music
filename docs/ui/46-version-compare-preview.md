@@ -3,7 +3,7 @@
 - 票据：[#46](https://github.com/CaiZongyuan/llm-music/issues/46)，父规格 [#11](https://github.com/CaiZongyuan/llm-music/issues/11)，关联 #6。
 - 实际基线：`4763a55c238f4345700977e16b4325e0c2b42532`，#45 / PR #91 已 merge、#45 CLOSED，Root 已验证真实 P4 gate；领取前读回原生 blocker 已关闭、无旧 owner。
 - Owner：`/root/version_preview_developer`；branch `p5/46-version-preview`；worktree `.worktrees/46-version-preview`。[实际领取评论](https://github.com/CaiZongyuan/llm-music/issues/46#issuecomment-6065696749)。
-- 预览：[version-compare-v1](../previews/version-compare-v1/README.md)，<http://127.0.0.1:18096/llm-music/version-preview/>。
+- 预览：[version-compare-v1](https://github.com/CaiZongyuan/llm-music/blob/aec081f8e5254a9dc1f7ba4b606ffd7211add679/docs/previews/version-compare-v1/README.md)，<http://127.0.0.1:18096/llm-music/version-preview/>。
 - 冻结源码：`343c57f904c625293ffffad2f57bcac33e39a1fc`。完整交接文档 head 及 served/source/media hashes 由 Root owned `.scratch/p5-development/46-preview/freeze.json` 读回，不用后续文档提交冒充重新运行完整浏览器。
 - 状态：预览实现和作者实际验证完成，交 Root 非作者 Standards/Spec、独立浏览器检查与实际集成。未领取 #47/#48；未将本票模拟保存写成正式持久 API 验收。
 
@@ -36,7 +36,7 @@ A/B 只选择模拟 Project 中两个不同、有音频的已保存 Version；�
 
 此前只读准备误写“两份 P4 音乐来自不同 Project”。Root `p4-real-samples.json` 与 `46-media-lineage-correction.md` 纠正：两份属于同一 Project `a0ac0436…`，共享 Reference `5855dc17…`、Transcribe `8edad40d…`、original ABC 与 parent `cc4298f6…`。真实 saved melody `32689856…`、full `94909afa…` 是兄弟 Version；不同验收目录只是数据库快照。本票已经按该事实记录来源。
 
-完整字段/hash/输入见 [sample-provenance.json](../previews/version-compare-v1/sample-provenance.json)。A 为历史 melody MP3，34.9986667 秒，SHA256 `557a933bc217976dac521f0699ac78e9762b58148793dd350a8b810170befa5f`。full 原 MP3 为同等时长，SHA256 `beffee708a9ae829132cf7f6bc82ce86540e1daa36500d32c0eac246b931768f`。二者不同 style/seed，不能声称受控模式性能/质量比较。
+完整字段/hash/输入见 [sample-provenance.json](https://github.com/CaiZongyuan/llm-music/blob/aec081f8e5254a9dc1f7ba4b606ffd7211add679/docs/previews/version-compare-v1/sample-provenance.json)。A 为历史 melody MP3，34.9986667 秒，SHA256 `557a933bc217976dac521f0699ac78e9762b58148793dd350a8b810170befa5f`。full 原 MP3 为同等时长，SHA256 `beffee708a9ae829132cf7f6bc82ce86540e1daa36500d32c0eac246b931768f`。二者不同 style/seed，不能声称受控模式性能/质量比较。
 
 B 是 full 历史音频实际解码并裁切 `[0,31]` 的 **PCM16 stereo48k WAV 试听副本**，5,952,044 B，SHA256 `98ee0e702d251d4c6b6cc9874b63b61e7880b42a9928e6caa5ae2ebeb850b837`。CPU 全解码为 31 秒，原始两个文件 hash 保持不变；不是把 metadata 改短，也不是原 saved full Version 的音频。模拟 graph/Score/输入/任务/保存与实际音乐 lineage 分开；模拟风格变化不生成新音乐。
 

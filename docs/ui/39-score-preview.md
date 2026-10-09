@@ -3,7 +3,7 @@
 - 票据：[#39](https://github.com/CaiZongyuan/llm-music/issues/39)，父规格 [#9](https://github.com/CaiZongyuan/llm-music/issues/9)，关联 #8 / #6。
 - 起点：实际 main `711df508dd0edead070f4345a7b23eb9c6834e77`。原生 blocker 只有 #38，已 closed / PR #84 merged。
 - Owner：`/root/score_preview_developer`。独立分支 `p3/39-score-preview`、worktree `.worktrees/39-score-preview`。
-- 预览：[score-editing-v1](../previews/score-editing-v1/README.md)。自有 <http://127.0.0.1:18072/llm-music/score-preview/>。
+- 预览：[score-editing-v1](https://github.com/CaiZongyuan/llm-music/blob/aec081f8e5254a9dc1f7ba4b606ffd7211add679/docs/previews/score-editing-v1/README.md)。自有 <http://127.0.0.1:18072/llm-music/score-preview/>。
 - 状态：**用户已明确“认可，继续正式实现”。对应已冻结35bb7dc版本的双声部示例与完整编辑流程；Root已独立操作并完成非作者Standards/Spec审阅，正式 #40 可按该版本推进。**
 
 ## 用户确认与 Root 读回

@@ -35,7 +35,7 @@ test('CPU references preserve the public contracts, and an upstream change reach
 
 test('registered reference and guide amendment resolves same-language tasks, pinned source, and safe complete includes', async () => {
   const manifest = JSON.parse(await readFile(new URL('../../../docs/site.json', import.meta.url), 'utf8'));
-  const amendment = JSON.parse(await readFile(new URL('../../../docs/previews/documentation-reference-v1/amendment.json', import.meta.url), 'utf8'));
+  const amendment = JSON.parse(await readFile(new URL('./fixtures/documentation-reference-amendment.json', import.meta.url), 'utf8'));
   manifest.chapters.push(...amendment.filter(chapter => !manifest.chapters.some(existing => existing.id === chapter.id)));
   const references = await exportReferences(root);
   const result = await loadPages(root, manifest, version, references);

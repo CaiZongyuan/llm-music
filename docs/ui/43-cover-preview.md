@@ -3,7 +3,7 @@
 - 票据：[#43](https://github.com/CaiZongyuan/llm-music/issues/43)，父规格 [#8](https://github.com/CaiZongyuan/llm-music/issues/8)，关联 #7/#9。规格父 issue 保持只读。
 - 基线：`8fe1ed0c6c1f8016861a45e80f91351bc3bd2450`，实际 #42 / PR #88 合并，阻塞已关闭、Root 已确认 P3 gate。
 - Owner：`/root/cover_preview_developer`；branch `p4/43-cover-preview`；worktree `.worktrees/43-cover-preview`。
-- 预览：[cover-v1](../previews/cover-v1/README.md)，<http://127.0.0.1:18084/llm-music/cover-preview/>。
+- 预览：[cover-v1](https://github.com/CaiZongyuan/llm-music/blob/aec081f8e5254a9dc1f7ba4b606ffd7211add679/docs/previews/cover-v1/README.md)，<http://127.0.0.1:18084/llm-music/cover-preview/>。
 - 初版实际冻结源码：`05c21da8d9a6025c4ffe4ece2fe292447234fbf9`，文档补充 head `49266221ea78980dd3107ce08c2b5103881fc30f`；下方记录独立审阅后的最小来源身份修复，最终 SHA 由交接 freeze receipt 指向。
 - 状态：用户已认可最终候选 `23645dac6e53a57fc5a137ef577c145fc972c142`，可以继续正式 #44/#45。
 

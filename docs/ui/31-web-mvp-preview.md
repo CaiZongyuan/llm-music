@@ -1,7 +1,7 @@
 # #31 Web MVP 交互预览记录
 
 - 票据：[#31](https://github.com/CaiZongyuan/llm-music/issues/31)，父规格 [#6](https://github.com/CaiZongyuan/llm-music/issues/6)。
-- 预览：[web-mvp-v1](../previews/web-mvp-v1/README.md)。
+- 预览：[web-mvp-v1](https://github.com/CaiZongyuan/llm-music/blob/aec081f8e5254a9dc1f7ba4b606ffd7211add679/docs/previews/web-mvp-v1/README.md)。
 - 实际 P1 集成基线：`15de0d9e424efaf06e5b75ffc67f57ef32421561`；#27 已关闭，#31 原生阻塞已满足。
 - 状态：**用户已确认布局与流程；正式 Web 增加中英双语和亮暗模式。预览服务按用户要求关闭。**
 

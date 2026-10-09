@@ -3,7 +3,7 @@
 - 票据：[#29](https://github.com/CaiZongyuan/llm-music/issues/29)，父规格 [#13](https://github.com/CaiZongyuan/llm-music/issues/13)。
 - 复用确认：[#28 布局与交互](28-documentation-preview.md)、[#65 创作教程方向](65-creator-documentation-preview.md)。创作与多样化玩法继续是主入口。
 - 来源基线：`15de0d9e424efaf06e5b75ffc67f57ef32421561`，已集成 P1 的 Pydantic/OpenAPI/client 与重启恢复。
-- 可复现补充：[documentation-reference-v1](../previews/documentation-reference-v1/README.md)。
+- 可复现补充：[documentation-reference-v1](https://github.com/CaiZongyuan/llm-music/blob/aec081f8e5254a9dc1f7ba4b606ffd7211add679/docs/previews/documentation-reference-v1/README.md)。
 - 状态：**补充预览已交付；Root 已核对并按已有用户授权继续正式登记。** 复用已确认的结构、创作方向与交互，不编造新的用户回答。不是新的产品 Web，也不是 Pages 发布。
 
 ## 可见范围

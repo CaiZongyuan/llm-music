@@ -1,6 +1,6 @@
 # #28 文档预览确认记录
 
-- 预览：`documentation-v1`，位于 [预览目录](../previews/documentation-v1/README.md)。
+- 预览：`documentation-v1`，位于 [预览目录](https://github.com/CaiZongyuan/llm-music/blob/aec081f8e5254a9dc1f7ba4b606ffd7211add679/docs/previews/documentation-v1/README.md)。
 - 票据：[#28](https://github.com/CaiZongyuan/llm-music/issues/28)，规格 [SPEC-013](../specs/SPEC-013-documentation-delivery.md)。
 - 内容与源码基线：`236eee2ec2b7fc0ca66b53ebea5c679dec736190`。
 - 状态：**已确认**。用户已授权按此版本继续正式 Astro/Starlight、共享 pnpm 命令与章节生成。

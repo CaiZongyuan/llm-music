@@ -1,0 +1,26 @@
+{
+  "asset": "shengjian-workspace.png",
+  "kind": "unaltered-browser-screenshot",
+  "sha256": "c1357aaa5093a964a23a9d912b9c838f1c2566b3296459b7e93b71b918c5b6c7",
+  "source": {
+    "capture": ".scratch/p5-development/48-real/real-comparison.png",
+    "receipt": ".scratch/p5-development/48-real/real-compare-gate.json",
+    "captured_at_utc": "2026-10-08T23:20:31Z",
+    "product_commit": "8a47f94c9791cf1966f8d56045ec5e8e885ec319",
+    "product_tree": "bf50f55909211a9ba9cf70b269f6ec45ee39cb2a",
+    "integrated_commit_with_same_tree": "7ba8e9d07d608a4ff9f9a56cd9fc242563658970"
+  },
+  "data": {
+    "simulated": false,
+    "runtime": "ComfyUI / YuE2",
+    "project_id": "a0ac0436-53d0-455f-b535-0636f4eefa9a",
+    "version_a_id": "32689856-a811-441a-81d8-b9abc9d55468",
+    "version_b_id": "94909afa-ba1a-459b-89f6-d586ad6c08e3",
+    "description": "Real saved P4 melody/full Cover music replayed in the P5 Web comparison player. The screenshot shows Version A and an empty current lyrics draft; the draft is separate from saved Version inputs. No CPU Fake Runtime music or invented UI is shown."
+  },
+  "verification": {
+    "record": "https://github.com/CaiZongyuan/llm-music/blob/7ba8e9d07d608a4ff9f9a56cd9fc242563658970/docs/verification/version-compare.md",
+    "product_recording": "https://github.com/CaiZongyuan/llm-music/pull/94#issuecomment-6071038681"
+  },
+  "reuse": "Copied byte-for-byte into the public documentation assets for both root README language versions; not cropped, retouched, or regenerated. This historical screenshot does not assert that local services are currently running."
+}
