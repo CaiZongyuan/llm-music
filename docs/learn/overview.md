@@ -14,7 +14,7 @@
 
 ## 开始前，知道这两件事 {#entry}
 
-<p>打开本地正式 Web，从<a href="../guides/web-workspace.md">创建项目</a>开始，再选择<a href="../guides/web-generation.md">生成与试听</a>或<a href="../guides/web-transcribe.md">参考转谱</a>，还可<a href="./edit-score.md">改几个音符并试听</a>。生成音乐需要已就绪的真实 Runtime；默认 fake 模式只发出测试音调。<a href="./resources.md">环境准备和操作入口 →</a></p><p>本站只展示教程内容、复制输入和播放已有示例。它不会提交生成、上传音频或保存项目。从乐谱生成的 Web 操作、Cover 与内置 A/B 播放器随后续阶段实现。</p>
+<p>打开本地工作台，从<a href="../guides/web-workspace.md">创建项目</a>开始，再选择<a href="../guides/web-generation.md">生成与试听</a>或<a href="../guides/web-transcribe.md">参考转谱</a>。想控制下一次的旋律，按<a href="./edit-score.md#regenerate">乐谱编辑与重新生成</a>检查、试听并明确选定 Score；想从参考素材尝试新风格，按<a href="./cover.md">改编教程</a>检查曲谱，再选择 melody 或 full。保存喜欢的结果后，继续在同一个 Project 中<a href="./variations.md#compare">比较两份版本，探索另一个方向</a>。生成音乐需要已就绪的真实 Runtime；默认 fake 模式只发出测试音调。<a href="./resources.md">环境准备和操作入口 →</a></p><p>本站提供教程、复制输入和播放已生成示例；创作、上传、保存与比较在本地工作台中完成。</p>
 
 ## 一次只问一个创作问题 {#habit}
 
