@@ -106,9 +106,9 @@ pnpm --dir apps/mobile dlx @react-native-feel/deploy@0.3.0 project:info
 pnpm --dir apps/mobile dlx @react-native-feel/deploy@0.3.0 config --platform android --profile preview --json
 
 # 在工作流/源码已推送、GitHub 凭据仅传给子进程后，Root 负责执行。
-pnpm --dir apps/mobile dlx @react-native-feel/deploy@0.3.0 build --platform android --profile preview --no-wait
+pnpm --dir apps/mobile dlx @react-native-feel/deploy@0.3.0 build --platform android --profile preview --wait --non-interactive
 pnpm --dir apps/mobile dlx @react-native-feel/deploy@0.3.0 build:list --platform android --limit 5 --json
-pnpm --dir apps/mobile dlx @react-native-feel/deploy@0.3.0 build:download --build-id <BUILD_ID> --output ../../output/mobile-rnd
+pnpm --dir apps/mobile dlx @react-native-feel/deploy@0.3.0 build:download --build-id <BUILD_ID> --all-artifacts --non-interactive
 ```
 
 成功必须同时满足：
