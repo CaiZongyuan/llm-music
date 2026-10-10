@@ -24,13 +24,13 @@ Root 对确认版本执行了真实浏览器与 Android Maestro 检查，并取�
 | [M2 #101](https://github.com/CaiZongyuan/llm-music/issues/101)：未知写入的幂等恢复 | Project/Generate/retry 的持久请求 key 与精确查询；同事务创建、冲突与并发；Version 沿用 candidate 幂等 | #100；响应丢失、原请求在途、进程重启、相同输入不同意图与同 key 不同输入。 |
 | [M3 #102](https://github.com/CaiZongyuan/llm-music/issues/102)：移动端数据与连接 | SDK Go 兼容依赖，OpenAPI client、凭据/草稿/pending intent 持久化，前后台 HTTP 恢复及 WS | #100/#101；存储失败、切换电脑、撤销、网络恢复、不自动重发。 |
 | [M4 #103](https://github.com/CaiZongyuan/llm-music/issues/103)：原生创作与版本闭环及电脑面板 | 已确认 UI、项目/输入/任务/取消重试、Candidate 明确保存、历史、电脑配对管理 | #102；正常/空/加载/失败、未知结果、草稿与快照、保存恢复和重复操作。 |
-| [M5 #104](https://github.com/CaiZongyuan/llm-music/issues/104)：前台原始音频 | `expo-audio`，带鉴权的原始 Asset URL、Range/HEAD、播放/暂停/seek、中断/撤销 | #100/#102；真机真实 FLAC 与原字节，header/seek/错误恢复单独取证，不由 UI 动画代替。 |
+| [M5 #104](https://github.com/CaiZongyuan/llm-music/issues/104)：前台原始音频 | `expo/fetch` 显式 redirect:error 带 Authorization 下载原始 FLAC，校验后 `expo-audio` 播放本会话临时文件；播放/暂停/seek、中断/撤销与清缓存 | #100/#102；本地 seek 与 HTTP200/206/416/HEAD 分开取证。首轮 Go 原字节/decoder 已验证；当前完整生命周期、UI 拖动、物理设备与 APK 分别验收，不由 UI 动画代替。 |
 | [M6 #105](https://github.com/CaiZongyuan/llm-music/issues/105)：正式交付验证 | Maestro 日常 Fake Runtime、Android 真机、独立 APK、真实 GPU 创作闭环及文档 | #103/#104；实际 producer/source/binary/namespace，root 集成后验收，不把预览或待合并结果计为完成。 |
 
 每个实施票据有一个 owner/branch/worktree；数据库迁移、OpenAPI/生成 client、依赖锁与共享资源由 Root 协调集成。GPU 工作保留串行资源 owner，普通日常检查使用隔离 Fake Runtime。当前 Web 未提交工作由原 owner 保持，移动端不借机改写其范围。
 
 ## 接口与关键验证
 
-详细真实消费者、socket 归属、凭据/短码、幂等请求、WebSocket、音频 header/Range 与验证边界见 [API 草案](mobile-api-plan-draft.md)。实现优先复用既有 Project、JobService、Candidate 和 Version；不可建立第二个 scheduler/业务数据库或直连 ComfyUI。
+详细真实消费者、socket 归属、凭据/短码、幂等请求、WebSocket、受控音频下载与验证边界见 [API 草案](mobile-api-plan-draft.md)。M5 不再向 `expo-audio` 交远程带 header source；后台保存位置后解除 SDK 注册并实际释放，前台复核后仍等待明确继续。独立 HTTP 范围与首轮 Go decoder 收据、当前候选的公开回归及尚未验收项见 [音频核验](../verification/mobile-audio.md)。实现优先复用既有 Project、JobService、Candidate 和 Version；不可建立第二个 scheduler/业务数据库或直连 ComfyUI。
 
 业务实现完成后执行受影响 API/launcher/client/Web 检查、原生 Maestro、原始音频及 APK/真实 GPU 验收，并读回实际集成结果。预览及正式票据已交付；产品接口和二进制按上述依赖推进，未实现部分不记为通过。
