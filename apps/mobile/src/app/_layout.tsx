@@ -13,8 +13,9 @@ export default function RootLayout() {
         headerTintColor: colors.text,
         contentStyle: { backgroundColor: colors.background },
       }}>
-        <Stack.Screen name="index" options={{ title: '声间 · 初始化' }} />
+        <Stack.Screen name="index" options={{ headerShown: false }} />
         <Stack.Screen name="connect" options={{ title: '声间 · 连接电脑' }} />
+        <Stack.Screen name="workbench" options={{ headerShown: false }} />
         <Stack.Screen name="preview" options={{ headerShown: false }} />
       </Stack>
     </MobileSessionProvider>

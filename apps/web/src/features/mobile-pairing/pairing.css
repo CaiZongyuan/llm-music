@@ -1,0 +1,30 @@
+.mobile-pairing {
+  color-scheme: dark;
+  margin-top: 2rem;
+  padding: 1.5rem;
+  border-top: 2px solid #e1f607;
+  background: #050505;
+  color: #eefff0;
+  font: 16px/1.6 "Segoe UI", "Microsoft YaHei", sans-serif;
+}
+.mobile-pairing h2 { color: #eefff0; font-size: 1.7rem; margin: 1rem 0 .5rem; }
+.mobile-pairing h3 { color: #eefff0; font-size: 1.1rem; margin: 1.25rem 0 .5rem; }
+.mobile-pairing p { color: #7d8a7d; margin: .5rem 0; }
+.mobile-pairing-label { color: #e1f607; font: 12px monospace; letter-spacing: 1px; }
+.mobile-pairing-columns { display: grid; grid-template-columns: 1.1fr 1fr; gap: 2rem; }
+.mobile-pairing-columns > section { border-top: 1px solid #232923; margin-top: 1rem; }
+.mobile-pairing-actions { display: flex; flex-wrap: wrap; gap: .7rem; margin: 1rem 0; }
+.mobile-pairing button { border: 1px solid #232923; border-radius: 3px; background: #101010; color: #eefff0; padding: .7rem 1rem; cursor: pointer; }
+.mobile-pairing button:disabled { opacity: .4; cursor: default; }
+.mobile-pairing button.mobile-pairing-primary { background: #e1f607; border-color: #e1f607; color: #050505; }
+.mobile-pairing button:focus-visible { outline: 2px solid #e1f607; outline-offset: 3px; }
+.mobile-pairing-address { display: block; color: #eefff0; font: 16px monospace; overflow-wrap: anywhere; }
+.mobile-pairing-code { display: block; color: #e1f607; font: 800 44px monospace; letter-spacing: 8px; padding: .5rem 0; }
+.mobile-pairing-device { border-left: 2px solid #e1f607; padding: 1rem; margin-top: 1rem; background: #101010; }
+.mobile-pairing p.mobile-pairing-error { color: #ff4d3d; }
+.mobile-pairing p.mobile-pairing-warning,.mobile-pairing p.mobile-pairing-authorized { color: #e1f607; }
+@media (max-width: 650px) {
+  .mobile-pairing { padding: 1rem; }
+  .mobile-pairing-columns { grid-template-columns: 1fr; gap: 1rem; }
+  .mobile-pairing-code { font-size: 36px; }
+}
