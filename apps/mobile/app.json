@@ -11,6 +11,12 @@
       "icon": "./assets/expo.icon"
     },
     "android": {
+      "package": "com.shengjian.mobile",
+      "blockedPermissions": [
+        "android.permission.RECORD_AUDIO",
+        "android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK",
+        "android.permission.FOREGROUND_SERVICE_MICROPHONE"
+      ],
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
@@ -24,6 +30,7 @@
       "favicon": "./assets/images/favicon.png"
     },
     "plugins": [
+      "./plugins/with-android-lan.cjs",
       "expo-router",
       [
         "expo-splash-screen",
