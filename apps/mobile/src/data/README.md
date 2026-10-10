@@ -14,6 +14,9 @@
 | `getServers()` / `switchServer(serverId)` | 只返回普通索引；切换 abort 旧 HTTP、关闭 WS，使用目标电脑的安全凭据与本地分区 |
 | `retryStorage()` | 保存保留在内存中的编辑内容；初次读取未完成时重新读取，不用空数据覆盖旧记录；不自动 POST |
 | `getDraft(projectId)` / `updateDraft(projectId, changes)` | 按 server/project 保存四个字符串字段；存储失败保留最新编辑，禁止新提交 |
+| `getTitleDraft(target)` / `updateTitleDraft(target, value)` | 新 Project 名称按 server 保存，Version 名称按 server/project/candidate 保存；保留未提交原文本，输入不创建 intent 或 HTTP 写入 |
+
+名称目标为 `{ kind: 'project' }` 或 `{ kind: 'version', projectId, candidateId }`。空字符串表示尚未填写或由调用者明确清空；字段保留空白及未通过提交验证的原输入。保存失败后本地编辑仍可读，`retryStorage()` 保存保留内容；准备提交仍要求存储就绪。只有明确提交操作才 trim/验证名称并创建冻结 intent。
 
 检查 `state.hydrated`、`state.storage`、`state.connection`、`state.foreground`。`connected` 才能访问业务 API，`storage === 'ready'` 才能提交。撤销保留草稿/意图；`credential_missing` 不能通过普通配对静默创建另一授权。错误是 `MobileFailure`，含 `code`、`status` 及生成契约的 `detail`（message/recovery/resource_id）。
 

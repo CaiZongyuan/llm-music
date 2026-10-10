@@ -2,6 +2,7 @@ import type { components } from '@llm-music/api-client';
 
 export type ServerRecord = Readonly<{ serverId: string; baseUrl: string; deviceName: string; credentialExpected?: boolean }>;
 export type CreationDraft = Readonly<{ style: string; lyrics: string; seed: string; maxSeconds: string }>;
+export type TitleTarget = Readonly<{ kind: 'project' } | { kind: 'version'; projectId: string; candidateId: string }>;
 export type IntentInput =
   | { operation: 'create_project'; body: components['schemas']['ProjectCreate'] }
   | { operation: 'generate'; projectId: string; body: components['schemas']['GenerateCreate'] }
@@ -12,7 +13,7 @@ export type PendingIntent = Readonly<IntentInput & {
 }>;
 export type LocalDocument = {
   version: 1; activeServerId: string | null; servers: Record<string, ServerRecord>;
-  drafts?: Record<string, CreationDraft>; intents?: Record<string, PendingIntent>;
+  drafts?: Record<string, CreationDraft>; intents?: Record<string, PendingIntent>; titles?: Record<string, string>;
 };
 export const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 export const scopedKey = (serverId: string, id: string) => JSON.stringify([serverId, id]);
@@ -33,6 +34,13 @@ function string(value: unknown): asserts value is string {
 }
 function id(value: unknown): asserts value is string {
   if (typeof value !== 'string' || !uuidPattern.test(value)) throw new Error('invalid local identity');
+}
+export function titleDraftKey(serverId: string, target: TitleTarget): string {
+  id(serverId);
+  if (target.kind === 'project') return JSON.stringify([serverId, 'project']);
+  if (target.kind !== 'version') throw new Error('invalid title target');
+  id(target.projectId); id(target.candidateId);
+  return JSON.stringify([serverId, 'version', target.projectId, target.candidateId]);
 }
 function partition(key: string, servers: Record<string, ServerRecord>) {
   const value: unknown = JSON.parse(key);
@@ -82,7 +90,24 @@ export function parseDocument(raw: unknown, normalizeUrl: (url: string) => strin
         ...(value.error === undefined ? {} : { error: value.error }) });
     }
   }
-  return { version: 1, activeServerId: raw.activeServerId, servers, drafts, intents };
+  const titles: Record<string, string> = {};
+  if (raw.titles !== undefined) {
+    if (!record(raw.titles)) throw new Error('invalid local titles');
+    for (const [key, value] of Object.entries(raw.titles)) {
+      const parts: unknown = JSON.parse(key);
+      if (!Array.isArray(parts)) throw new Error('invalid title partition');
+      id(parts[0]);
+      if (!servers[parts[0]]) throw new Error('invalid title server');
+      let target: TitleTarget;
+      if (parts.length === 2 && parts[1] === 'project') target = { kind: 'project' };
+      else if (parts.length === 4 && parts[1] === 'version') {
+        id(parts[2]); id(parts[3]); target = { kind: 'version', projectId: parts[2], candidateId: parts[3] };
+      } else throw new Error('invalid title partition');
+      if (titleDraftKey(parts[0], target) !== key) throw new Error('invalid title partition');
+      string(value); titles[key] = value;
+    }
+  }
+  return { version: 1, activeServerId: raw.activeServerId, servers, drafts, intents, titles };
 }
 
 export function parseIntentInput(value: unknown): IntentInput {
