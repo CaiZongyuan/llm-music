@@ -42,6 +42,7 @@ pnpm docs:check
 - launcher 全套：15 通过，118.83 秒，覆盖默认本地、原生 CPU peer 复用及新增 LAN 行为。
 - mypy：按项目严格配置纳入的 61 个 source 文件通过；配置排除 vendor ABC 实现，早期未加载配置的检查计 62 个文件。干净基线原有三处类型错误经 Root 独立复现；此候选只在现有已校验时长输入增加静态 cast，并把 Runtime 的 Mapping 复制为 factory 的 dict，保留 `int()` 行为。
 - Root 在同候选生成 client、添加已知 JSON 错误的 envelope 类型缩窄后，`client:check` 通过；六项真实 Node HTTP/FormData/WS/重启/ownership 检查通过，39.2 秒。
+- 最终非作者审阅追踪到旧 Web 的 ArrayBuffer/blob 两个消费者仍只接受 JSON 错误，而新增 Range 416 为文本。Root 将 Web 错误适配器扩展为 JSON 或文本，保留结构化 recovery 与 HTTP status；实际 Web 检查从两项类型错误转为通过。七项既有 Chromium 生成/资源/媒体/恢复检查全部通过（59 秒），包含真实播放时钟、seek/region、明确保存、刷新、模块传输失败和损坏音频重读。
 - 文档：15 项生成来源/章节/语言/示例检查通过；Astro 19 文件零错误、零警告。构建 66 页，检查 5,189 个引用。真实 Chromium 已核对中文 LAN 章节、完整参数化代码例子与本页导航，并通过语言选择切换到英文同一章；截图保留在 `.scratch/m1/docs-lan-zh.png`。
 
 有效 red→green 证据包含 connection 404→200、Asset HEAD 405→200、launcher 不支持 LAN 参数→真实两监听、同钟逆 UUID 取到旧窗口→最新窗口、重复 token 新 device 503→409、非 ASCII CSRF TypeError→403，以及 WS query 凭据被协议日志记录→拒绝且日志无凭据。相关回归观察公开 HTTP/socket/log 行为，故障只注入隔离的系统边界。
