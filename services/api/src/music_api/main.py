@@ -1,4 +1,4 @@
-"""Public local HTTP application; no GPU/Runtime imports or startup dependency."""
+"""Local and authorized LAN HTTP application with one business lifecycle."""
 
 from collections.abc import AsyncIterator, Iterator
 from typing import Callable
@@ -37,6 +37,8 @@ from music_api.storage import Storage
 from music_api.upload_limit import UploadBodyLimit
 from music_api.runtime_types import InferenceRuntime
 from music_api.workflow_registry import WorkflowRegistry
+from music_api.pairing import PairingService, router as pairing_router
+from music_api.access import AccessPolicy, Bindings, DeviceAccess
 
 
 log = logging.getLogger("music_api")
@@ -72,7 +74,8 @@ def asset_file(storage: Storage, asset: Asset) -> Path:
 
 
 def create_app(settings: Settings | None = None, runtime: InferenceRuntime | None = None,
-               configure_jobs: Callable[[JobService], None] | None = None, registry: WorkflowRegistry | None = None) -> FastAPI:
+               configure_jobs: Callable[[JobService], None] | None = None, registry: WorkflowRegistry | None = None,
+               listener_bindings: Bindings | None = None) -> FastAPI:
     from music_api.fake_generation import generation_fixture
     from music_api.generation import configure_generation, router as generation_router
     from music_api.version_routes import router as version_router
@@ -95,6 +98,7 @@ def create_app(settings: Settings | None = None, runtime: InferenceRuntime | Non
         try:
             database.migrate()
             app.state.database = database
+            app.state.pairing = PairingService(database)
             app.state.storage = Storage(configured)
             jobs = JobService(database, app.state.storage, selected_runtime, registry, configured)
             app.state.jobs = jobs
@@ -112,16 +116,19 @@ def create_app(settings: Settings | None = None, runtime: InferenceRuntime | Non
             database.close()
 
     app = MusicAPI(title="Music Application API", version="0.1.0", lifespan=lifespan,
-                  responses={404: {"model": ErrorResponse}, 422: {"model": ErrorResponse}, 503: {"model": ErrorResponse}})
+                  responses={status: {"model": ErrorResponse} for status in (401, 403, 404, 422, 503)})
     app.state.settings, app.state.runtime, app.state.registry = configured, selected_runtime, registry
     app.state.job_events = event_broker
+    app.state.access = AccessPolicy(configured, listener_bindings)
     app.include_router(event_router)
+    app.include_router(pairing_router)
     app.add_exception_handler(DomainError, domain_error_response)
     app.add_exception_handler(RequestValidationError, validation_error_response)
     app.add_exception_handler(HTTPException, http_error_response)
     app.add_exception_handler(SQLAlchemyError, dependency_error_response)
     app.add_exception_handler(OSError, dependency_error_response)
     app.add_middleware(UploadBodyLimit, max_upload_bytes=configured.max_upload_bytes)
+    app.add_middleware(DeviceAccess, policy=app.state.access)
     app.include_router(diagnostics_router)
 
     @app.post("/projects", response_model=ProjectRead, status_code=201)
@@ -169,9 +176,19 @@ def create_app(settings: Settings | None = None, runtime: InferenceRuntime | Non
         asset_file(storage, asset)
         return AssetRead.model_validate(asset)
 
+    @app.head("/projects/{project_id}/assets/{asset_id}/content", response_class=FileResponse,
+              responses={200: {"description": "Original Asset headers without a response body."},
+                         206: {"description": "Original Asset range headers without a response body."},
+                         416: {"description": "Unsatisfiable byte range; FileResponse returns no bytes for HEAD."},
+                         409: {"model": ErrorResponse}})
     @app.get("/projects/{project_id}/assets/{asset_id}/content", response_class=FileResponse,
              responses={200: {"content": {media: {"schema": {"type": "string", "format": "binary"}}
                                          for media in ("audio/wav", "audio/flac", "text/vnd.abc", "audio/midi")}},
+                        206: {"description": "Requested original bytes (including multipart ranges).",
+                              "content": {media: {"schema": {"type": "string", "format": "binary"}}
+                                          for media in ("audio/wav", "audio/flac", "text/vnd.abc", "audio/midi", "multipart/byteranges")}},
+                        416: {"description": "Unsatisfiable byte range from FileResponse.",
+                              "content": {"text/plain": {"schema": {"type": "string"}}}},
                         409: {"model": ErrorResponse}})
     def download_asset(project_id: UUID, asset_id: UUID, request: Request,
                        session: Session = Depends(session_for)) -> FileResponse:

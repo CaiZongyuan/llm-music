@@ -10,7 +10,21 @@ Run commands from the repository root. Install Git, Node, pnpm and uv. First run
 
 The launcher builds the generated API client, starts the separate API and Web, then waits for HTTP health checks. It prints `Web ready: http://127.0.0.1:5173`; `--open` opens this address. Web connects only to FastAPI through its `/api` proxy. In Fake mode, Runtime runs inside the API, giving two service processes. This mode uses CPU fixtures. Generated audio is a 440 Hz test tone and cannot establish music quality.
 
-Default ports are API `8000`, Web `5173`, and native Runtime `8188`. All bind to `127.0.0.1`. Use `--api-port 18045 --web-port 18046 --runtime-port 18047` to choose another set of distinct ports. The launcher does not silently choose other ports or connect Web to an unknown service.
+Default ports are API `8000`, Web `5173`, and native Runtime `8188`. All bind to `127.0.0.1` by default. Use `--api-port 18045 --web-port 18046 --runtime-port 18047` to choose another set of distinct ports. The launcher does not silently choose other ports or connect Web to an unknown service.
+
+## Enable the mobile LAN listener {#mobile-lan}
+
+Check the computer's current LAN interface IPv4, then invoke this example with `-LanHost ACTUAL_IPV4`. `LanPort` defaults to `8001` and must differ from the API, Web and Runtime ports. The launcher binds only this selected address. It does not choose a virtual interface automatically, use a wildcard, or expand ComfyUI or Web listeners.
+
+<<< ../../scripts/examples/dev-mobile-lan.ps1
+
+One API process serves the existing loopback and additional LAN socket, sharing Projects, Assets, Jobs, Candidates, Versions and the queue. The example still uses CPU Fake Runtime. Real music needs the native Runtime preparation below. The session adds `lan_url`; the API configuration signature records `lan_host`, `lan_port` and allowed local Web Origins. Changed bindings, either occupied port or an unproved listener owner refuse startup. Reuse and shutdown check both actual sockets.
+
+Pairing management HTTP is implemented. The production phone creation screens are still being connected under the mobile implementation tickets. On the computer's local API, read the process CSRF with `GET /pairing/owner`, then send `X-Owner-CSRF` to `POST /pairing/challenges`. The response shows the six-digit code once. It lasts 120 seconds and permits five incorrect attempts; creating a window closes the previous one. `DELETE /pairing/challenges/current` closes new pairing. `GET /pairing/devices` reads device summaries; `DELETE /pairing/devices/{device_id}` revokes a device. Browser management requests with Origin must match the actual local API or configured Web Origin. Local CLI calls may omit Origin but still need current CSRF.
+
+The phone first securely saves its UUID and 32-byte random token (64 lowercase hex characters). It then sends `device_id`, `device_name`, `device_token` and `code` to LAN `POST /pairing/claim`. An exact replay restores the original device; a different intent conflicts. The server stores only digests. Anonymous LAN access allows only `GET /connection` and `POST /pairing/claim`. Other HTTP, WebSocket and Asset GET/HEAD/Range requests require `Authorization: Bearer`. Send credentials in headers, never a URL. Revocation closes active WebSockets and rejects later requests while generation continues. Already-sent audio bytes cannot be withdrawn. Existing local business consumers retain their original usage when LAN is disabled.
+
+`device_id` identifies one authorization record. Explicit pairing after revocation needs a fresh UUID and token. An uncertain initial claim must retain and replay the original UUID, token, name and code; do not replace an unknown request with another authorization.
 
 ## Data, reuse and stop {#ownership}
 

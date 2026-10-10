@@ -1,7 +1,7 @@
 """Generate consumes one shared Job/import boundary and registers an unsaved Candidate."""
 
 from copy import deepcopy
-from typing import Mapping
+from typing import Mapping, cast
 from uuid import UUID, uuid4
 
 from fastapi import APIRouter, Depends, Request
@@ -31,7 +31,7 @@ def validate_generation(result: RuntimeResult, inputs: Mapping[str, object]) -> 
     if audio.format != "flac":
         raise DomainError(503, "generation_failed", "Audio format differs from the pinned FLAC generation output.",
                           "Verify the selected generation workflow and keep its original output.")
-    facts = validate_flac(audio.data, int(inputs.get("max_seconds", 0)))
+    facts = validate_flac(audio.data, int(cast(int, inputs.get("max_seconds", 0))))
     return (ImportMaterial("abc", abc.data, "abc", "text/vnd.abc", "score.abc"),
             ImportMaterial("audio", audio.data, "flac", "audio/flac", "generated.flac", facts))
 

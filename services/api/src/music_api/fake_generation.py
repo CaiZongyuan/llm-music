@@ -1,6 +1,7 @@
 """Lazily create original CPU fixtures; this is never model inference evidence."""
 
 from io import BytesIO
+from typing import cast
 
 import av
 from av.audio.stream import AudioStream
@@ -40,7 +41,7 @@ def flac_fixture(max_seconds: int | None = None) -> bytes:
 
 
 def generation_fixture(inputs: dict[str, object] | None = None) -> RuntimeResult:
-    requested = int(inputs.get("max_seconds", 0)) if inputs else 0
+    requested = int(cast(int, inputs.get("max_seconds", 0))) if inputs else 0
     return RuntimeResult(
         (RuntimeArtifact("abc", ABC, "abc", "text/vnd.abc", "score.abc"),
          RuntimeArtifact("audio", flac_fixture(requested), "flac", "audio/flac", "song.flac")),

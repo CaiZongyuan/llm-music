@@ -10,7 +10,21 @@
 
 启动器先构建生成的 API client，再启动独立 API 和 Web，等待 HTTP 健康检查。成功后输出 `Web ready: http://127.0.0.1:5173`，`--open` 打开该地址。Web 只通过 `/api` 代理连接 FastAPI。Fake 模式的 Runtime 在 API 进程内；合计两个服务进程。它使用 CPU 测试素材，生成音频为 440 Hz 测试音，不能用于判断音乐质量。
 
-默认 API 端口为 `8000`，Web 为 `5173`，真实 Runtime 为 `8188`。全部绑定 `127.0.0.1`。使用 `--api-port 18045 --web-port 18046 --runtime-port 18047` 可选择另一组互不相同的端口。启动器不会自动寻找其他端口或把 Web 指向未知服务。
+默认 API 端口为 `8000`，Web 为 `5173`，真实 Runtime 为 `8188`。默认全部绑定 `127.0.0.1`。使用 `--api-port 18045 --web-port 18046 --runtime-port 18047` 可选择另一组互不相同的端口。启动器不会自动寻找其他端口或把 Web 指向未知服务。
+
+## 开启手机局域网入口 {#mobile-lan}
+
+先在电脑核对当前局域网网卡 IPv4，再调用以下示例，并传入 `-LanHost 实际IPv4`。`LanPort` 默认 `8001`，必须与 API、Web、Runtime 端口不同。启动器只绑定这个明确地址，不自动选择虚拟网卡，不使用 wildcard，也不扩大 ComfyUI 或 Web 的监听范围。
+
+<<< ../../scripts/examples/dev-mobile-lan.ps1
+
+同一 API 进程同时服务原有 loopback 和额外 LAN socket，共享 Project、Asset、Job、Candidate、Version 与队列。默认例子仍为 CPU Fake Runtime；真实音乐需要按后文准备原生 Runtime。会话记录新增 `lan_url`，API 配置签名记录 `lan_host`、`lan_port` 和允许的本地 Web Origin。地址/端口不同、其中一个监听被占用或归属不匹配会拒绝启动；复用及停止都核对两个真实 socket。
+
+当前配对管理 HTTP 已实现。手机正式创作界面仍按移动实施票据接入。电脑可在自己的 local API 使用 `GET /pairing/owner` 读取进程 CSRF，然后带 `X-Owner-CSRF` 调用 `POST /pairing/challenges`。返回的六位码只在本次响应中显示，120 秒内允许最多五次错误；新建窗口关闭旧窗口。`DELETE /pairing/challenges/current` 关闭新配对；`GET /pairing/devices` 读取设备摘要，`DELETE /pairing/devices/{device_id}` 撤销设备。带 Origin 的浏览器管理请求必须匹配真实本地 API 或所配置 Web Origin；本机 CLI 可省略 Origin，但仍必须带当前 CSRF。
+
+手机先安全保存自己的 UUID 与 32 字节随机 token（64 位小写十六进制），再向 LAN `POST /pairing/claim` 发送 `device_id`、`device_name`、`device_token` 与 `code`。同一次精确重放只恢复原设备；不同意图冲突。服务端只保存摘要。匿名 LAN 只可 `GET /connection` 与 `POST /pairing/claim`；其余 HTTP、WebSocket 和音频 GET/HEAD/Range 都需要 `Authorization: Bearer`。凭据放在请求头，不放 URL。撤销会关闭活动 WebSocket 并拒绝后续请求，已开始的生成任务继续运行；已送出的音频字节不能收回。默认不开 LAN 的本地业务消费者保持原有用法。
+
+`device_id` 标识一次设备授权记录。撤销后明确重新配对，要生成新的 UUID 和 token；初次 claim 响应未知时则保留并重放原 UUID、token、名称和配对码，不能把未知请求换成另一份授权。
 
 ## 数据、复用与停止 {#ownership}
 
