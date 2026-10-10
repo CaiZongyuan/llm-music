@@ -14,6 +14,7 @@ import { IntentCard } from './intent-card';
 import { useTitleDraft } from './title-draft';
 import { ReadStatus } from './read-status';
 import { useCreatorAction } from './use-creator-action';
+import { useCreatorIntents } from './use-creator-intents';
 
 export function ProjectLibraryScreen() {
   const { session, state } = useMobileSession();
@@ -22,7 +23,7 @@ export function ProjectLibraryScreen() {
   const title = useTitleDraft('project'), action = useCreatorAction();
   const [reset, setReset] = useState(0);
   const insets = useSafeAreaInsets();
-  const intents = session.listIntents().filter(intent => intent.operation === 'create_project' && ['prepared', 'unknown'].includes(intent.phase));
+  const intents = useCreatorIntents().filter(intent => intent.operation === 'create_project' && ['prepared', 'unknown'].includes(intent.phase));
   const ready = state.connection === 'connected' && state.storage === 'ready' && state.foreground;
   return <><Stack.Screen options={{ title: '声间 · 我的项目' }} />
     <FlatList contentInsetAdjustmentBehavior="automatic" keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag"
@@ -35,7 +36,7 @@ export function ProjectLibraryScreen() {
         <ConnectionState />
         <Actions><Action label="电脑连接与授权" secondary testID="open-mobile-connection" onPress={() => router.push('/connect')} /></Actions>
         <Section title="新建项目">
-          <Field key={`${title.key}:${reset}`} label="项目名称" initialValue={title.value} onChangeText={title.set} maxLength={200}
+          <Field key={title.key} replacement={reset} label="项目名称" initialValue={title.value} onChangeText={title.set} maxLength={200}
             readOnly={intents.length > 0 || !title.available} testID="new-project-name" placeholder="例如：夜行电台" />
           {title.error ? <Copy kind="error">{title.error}</Copy> : null}
           {action.error ? <Copy kind="error" testID="new-project-error">{action.error}</Copy> : null}
@@ -49,7 +50,7 @@ export function ProjectLibraryScreen() {
           {intents.map(intent => <IntentCard key={intent.id} intent={intent} onResolved={() => { void query.refetch(); }} />)}
         </Section>
         <Section title="已有项目"><ReadStatus data={query.data} fetching={query.isFetching} error={query.error}
-          empty={query.data?.length === 0} label="项目" onRetry={() => { void query.refetch(); }} />
+          empty={query.data?.length === 0 && intents.length === 0} label="项目" onRetry={() => { void query.refetch(); }} />
           <Actions><Action label="重新读取项目" testID="refresh-projects" secondary disabled={!ready || query.isFetching}
             onPress={() => { void query.refetch(); }} /></Actions></Section>
       </View>}

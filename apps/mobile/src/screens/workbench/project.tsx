@@ -17,6 +17,7 @@ import { IntentCard } from './intent-card';
 import { JobCard, terminalJob } from './job-card';
 import { CandidateCard } from './candidate-card';
 import { creatorMessage, useCreatorAction } from './use-creator-action';
+import { useCreatorIntents } from './use-creator-intents';
 
 const example = { style: '独立流行，温暖女声，慢速鼓点，夜晚的城市感', lyrics: '[Verse]\n末班车穿过雨后的街\n霓虹在车窗慢慢重叠\n[Chorus]\n让这一刻停在声间\n把没说的话唱成明天', seed: '42', maxSeconds: '0' };
 
@@ -40,7 +41,8 @@ function ProjectScene({ project }: { project: components['schemas']['ProjectRead
   const actions = useMemo(() => createWorkbenchActions(session), [session]);
   const action = useCreatorAction(), [draftError, setDraftError] = useState(''), [replacement, setReplacement] = useState(0), [tab, setTab] = useState<'create' | 'versions'>('create');
   const [directJobs, setDirectJobs] = useState<Record<string, JobRead>>({});
-  const intents = session.listIntents(project.id).filter(intent => ['generate', 'retry'].includes(intent.operation) && ['prepared', 'unknown'].includes(intent.phase));
+  const projectIntents = useCreatorIntents(project.id);
+  const intents = projectIntents.filter(intent => ['generate', 'retry'].includes(intent.operation) && ['prepared', 'unknown'].includes(intent.phase));
   const visibleJobs = [...(jobs.data ?? [])];
   for (const observed of Object.values(directJobs)) {
     const index = visibleJobs.findIndex(job => job.id === observed.id);
@@ -49,11 +51,12 @@ function ProjectScene({ project }: { project: components['schemas']['ProjectRead
   }
   const knownJobs = jobs.data === undefined ? undefined : visibleJobs;
   const active = visibleJobs.some(job => !terminalJob(job));
-  const awaitingJobs = pendingJobRecords(session, project.id, visibleJobs);
-  const blocked = generationBlocked(session, project.id, knownJobs);
-  const knownVersionIds = new Set(session.listIntents(project.id).filter(intent => intent.operation === 'save_version' && intent.resourceId).map(intent => intent.resourceId!));
+  const awaitingJobs = pendingJobRecords(projectIntents, visibleJobs);
+  const blocked = generationBlocked(projectIntents, knownJobs);
+  const knownVersionIds = new Set(projectIntents.filter(intent => intent.operation === 'save_version' && intent.resourceId).map(intent => intent.resourceId!));
   const awaitingVersions = [...knownVersionIds].filter(id => !versions.data?.some(version => version.id === id));
-  const versionCount = awaitingVersions.length ? '待读取' : versions.data?.length ?? '—';
+  const pendingSaves = projectIntents.filter(intent => intent.operation === 'save_version' && ['prepared', 'unknown'].includes(intent.phase));
+  const versionCount = awaitingVersions.length ? '待读取' : pendingSaves.length ? '待确认' : versions.data?.length ?? '—';
   const writeReady = state.connection === 'connected' && state.foreground && state.storage === 'ready';
   const refresh = useCallback(() => { void jobs.refetch(); void candidates.refetch(); void versions.refetch(); }, [jobs.refetch, candidates.refetch, versions.refetch]);
   const observedJob = useCallback((job: JobRead) => { setDirectJobs(current => ({ ...current, [job.id]: job })); }, []);
@@ -84,10 +87,10 @@ function ProjectScene({ project }: { project: components['schemas']['ProjectRead
       </View>
       {tab === 'create' ? <>
         <Copy kind="heading">这次想唱什么？</Copy><Copy kind="label">草稿会保留。修改草稿不会改变已经提交的任务。</Copy>
-        <Field key={`style:${replacement}`} label="音乐风格" initialValue={draft.style} onChangeText={patch('style')} testID="draft-style" multiline numberOfLines={2} maxLength={1024} placeholder="流派、声音、乐器、情绪…" />
-        <Field key={`lyrics:${replacement}`} label="歌词" initialValue={draft.lyrics} onChangeText={patch('lyrics')} testID="draft-lyrics" multiline numberOfLines={6} maxLength={10000} placeholder="把想说的话写成几行歌词" />
-        <Field key={`seed:${replacement}`} label="Seed" initialValue={draft.seed} onChangeText={patch('seed')} testID="draft-seed" keyboardType="number-pad" hint="请输入非负安全整数。改变 Seed，探索另一种演绎。" />
-        <Field key={`duration:${replacement}`} label="时长上限（秒）" initialValue={draft.maxSeconds} onChangeText={patch('maxSeconds')} testID="draft-duration" keyboardType="number-pad" hint="留空或 0 = 自动。手动设置 5–360 秒，不承诺精确时长。" />
+        <Field label="音乐风格" initialValue={draft.style} replacement={replacement} onChangeText={patch('style')} testID="draft-style" multiline numberOfLines={2} maxLength={1024} placeholder="流派、声音、乐器、情绪…" />
+        <Field label="歌词" initialValue={draft.lyrics} replacement={replacement} onChangeText={patch('lyrics')} testID="draft-lyrics" multiline numberOfLines={6} maxLength={10000} placeholder="把想说的话写成几行歌词" />
+        <Field label="Seed" initialValue={draft.seed} replacement={replacement} onChangeText={patch('seed')} testID="draft-seed" keyboardType="number-pad" hint="请输入非负安全整数。改变 Seed，探索另一种演绎。" />
+        <Field label="时长上限（秒）" initialValue={draft.maxSeconds} replacement={replacement} onChangeText={patch('maxSeconds')} testID="draft-duration" keyboardType="number-pad" hint="留空或 0 = 自动。手动设置 5–360 秒，不承诺精确时长。" />
         {draftError || action.error ? <Copy kind="error" testID="draft-error">{action.error || (state.storage === 'error' ? draftError : '')}</Copy> : null}
         <Actions>
           <Action label={action.busy ? '正在提交…' : intents.length ? '先查询原请求' : active ? '任务正在进行' : '开始生成'} testID="generate-submit"
@@ -108,7 +111,7 @@ function ProjectScene({ project }: { project: components['schemas']['ProjectRead
         <Section title="任务"><ReadStatus data={jobs.data} fetching={jobs.isFetching} error={jobs.error} empty={jobs.data?.length === 0 && visibleJobs.length === 0 && awaitingJobs.length === 0}
           label="任务" onRetry={() => { void jobs.refetch(); }} /></Section>
       </> : <Section title="已保存版本">
-        <ReadStatus data={versions.data} fetching={versions.isFetching} error={versions.error} empty={versions.data?.length === 0 && awaitingVersions.length === 0}
+        <ReadStatus data={versions.data} fetching={versions.isFetching} error={versions.error} empty={versions.data?.length === 0 && awaitingVersions.length === 0 && pendingSaves.length === 0}
           label="版本" onRetry={() => { void versions.refetch(); }} />
         {versions.data?.slice().reverse().map(version => <View key={version.id} style={{ gap: spacing.small, paddingBottom: spacing.medium, borderBottomWidth: 1, borderBottomColor: colors.line }}>
           <Copy kind="heading">{version.name}</Copy><Copy kind="label">{new Date(version.created_at).toLocaleDateString('zh-CN')} 保存 · Seed {String(version.inputs.seed)}</Copy>
@@ -119,6 +122,7 @@ function ProjectScene({ project }: { project: components['schemas']['ProjectRead
           <Actions>{awaitingVersions.map(id => <Action key={id} label="读取已保存版本" testID={`read-accepted-version-${id}`} secondary
             onPress={() => router.push({ pathname: '/workbench/versions/[projectId]/[versionId]', params: { projectId: project.id, versionId: id } })} />)}</Actions>
         </> : null}
+        {pendingSaves.map(intent => <IntentCard key={intent.id} intent={intent} onResolved={refresh} />)}
       </Section>}
     </View>}
     renderItem={({ item }) => <JobCard initial={item} knownJobs={visibleJobs} onChanged={refresh} onObserved={observedJob} />}

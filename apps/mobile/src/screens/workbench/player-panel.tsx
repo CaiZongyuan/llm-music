@@ -35,8 +35,8 @@ export function PlayerPanel({ selection }: { selection: PlaybackSelection }) {
         testID={`play-${selection.recordId}`} disabled={!media || !connected || action.busy || !!loading}
         onPress={() => { void action.run(async () => {
           if (playing) { await media!.controller.pause(); return; }
-          if (!current || status?.status !== 'ready') await media!.controller.select(selection);
-          if (status?.ended) await media!.controller.seekTo(0);
+          // The controller restores the current record and owns ended replay.
+          if (!current) await media!.controller.select(selection);
           await media!.controller.play();
         }); }} />
       <Action label="向后跳 10 秒" secondary testID={`seek-forward-${selection.recordId}`} disabled={!seekReady}

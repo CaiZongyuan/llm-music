@@ -1,5 +1,5 @@
-import { Button, Column, Host, Text as NativeText, TextInput, type TextInputProps } from '@expo/ui';
-import type { ReactNode } from 'react';
+import { Button, Column, Host, Text as NativeText, TextInput, useNativeState, type TextInputProps } from '@expo/ui';
+import { useEffect, useRef, type ReactNode } from 'react';
 import { Text, View, useWindowDimensions, type TextProps } from 'react-native';
 
 import { colors, fontSize, layout, spacing } from '@/constants/theme';
@@ -35,16 +35,23 @@ export function Action({ label, onPress, secondary = false, disabled = false, te
   </Button>;
 }
 
-// Uncontrolled native text retains cursor/composition during HTTP/query renders.
-// Owners remount only when changing server/record or explicitly replacing input.
-export function Field({ label, hint, initialValue, ...props }: Omit<TextInputProps, 'value' | 'defaultValue'> & {
-  label: string; hint?: string; initialValue: string;
+// The shared state stays alive across query renders and explicit text replacement.
+// Only a server/record identity change remounts the owner.
+export function Field({ label, hint, initialValue, replacement, ...props }: Omit<TextInputProps, 'value' | 'defaultValue'> & {
+  label: string; hint?: string; initialValue: string; replacement?: string | number;
 }) {
   const width = useControlWidth();
+  const text = useNativeState(initialValue), previousReplacement = useRef(replacement);
+  useEffect(() => {
+    if (replacement !== previousReplacement.current) {
+      previousReplacement.current = replacement;
+      text.set(initialValue);
+    }
+  }, [text, replacement, initialValue]);
   return <View style={{ gap: spacing.small }}>
     <Copy style={{ fontWeight: '600' }}>{label}</Copy>
     <Host matchContents colorScheme="dark" seedColor={colors.accent} ignoreSafeArea="all">
-      <TextInput {...props} defaultValue={initialValue} autoCorrect={false}
+      <TextInput {...props} value={text} autoCorrect={false}
         cursorColor={colors.accent} selectionColor={colors.accent} placeholderTextColor={colors.muted}
         textStyle={{ color: colors.text, fontSize: fontSize.body }}
         style={{ width, padding: spacing.medium, backgroundColor: colors.panel, borderColor: colors.line, borderWidth: 1, borderRadius: 4 }} />

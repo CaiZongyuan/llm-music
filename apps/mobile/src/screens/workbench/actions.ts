@@ -1,16 +1,16 @@
-import type { createMobileSession } from '../../data/session.ts';
+import type { createMobileSession, PendingIntent } from '../../data/session.ts';
 import type { components, JobRead } from '@llm-music/api-client';
 
 export type WorkbenchSession = ReturnType<typeof createMobileSession>;
 
-export function pendingJobRecords(session: WorkbenchSession, projectId: string, jobs: readonly JobRead[] | undefined) {
-  return session.listIntents(projectId).filter(intent => ['generate', 'retry'].includes(intent.operation) &&
+export function pendingJobRecords(intents: readonly PendingIntent[], jobs: readonly JobRead[] | undefined) {
+  return intents.filter(intent => ['generate', 'retry'].includes(intent.operation) &&
     intent.phase === 'confirmed' && intent.resourceId && !jobs?.some(job => job.id === intent.resourceId));
 }
 
-export function generationBlocked(session: WorkbenchSession, projectId: string, jobs: readonly JobRead[] | undefined) {
+export function generationBlocked(intents: readonly PendingIntent[], jobs: readonly JobRead[] | undefined) {
   return jobs === undefined || jobs.some(job => !['completed', 'failed', 'cancelled'].includes(job.status)) ||
-    pendingJobRecords(session, projectId, jobs).length > 0 || session.listIntents(projectId).some(intent =>
+    pendingJobRecords(intents, jobs).length > 0 || intents.some(intent =>
       ['generate', 'retry'].includes(intent.operation) && ['prepared', 'unknown'].includes(intent.phase));
 }
 
@@ -25,7 +25,7 @@ export function createWorkbenchActions(session: WorkbenchSession) {
       return session.submitIntent(intent.id);
     },
     generate: async (projectId: string, knownJobs: readonly JobRead[] | undefined) => {
-      if (generationBlocked(session, projectId, knownJobs)) throw new Error('jobs_unconfirmed');
+      if (generationBlocked(session.listIntents(projectId), knownJobs)) throw new Error('jobs_unconfirmed');
       const intent = await session.prepareGenerate(projectId);
       return session.submitIntent(intent.id);
     },
@@ -35,7 +35,7 @@ export function createWorkbenchActions(session: WorkbenchSession) {
     },
     retry: async (job: JobRead, knownJobs: readonly JobRead[] = [job]) => {
       if (!['failed', 'cancelled'].includes(job.status) || job.recovery_required) throw new Error('retry_unconfirmed');
-      if (generationBlocked(session, job.project_id, knownJobs)) throw new Error('jobs_unconfirmed');
+      if (generationBlocked(session.listIntents(job.project_id), knownJobs)) throw new Error('jobs_unconfirmed');
       const intent = await session.prepareIntent({ operation: 'retry', projectId: job.project_id, jobId: job.id });
       return session.submitIntent(intent.id);
     },
