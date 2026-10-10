@@ -6,11 +6,10 @@ import json
 import logging
 from pathlib import Path
 
-import uvicorn
-
 from music_api.config import Settings
 from music_api.database import Database
 from music_api.main import create_app
+from music_api.serving import bound_server
 
 
 class JsonLogFormatter(logging.Formatter):
@@ -31,6 +30,9 @@ def main() -> None:
     parser.add_argument("--data-dir", type=Path, help="Owned application data directory; defaults to MUSIC_API_DATA_DIR or repository data/")
     parser.add_argument("--host", choices=["127.0.0.1", "localhost", "::1"], default="127.0.0.1")
     parser.add_argument("--port", type=int, default=8000)
+    parser.add_argument("--lan-host", help="Explicit IPv4 of an active local interface; enables the additional authenticated LAN listener")
+    parser.add_argument("--lan-port", type=int, default=8001)
+    parser.add_argument("--owner-origin", action="append", help="Allowed local browser Origin; repeat for additional workbench Origins")
     parser.add_argument("--output", type=Path, help="OpenAPI output file; absent writes stdout")
     args = parser.parse_args()
     if not 1 <= args.port <= 65535:
@@ -55,4 +57,10 @@ def main() -> None:
         finally:
             database.close()
     else:
-        uvicorn.run(create_app(configured), host=args.host, port=args.port)
+        configured = configured.model_copy(update=dict(local_host="127.0.0.1" if args.host == "localhost" else args.host,
+                                                         local_port=args.port, lan_host=args.lan_host or configured.lan_host,
+                                                         lan_port=args.lan_port,
+                                                         owner_origins=args.owner_origin or configured.owner_origins))
+        configured = Settings.model_validate(configured.model_dump())
+        with bound_server(configured) as (server, sockets):
+            server.run(sockets=sockets)

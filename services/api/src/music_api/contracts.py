@@ -29,5 +29,39 @@ class MusicAPI(FastAPI):
         if route.protocol != "websocket":
             self.openapi_schema = None
             raise ValueError("Job event discovery resolved a non-WebSocket route")
-        document["x-websockets"] = {str(route): {"message": {"$ref": "#/components/schemas/JobEventRead"}}}
+        document["components"]["securitySchemes"] = {
+            "DeviceBearer": {"type": "http", "scheme": "bearer", "bearerFormat": "64 lowercase hex characters",
+                             "description": "Revocable 32-byte device credential. Required on every authenticated LAN HTTP/WS/Asset request; send in Authorization, never in a URL query."},
+            "OwnerCSRF": {"type": "apiKey", "in": "header", "name": "X-Owner-CSRF",
+                          "description": "Current process owner token from local GET /pairing/owner. Accepted only on the actual configured local socket. A present browser Origin must match the configured local API/Web allowlist; headerless local CLI calls still require this token."},
+        }
+        for path, operations in document["paths"].items():
+            for method, operation in operations.items():
+                if method not in {"get", "head", "post", "put", "patch", "delete", "options"}:
+                    continue
+                owner = path.startswith("/pairing/") and path != "/pairing/claim"
+                anonymous = (path, method) in {("/connection", "get"), ("/pairing/claim", "post")}
+                if owner:
+                    operation["security"] = [] if method in {"get", "head"} else [{"OwnerCSRF": []}]
+                    access = "Only the actual local listener can administer pairing. Device Bearer authorization never grants owner rights."
+                    if method not in {"get", "head"}:
+                        access += " X-Owner-CSRF is required. If Origin is present it must be an allowed local browser Origin; local CLI calls without Origin are supported."
+                    operation["x-listener-access"] = "local-owner"
+                elif anonymous:
+                    operation["security"] = []
+                    access = "Available without a device credential on the known local and LAN listeners; unknown socket bindings are rejected."
+                    operation["x-listener-access"] = "anonymous"
+                else:
+                    operation["security"] = [{"DeviceBearer": []}] if path == "/device" else [{"DeviceBearer": []}, {}]
+                    access = "Device Bearer authorization is required on the actual LAN listener. Existing local business consumers may omit it. Authentication runs before route/object lookup and every Asset GET/HEAD/Range request."
+                    if path == "/device":
+                        access = "Validate the submitted Device Bearer credential on either known listener. A revoked or unknown device is rejected."
+                    operation["x-listener-access"] = "lan-device"
+                operation["description"] = (operation.get("description", "") + "\n\n" + access).strip()
+        document["x-websockets"] = {str(route): {
+            "message": {"$ref": "#/components/schemas/JobEventRead"},
+            "security": [{"DeviceBearer": []}, {}],
+            "x-listener-access": "lan-device",
+            "description": "LAN requires Authorization: Bearer in the handshake headers. Local business consumers remain compatible. Revoking the device closes active sockets with code 4401 without cancelling the Job.",
+        }}
         return document
