@@ -8,6 +8,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, fontSize, layout, spacing } from '@/constants/theme';
 import { useMobileSession } from '@/data/provider';
 
+import { controlWidthLayout } from './native-control-width';
+
 const statusLabels = {
   hydrating: '正在读取手机数据', checking: '正在确认电脑连接', unpaired: '还未连接电脑', pairing: '正在确认配对', connected: '电脑已连接',
   disconnected: '连接暂时中断', revoked: '设备配对已被撤销', server_mismatch: '这个地址对应另一台电脑',
@@ -29,8 +31,8 @@ export function ConnectionScreen() {
   const [name, setName] = useState('我的手机');
   const { width } = useWindowDimensions();
   const insets = useSafeAreaInsets();
-  // SDK 57 Compose width modifiers accept integer dp, while window dimensions can be fractional.
   const controlWidth = Math.floor(Math.max(0, Math.min(width, layout.maxContentWidth) - spacing.medium * 2));
+  const widthLayout = controlWidthLayout(controlWidth);
   const freshAuthorization = state.connection === 'revoked' || state.error === 'credential_missing';
   return <><Stack.Screen options={{ title: '声间 · 连接电脑' }} />
     <ScrollView contentInsetAdjustmentBehavior="automatic" keyboardShouldPersistTaps="handled"
@@ -52,17 +54,20 @@ export function ConnectionScreen() {
         <Host matchContents colorScheme="dark" seedColor={colors.accent}>
           <Button testID="open-workbench" label="进入我的项目" onPress={() => router.replace('/workbench')} />
         </Host>
-      </View> : <Host matchContents colorScheme="dark" seedColor={colors.accent}>
-        <Column spacing={spacing.medium} style={{ width: controlWidth }}>
+      </View> : <Host {...widthLayout.host} colorScheme="dark" seedColor={colors.accent}>
+        <Column {...widthLayout.content} spacing={spacing.medium}>
           <TextInput testID="pair-address" defaultValue={address} onChangeText={setAddress} keyboardType="url" autoCapitalize="none" placeholder="电脑地址，例如 http://192.168.1.8:8001"
             placeholderTextColor={colors.muted} textStyle={{ color: colors.text, fontSize: fontSize.body }}
-            style={{ width: controlWidth, padding: spacing.medium, backgroundColor: colors.panel, borderWidth: 1, borderColor: colors.line }} />
+            modifiers={widthLayout.content.modifiers}
+            style={{ ...widthLayout.content.style, padding: spacing.medium, backgroundColor: colors.panel, borderWidth: 1, borderColor: colors.line }} />
           <TextInput testID="pair-code" onChangeText={setCode} keyboardType="number-pad" placeholder="电脑显示的六位配对码"
             maxLength={6} placeholderTextColor={colors.muted} textStyle={{ color: colors.text, fontSize: fontSize.body }}
-            style={{ width: controlWidth, padding: spacing.medium, backgroundColor: colors.panel, borderWidth: 1, borderColor: colors.line }} />
+            modifiers={widthLayout.content.modifiers}
+            style={{ ...widthLayout.content.style, padding: spacing.medium, backgroundColor: colors.panel, borderWidth: 1, borderColor: colors.line }} />
           <TextInput testID="pair-name" defaultValue={name} onChangeText={setName} placeholder="手机名称" maxLength={200}
             placeholderTextColor={colors.muted} textStyle={{ color: colors.text, fontSize: fontSize.body }}
-            style={{ width: controlWidth, padding: spacing.medium, backgroundColor: colors.panel, borderWidth: 1, borderColor: colors.line }} />
+            modifiers={widthLayout.content.modifiers}
+            style={{ ...widthLayout.content.style, padding: spacing.medium, backgroundColor: colors.panel, borderWidth: 1, borderColor: colors.line }} />
           <Button testID="pair-submit" label={freshAuthorization ? '重新授权' : '确认配对'} disabled={state.storage !== 'ready' && !freshAuthorization || state.connection === 'pairing' || state.connection === 'checking'}
             onPress={() => { void session.pair(address, code, name, freshAuthorization).catch(() => {}); }} />
         </Column>
