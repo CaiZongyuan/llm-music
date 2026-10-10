@@ -1,5 +1,6 @@
 import { Button, Column, Host, TextInput } from '@expo/ui';
 import { useState } from 'react';
+import { useRouter } from 'expo-router';
 import { ActivityIndicator, ScrollView, Text, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -12,6 +13,7 @@ const stateLabels: Record<PreviewState, string> = {
 };
 
 export function BootstrapScreen() {
+  const router = useRouter();
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
   // SDK 57 Compose width modifiers require numbers, even though the TS style type allows percentages.
@@ -29,6 +31,9 @@ export function BootstrapScreen() {
         <Text selectable style={{ color: colors.accent, fontSize: fontSize.label }}>MOBILE / BOOTSTRAP</Text>
         <Text selectable testID="bootstrap-ready" style={{ color: colors.text, fontSize: fontSize.heading, fontWeight: '700' }}>移动端已启动</Text>
         <Text selectable style={{ color: colors.muted, fontSize: fontSize.body }}>初始化验证预览。所有操作只写内存。</Text>
+        <Host matchContents colorScheme="dark" seedColor={colors.accent}>
+          <Button testID="open-workbench-preview" label="打开移动创作预览" onPress={() => router.push('/preview')} />
+        </Host>
       </View>
       <View style={{ gap: spacing.small }}>
         <Text selectable style={{ color: colors.text, fontSize: fontSize.body }}>中文输入与原生交互</Text>

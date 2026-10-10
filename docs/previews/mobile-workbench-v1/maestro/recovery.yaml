@@ -1,0 +1,108 @@
+appId: host.exp.exponent
+---
+- launchApp
+- openLink: exp://127.0.0.1:18081/--/preview
+- tapOn:
+    text: Close
+    optional: true
+- extendedWaitUntil:
+    visible: 还未连接电脑
+    timeout: 30000
+- tapOn:
+    id: connect-computer
+- tapOn:
+    id: pair-code
+- inputText: '246810'
+- hideKeyboard
+- tapOn:
+    id: pair-submit
+- extendedWaitUntil:
+    visible: 夜行电台
+    timeout: 10000
+- tapOn:
+    id: project-night-radio
+- scrollUntilVisible:
+    element:
+      id: open-preview-tools
+    direction: DOWN
+- tapOn:
+    id: open-preview-tools
+- scrollUntilVisible:
+    element:
+      id: toggle-cancel-unconfirmed
+    direction: DOWN
+- tapOn:
+    id: toggle-cancel-unconfirmed
+- back
+- scrollUntilVisible:
+    element:
+      id: generate-submit
+    direction: UP
+- tapOn:
+    id: generate-submit
+- scrollUntilVisible:
+    element:
+      id: cancel-job-1
+    direction: DOWN
+- tapOn:
+    id: cancel-job-1
+- assertVisible: 取消确认中
+- scrollUntilVisible:
+    element:
+      id: recover-connection
+    direction: UP
+- tapOn:
+    id: recover-connection
+- scrollUntilVisible:
+    element:
+      id: retry-job-1
+    direction: DOWN
+- tapOn:
+    id: retry-job-1
+- scrollUntilVisible:
+    element:
+      id: job-job-2-state
+    direction: UP
+- extendedWaitUntil:
+    visible: 可以试听了
+    timeout: 15000
+- scrollUntilVisible:
+    element:
+      id: open-preview-tools
+    direction: DOWN
+- tapOn:
+    id: open-preview-tools
+- scrollUntilVisible:
+    element:
+      id: toggle-save-unknown
+    direction: DOWN
+- tapOn:
+    id: toggle-save-unknown
+- back
+- scrollUntilVisible:
+    element:
+      id: version-name-job-2
+    direction: UP
+- tapOn:
+    id: version-name-job-2
+- inputText: 未知保存核对
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: save-job-2
+    direction: DOWN
+- tapOn:
+    id: save-job-2
+- extendedWaitUntil:
+    visible: 保存结果待确认 ·「未知保存核对」
+    timeout: 10000
+- scrollUntilVisible:
+    element:
+      id: check-save-job-2
+    direction: DOWN
+- tapOn:
+    id: check-save-job-2
+- extendedWaitUntil:
+    visible: 已明确保存为「未知保存核对」
+    timeout: 10000
+- takeScreenshot: mobile-recovered-version

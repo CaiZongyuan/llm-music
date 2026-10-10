@@ -3,7 +3,7 @@
 
 **更新日期：2026-10-10**
 
-**阶段：Web 架构基线 / 移动端初始化验证**
+**阶段：Web 架构基线 / 移动端正式实施**
 
 ---
 
@@ -153,7 +153,7 @@ FastAPI = clean HTTP / WebSocket API
 
 验收要求 Android 模拟器、至少一台 Android 真机及独立 APK。日常 Maestro 使用隔离 Fake Runtime，覆盖中文/多行歌词、正常/空/加载/失败状态、连接与重启恢复、未知结果及重复提交控制；交付时运行真实 GPU 的生成、试听、明确保存闭环，并验证原始 FLAC 播放/seek。UI、音频及 GPU 证据分别记录。
 
-三轮产品选择已经确认，完整方案及执行顺序见 [移动端方案访谈](design/mobile-interview.md)。移动端复用已确认的黑色 Acid Hardware 视觉方向，新增流程遵循交互预览与反馈确认规则。2026-10-10 用户明确授权先初始化 mobile 并试跑，已创建 `apps/mobile` 和隔离启动预览，实际结果见 [初始化验证](verification/mobile-bootstrap.md)。正式项目创作与配对流程继续按预览、规格及实施顺序推进。
+三轮产品选择已经确认，完整方案及执行顺序见 [移动端方案访谈](design/mobile-interview.md)。移动端复用已确认的黑色 Acid Hardware 视觉方向。2026-10-10 已完成 `apps/mobile` 初始化、完整手机工作流及电脑配对入口的隔离预览，用户回复“确认”，见 [UI 确认记录](ui/mobile-workbench-preview.md)；正式局域网接入与移动创作客户端进入规格发布及实施。初始化与预览的实际结果见 [初始化验证](verification/mobile-bootstrap.md) 和 [工作流预览验证](verification/mobile-workbench-preview.md)，正式数据、设备鉴权、持久恢复、原始音频和 APK/GPU 验收继续单独取证。
 
 其他客户端仍可通过该边界接入：
 

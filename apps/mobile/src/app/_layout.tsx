@@ -12,7 +12,8 @@ export default function RootLayout() {
         headerTintColor: colors.text,
         contentStyle: { backgroundColor: colors.background },
       }}>
-        <Stack.Screen name="index" options={{ title: '声笺 · 移动端' }} />
+        <Stack.Screen name="index" options={{ title: '声间 · 初始化' }} />
+        <Stack.Screen name="preview" options={{ headerShown: false }} />
       </Stack>
     </>
   );

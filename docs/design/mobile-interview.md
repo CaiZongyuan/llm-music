@@ -1,6 +1,6 @@
 # 移动端方案访谈
 
-日期：2026-10-09 起。状态：三轮建议均已确认，用户于 2026-10-10 明确授权先初始化 mobile 并试跑。本文记录 `grill-with-docs` 的设计访谈与后续授权，不是实施规格；规格与实施票据沿用 GitHub Issues。
+日期：2026-10-09 起。状态：三轮建议与 2026-10-10 完整交互预览均已确认，进入正式实施。本文记录 `grill-with-docs` 的设计访谈与后续授权，不是实施规格；规格与实施票据沿用 GitHub Issues。
 
 ## 第一轮：已确认
 
@@ -91,6 +91,8 @@ Android Studio 安装后的最初 SDK/AVD 状态见 [Windows 环境调研](../re
 当前交付是 Expo SDK 57 的隔离启动验证页面、公开 pnpm 启动/测试入口及实际 Android Maestro / Chromium / Fast Refresh 证据。此授权与技术结果不代替完整项目创作或配对流程的视觉确认，也不代表业务 FastAPI/GPU、真机或独立产品 APK 已验收。
 
 ## 事实与验证边界
+
+2026-10-10，完整手机工作流与电脑配对入口的隔离预览已交付，并完成 Android Maestro、Chromium、控件兼容修复及非作者审阅。用户收到预览入口与接入真实后端的确认请求后明确回复“确认”。该确认授权按此界面与流程继续正式业务实施、发布规格和实施票据，见 [UI 记录](../ui/mobile-workbench-preview.md)。不重复请求已确认的产品选择或视觉准入；新增实质范围另按实际需要处理。
 
 - Expo SDK 57 已发布。固定原生宿主中的调试结果不能代替本项目二进制的原生配置与权限验证；详见 [Expo 调研](../research/mobile-expo-facts.md)。
 - Maestro 官方提供 Expo Go 与 Windows 原生路径；本机尚未实际启动模拟器并完成整条测试链路。详见 [Windows 与 Maestro 调研](../research/mobile-windows-maestro-facts.md)。

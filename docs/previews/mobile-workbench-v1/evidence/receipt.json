@@ -1,0 +1,163 @@
+{
+  "recordedAt": "2026-10-09T19:47:53.596670+00:00",
+  "baseline": "1ce3268577c4fc25f533b5f01993b608bf5cf267",
+  "candidate": "uncommitted mobile preview working tree",
+  "sourceSha256": {
+    "apps/mobile/app.json": "8d8a3c5410d46d1c4e4164729b3e1b7e550a1c284d8806e6bc03a0d764895878",
+    "apps/mobile/package.json": "b006ac060aab7fa5a42fe720ce3fc9e10da7abd6cab47ce1e589a3bddc0a8047",
+    "apps/mobile/src/app/_layout.tsx": "3f1ccff72099a076c4040c6db03b69d2706bee99a82de2a17f5c83ba8e3cd2ad",
+    "apps/mobile/src/app/preview/_layout.tsx": "03010d7b975f848d3f42da25aefab4f7aee730a4e707a09bf268a005a3834e72",
+    "apps/mobile/src/app/preview/connect.tsx": "ccc3a280214691f350f14481be3d9c8418f33ad3e1416aa075ffd03f28335b55",
+    "apps/mobile/src/app/preview/index.tsx": "4218bb635f9d40955918cc4f9a60d818efaf64e60d644b45f0fce70a60573e00",
+    "apps/mobile/src/app/preview/new.tsx": "a2a914d50a34e596386a63079efb11c8128f3d0e5e9e2bfa56e997a6f13b1515",
+    "apps/mobile/src/app/preview/project.tsx": "52f5da5e1b13b6318cc5f62491039876950a0508f78b636ee46efa7ed04ea2d8",
+    "apps/mobile/src/app/preview/tools.tsx": "8236825d48f466829bb7904f469a778f19901c72cd0c3d64b7130acf68168553",
+    "apps/mobile/src/constants/theme.ts": "8137975d12cc4cab18d12f4e282f4408d3fbd04f133e21ba83bda93ed9f7b92d",
+    "apps/mobile/src/screens/bootstrap.tsx": "336753f14c34ab092950934d520568d23ccc862246e3beae1013bed3e11dc077",
+    "docs/previews/mobile-workbench-v1/computer.html": "e772a35852fb7649752bdddb22b4dfa0fdbb458793289f794d67767956389dfc",
+    "docs/previews/mobile-workbench-v1/controls.tsx": "2dad5f361bd21eb0bed1bdf3105d5685b4249b4657a28570a264f6211344ca6a",
+    "docs/previews/mobile-workbench-v1/flag.android.tsx": "0e9667a8c1ef4287883ac26d345f473a59b000a4ee466546c53968b77742b513",
+    "docs/previews/mobile-workbench-v1/flag.tsx": "69df19759b859b8da3cce569ba6ea1c7a5ed5af9bb3e2135c8e9d6a7b91014b1",
+    "docs/previews/mobile-workbench-v1/model.tsx": "de910970c87be3fd00d9540284f8c8ec02f2a82910b23efa5791ae1fed38b0da",
+    "docs/previews/mobile-workbench-v1/package.json": "8ac6e49b1c72ec242a25d1da594cf8b665f7f0ab387f30e8e9da78f9cec63c4a",
+    "docs/previews/mobile-workbench-v1/screens.tsx": "180724b4b85d30f6d66d17815de0f29fd47b36d5e6385ad14ebb2955c95fb954",
+    "docs/previews/mobile-workbench-v1/seek-control.android.tsx": "84bfdb148b7df80765e65a856cc3919643d00d4225ef4bd35f3be7102ae2ebee",
+    "docs/previews/mobile-workbench-v1/seek-control.tsx": "083a9483c1498c607d72ae0bf380015641539f5d0ebd1a7021f1e0a4fa30e6fd",
+    "pnpm-lock.yaml": "b067c89e08a16b338ed35dbd28ba0c578ed7e7a706428bb11c6d89c6c3413f1d",
+    "pnpm-workspace.yaml": "69c41ec2114b02482230f3ba654fe227cd4c47cb6a563b10d4873c93d276b4c5"
+  },
+  "data": "Memory-only simulated business data; historical MP3 audio",
+  "qrPayload": "exp://192.168.31.209:18081/--/preview",
+  "environment": {
+    "platform": "Windows",
+    "expo": "57.0.27",
+    "reactNative": "0.86.3",
+    "expoGoAndroid": "57.0.9",
+    "maestro": "2.11.0",
+    "device": "emulator-5562 / Shengjian_Expo57 / API36",
+    "node": "24.18.0",
+    "pnpm": "11.22.0"
+  },
+  "screenshots": {
+    "android-catalog.png": {
+      "producer": "Original native pairing smoke; same catalog behavior",
+      "width": 1080,
+      "height": 2400,
+      "sha256": "cf5b9594e91ba26796532ddad216de69cff7135d8129ca0af3ac2da6064c9824"
+    },
+    "android-version-history.png": {
+      "producer": "Final native-workbench-v2 flow with bundled native Slider",
+      "width": 1080,
+      "height": 2400,
+      "sha256": "eb47f881b2e02965da751168046c35f71def1e297e5c597488179a12041601a2"
+    },
+    "android-recovered-version.png": {
+      "producer": "native-recovery-v2; before Slider compatibility replacement, same model",
+      "width": 1080,
+      "height": 2400,
+      "sha256": "28813e43cd8db07dce9379effe9135b951c20562f467957b9699090bec301b94"
+    },
+    "android-seekbar.png": {
+      "producer": "Final native-workbench-v2; native playback and seek controls",
+      "width": 1080,
+      "height": 2400,
+      "sha256": "5c832b08844fbdab01a3cd611f7260f10f8e5aab7ef63979119b9ae06b55888c"
+    },
+    "web-workbench.png": {
+      "producer": "Chromium 390x844; populated input; same visible form",
+      "width": 390,
+      "height": 844,
+      "sha256": "e3ab1a95df47b30308e56788a612c106fe2941bef0f7e15759280b79faae5577"
+    },
+    "web-empty.png": {
+      "producer": "Chromium 390x844; simulated empty catalog",
+      "width": 390,
+      "height": 844,
+      "sha256": "1acd37d679491f29a6295b4344bf4b9b5caeb97baef7841863c8696a61681d36"
+    },
+    "web-loading.png": {
+      "producer": "Chromium 390x844; simulated loading catalog",
+      "width": 390,
+      "height": 844,
+      "sha256": "f71ee91189ddd38c27a4060155c508380f4781675bed9714aa9ec73e1469e285"
+    },
+    "web-read-failure.png": {
+      "producer": "Chromium 390x844; simulated read failure",
+      "width": 390,
+      "height": 844,
+      "sha256": "bfa107c180681b442a88d4c98e1646655e266b48547055197945f85b0dc8a466"
+    },
+    "web-disconnected.png": {
+      "producer": "Chromium 390x844; playback disabled after simulated disconnect",
+      "width": 390,
+      "height": 844,
+      "sha256": "117562c168bd40a0c3735700e820e5c25bdd65ea1d9ef17d358ac172e986aed4"
+    },
+    "web-revoked-tools.png": {
+      "producer": "Chromium 390x844; recovery disabled after simulated revoke",
+      "width": 390,
+      "height": 844,
+      "sha256": "4965e0aa7214e7a91a7cb0be1c9c28a4631601943a1f95a49777716883d0cf5f"
+    },
+    "web-unpaired.png": {
+      "producer": "Final source; Chromium 390x844; fresh preview",
+      "width": 390,
+      "height": 844,
+      "sha256": "c3fa39969aead4fe9b6b50d37693a5f176c49dfb92993bdedad8697ace948c75"
+    },
+    "web-version-player.png": {
+      "producer": "Final default Slider/Host; Chromium 390x844; actual MP3 paused",
+      "width": 390,
+      "height": 844,
+      "sha256": "c5ee4457e091ee31ed7ce32709023d566816430a43df7c546be4ab07da5ba152"
+    },
+    "computer-paired.png": {
+      "producer": "Chromium 1100x800; independent memory-only desktop demo",
+      "width": 1100,
+      "height": 800,
+      "sha256": "85696ee063fa2d4944a7cf348a6083a941385b39c5c03b2b1ed826f5f8dd71c6"
+    }
+  },
+  "results": [
+    {
+      "name": "Final native workflow",
+      "outcome": "passed",
+      "durationSeconds": 103.024,
+      "evidence": "workbench.xml"
+    },
+    {
+      "name": "Native cancel and uncertain-save recovery",
+      "outcome": "passed",
+      "durationSeconds": 102.643,
+      "evidence": "recovery.xml"
+    },
+    {
+      "name": "Exact ADB drag target",
+      "outcome": "passed",
+      "result": "0:26 / 0:35; unchanged 24-28 second predicate"
+    },
+    {
+      "name": "Maestro reverse drag",
+      "outcome": "passed-subset",
+      "result": "26 to 12-15 seconds; combined playback-window flow failed"
+    },
+    {
+      "name": "Non-author review",
+      "outcome": "passed",
+      "result": "Original five findings repaired; eight model probes and five final SeekBar hook probes"
+    },
+    {
+      "name": "TypeScript and SDK version check",
+      "outcome": "passed"
+    }
+  ],
+  "limits": [
+    "No production LAN pairing or device credentials",
+    "No actual GPU job in this preview",
+    "No original authenticated FLAC/Range",
+    "No durable app restart recovery",
+    "No new iOS native workflow test",
+    "No standalone APK acceptance",
+    "Maestro Windows heartbeat lock warning; serial evidence only"
+  ]
+}

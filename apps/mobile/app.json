@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "声笺移动端",
+    "name": "声间移动端",
     "slug": "shengjian-mobile",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -31,6 +31,14 @@
           "backgroundColor": "#208AEF",
           "image": "./assets/images/splash-icon.png",
           "imageWidth": 76
+        }
+      ],
+      [
+        "expo-audio",
+        {
+          "microphonePermission": false,
+          "recordAudioAndroid": false,
+          "enableBackgroundPlayback": false
         }
       ]
     ],
