@@ -28,7 +28,7 @@ Project 或 Job 与请求记录在同一数据库事务提交。写事务先取�
 - Generate tracer 原先并发产生两个 202；实现后 202/200 返回一个 Job、外部 peer 一次 accepted。完成后撤去模拟 owner/model 就绪证据，原请求仍 200，新的 key 503，同 key 换有效 Project UUID 则先 409。
 - 提交前故障可见资源与 request 均不存在，accepted 为 0；实际 commit 已完成而 ACK 丢失时，两者都存在，同 key 返回原 UUID，原 Job 只执行一次。
 - 指定提交在途时精确查询 404、资源列表仍为空；释放数据库 gate 后原调用与明确同 key 调用只创建一个资源。
-- reviewer 的 lost-handoff 反例真实失败：ACK 丢失后仅首次 receipt SELECT 失败，原 Job 永久 queued，另一 key 的任务完成，外部 accepted 仅 1（14.77 秒）。删除创建者对同步 receipt 读回的依赖后，两项故障检查通过（18.95 秒），原任务与后续任务各执行一次。修复后不再执行这次无必要的 SELECT，故其故障 gate 自然不触发；没有为了触发 gate 恢复多余读。原失败 provider marker/log 保留在临时隔离证据目录。
+- reviewer 的 lost-handoff 反例真实失败：ACK 丢失后仅首次 receipt SELECT 失败，原 Job 仍 queued，另一 key 的任务完成，外部 accepted 仅 1（14.77 秒）。删除创建者对同步 receipt 读回的依赖后，两项故障检查通过（18.95 秒），原任务与后续任务各执行一次。修复后不再执行这次无必要的 SELECT，故其故障 gate 自然不触发；没有为了触发 gate 恢复多余读。原失败的临时 provider marker/log 已被 pytest 保留策略清理；失败结果依据执行者的当时回执，不能将该旧目录作为当前可读取的独立复现证据。最终通过集合的输出与 JUnit 保留在下述 worktree 路径。
 - commit 后立刻结束真正进程（退出码 77），重启后仍可读取原 key/Job；其既有有界恢复得到原失败状态，重放没有推理，accepted 仍 0。用户以不同 key 明确发起相同输入，得到独立 Job 并完成（12.22 秒）。
 - 撤销设备 A 后它查询 401；设备 B 使用新 UUID/token，可查询和重放相同 server 上 A 保留的 key。旧本地 keyless 请求仍成功。
 
@@ -43,4 +43,4 @@ uv run --project services/api --no-sync mypy --config-file services/api/pyprojec
 
 Root 同候选实际消费者结果：两次 CPU export 与生成 schema/严格 TypeScript 检查通过；Node 七项真实 HTTP/FormData/WS 检查通过（23 秒），包含 lost-response/restart 与 bodyless keyed retry；Web 类型检查通过。真实 Chromium 七项既有用户流程通过（约 1.1 分钟），loopback keyless 保持。文档十五项来源/章节/语言检查通过，Astro 十九文件零错误，构建六十六页并核对 5,219 个引用；agent-browser 实际核对中英文 `/request-recovery` 章节、锚点和语言切换。截图为 `.scratch/m2/docs-request-{zh,en}.png`。验证设置中的错误 project 名与拼写已纠正，不计为产品缺陷。
 
-有限复杂度检查覆盖已更改的 transaction、matching、Job owner、Header 和生成消费者；把成功及不确定 ACK 的唯一 creator handoff 合并为一个位置，保留 replay、DB guard 与既有 startup 的不同责任。未新增设备 ACL、自动推理重提交、调度器或手机业务模拟。源代码、测试、生成客户端、配对/生成/恢复双语指南同票交付。
+有限复杂度检查覆盖已更改的 transaction、matching、Job owner、Header 和生成消费者；删除创建者对同步 receipt 读回的依赖，由唯一 creator 交出自己分配的 UUID，保留 replay、DB guard 与既有 startup 的不同责任。未新增设备 ACL、自动推理重提交、调度器或手机业务模拟。源代码、测试、生成客户端、配对/生成/恢复双语指南同票交付。
