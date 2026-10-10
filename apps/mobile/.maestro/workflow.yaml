@@ -1,4 +1,4 @@
-# Preparation only; not yet executed. Requires integrated M4/M5 and prior pairing.
+# Preparation only; full journey has not passed. Requires integrated M4/M5 and prior pairing.
 # Run via scripts/test-mobile-workflow.ps1: it checks the explicit Fake API/SID.
 # Public selectors come from M4 40fcf487; no preview or private test route is used.
 # This covers button seeks. Slider dragging/native bytes/GPU/APK config remain separate.
@@ -55,7 +55,8 @@ name: Paired isolated Fake API creation and explicit Version save
     timeout: 30000
 - tapOn:
     id: draft-style
-- eraseText: 1024
+# A newly created Project starts with empty style/lyrics (M3 blankDraft).
+# Max-length backspacing wastes RPC time even on empty Android fields.
 - inputText: 独立流行，温暖女声，轻快鼓点
 - hideKeyboard
 - scrollUntilVisible:
@@ -64,7 +65,6 @@ name: Paired isolated Fake API creation and explicit Version save
     direction: DOWN
 - tapOn:
     id: draft-lyrics
-- eraseText: 10000
 - inputText: |-
     [Verse]
     末班车穿过雨后的街
