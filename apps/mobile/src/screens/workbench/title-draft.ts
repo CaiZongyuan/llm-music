@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useSyncExternalStore } from 'react';
 import { useMobileSession } from '@/data/provider';
 import { MobileFailure, type TitleTarget } from '@/data/session';
 import { creatorMessage } from './use-creator-action';
@@ -6,18 +6,18 @@ import { creatorMessage } from './use-creator-action';
 export function useTitleDraft(kind: 'project' | 'version', projectId = '', candidateId = '') {
   const { session, state } = useMobileSession(), [error, setError] = useState('');
   const target: TitleTarget = kind === 'project' ? { kind } : { kind, projectId, candidateId };
-  let available = state.hydrated && !!state.server;
-  let value = '';
-  if (available) {
-    try { value = session.getTitleDraft(target); }
+  const readTitle = () => {
+    try { return session.getTitleDraft(target); }
     catch (problem) {
       if (!(problem instanceof MobileFailure) || problem.code !== 'draft_unavailable') throw problem;
-      available = false;
+      return undefined;
     }
-  }
+  };
+  // Typing changes the document while the session/server dependencies stay stable.
+  const value = useSyncExternalStore(session.subscribe, readTitle, readTitle);
   const key = JSON.stringify([state.server?.serverId, kind, projectId, candidateId]);
   return {
-    key, available, value,
+    key, available: value !== undefined, value: value ?? '',
     error: state.storage === 'error' ? error : '',
     set: (value: string) => {
       const serverId = state.server?.serverId;

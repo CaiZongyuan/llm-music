@@ -65,3 +65,11 @@ Root 已运行 Android Expo Go + Maestro 的真实 Fake API 创作闭环：未�
 - 首版故障中间件在响应头之前断开连接。Chromium 透明重试导致第二个 POST 201，界面未进入未知状态，断言超时。该失败保留于原始日志；最终故障在响应头后截断 JSON，准确覆盖应用对已接受未知回复的恢复。最终“不自动续开”结论仅涵盖应用行为与这一实际故障，不承诺浏览器底层不会对其他连接错误重试。
 - 本机 `agent-browser screenshot <selector> <path>` 生成了空白裁剪图片，未作为视觉验收。无 selector 的真实 viewport 截图正常；最终证据仅使用上述已查看 viewport 图片。Windows `eval --stdin` 未可靠返回结果，复杂表达式使用文档支持的 base64 参数。
 - 已做有限简化检查：保留 session/HTTP、原生控件、UI 读状态与媒体 controller 边界，未为减少行数合并不同恢复职责。没有更改 M3/M5 数据或媒体实现、Web 全局样式及 Runtime。
+
+## 输入后立即提交的原生反例与修复候选
+
+Root 在冻结 `40fcf487` 的实际 Go 流程看到 Version 输入框已显示“M4 原请求版本”，紧接保存却返回 `version_name_required`，Version POST 为 0。Project `61275d4e-1465-404d-bb08-9baf93f17b6f`、Candidate `69a5b260-28b2-453f-9cf3-2de152d38123` 的首轮失败收据和截图在主工作区 `.scratch/mobile-implementation/m4-unknown-save-first-receipt.json` 与 `m4-unknown-save-output/2026-10-10_205359/` 保留。早期冷启动恢复后的正常保存通过，不能覆盖输入后在同一 mounted scene 立即提交。
+
+已用实际安装的 `babel-plugin-react-compiler` 1.0.0、React19 target 编译原 `useTitleDraft`：生成物仅按 stable session、kind/project/candidate、hydrated/server 依赖缓存 `getTitleDraft()`。M3 输入时更新文档并同步 `publish({})`，这些依赖保持不变，故名称仍是旧空串；M3 的订阅和原始草稿本身正常。修复候选使用 `useSyncExternalStore` 订阅原始标题 string/undefined snapshot，继续复用 M3 getter、SQLite、server/project/candidate 分区、存储失败与 context 切换边界。Library 与 Candidate 共用这个 hook；编辑原始文本不创建业务写入。
+
+候选源的应用/测试 TS 与现有 37/37 Node 回归通过。原/新编译产物在本 worktree `.scratch/title-subscription/compiled-before.js`、`compiled-after.js` 保留；新产物从公开 store hook 得到标题值，getter 在每次 snapshot 读取时执行。原生回归 [title-input.yaml](../../apps/mobile/tests/maestro/title-input.yaml) 通过公开输入/创建/保存检查即时提交，不复制 getter 或编译器缓存实现。该新 flow 未由本作者执行；Root 将按新源 hash 在原设备复验，并记录实际 API 结果，不能把编译检查或已有数据层测试记为原生通过。当前媒体恢复位置方案仍待 M5 正式集成后独立实施。
