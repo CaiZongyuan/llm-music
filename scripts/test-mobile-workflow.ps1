@@ -119,7 +119,8 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'Could not read the installed app version.' }
     if ($mobileMetro) {
         $mobilePackager = Invoke-WebRequest -UseBasicParsing -Uri "http://$($mobileMetro.Host):$($mobileMetro.Port)/status" -TimeoutSec 10 -MaximumRedirection 0
-        if ($mobilePackager.Content -ne 'packager-status:running') { throw 'The target Metro server is not ready.' }
+        $mobilePackagerStatus = if ($mobilePackager.Content -is [byte[]]) { [Text.Encoding]::UTF8.GetString($mobilePackager.Content) } else { $mobilePackager.Content }
+        if ($mobilePackagerStatus -ne 'packager-status:running') { throw 'The target Metro server is not ready.' }
         if ($mobileMetro.Host -in @('127.0.0.1', 'localhost')) {
             & $mobileAdb -s $Device reverse "tcp:$($mobileMetro.Port)" "tcp:$($mobileMetro.Port)"
             if ($LASTEXITCODE -ne 0) { throw 'Could not forward Metro to the selected Android device.' }
