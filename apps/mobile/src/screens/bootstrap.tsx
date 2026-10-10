@@ -16,8 +16,8 @@ export function BootstrapScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
-  // SDK 57 Compose width modifiers require numbers, even though the TS style type allows percentages.
-  const controlWidth = Math.max(0, Math.min(width, layout.maxContentWidth) - spacing.large * 2);
+  // SDK 57 Compose width modifiers accept integer dp, while window dimensions can be fractional.
+  const controlWidth = Math.floor(Math.max(0, Math.min(width, layout.maxContentWidth) - spacing.large * 2));
   const [message, setMessage] = useState('');
   const [echo, setEcho] = useState('尚未输入文本');
   const [count, setCount] = useState(0);

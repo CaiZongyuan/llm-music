@@ -29,7 +29,8 @@ export function ConnectionScreen() {
   const [name, setName] = useState('我的手机');
   const { width } = useWindowDimensions();
   const insets = useSafeAreaInsets();
-  const controlWidth = Math.max(0, Math.min(width, layout.maxContentWidth) - spacing.medium * 2);
+  // SDK 57 Compose width modifiers accept integer dp, while window dimensions can be fractional.
+  const controlWidth = Math.floor(Math.max(0, Math.min(width, layout.maxContentWidth) - spacing.medium * 2));
   const freshAuthorization = state.connection === 'revoked' || state.error === 'credential_missing';
   return <><Stack.Screen options={{ title: '声间 · 连接电脑' }} />
     <ScrollView contentInsetAdjustmentBehavior="automatic" keyboardShouldPersistTaps="handled"

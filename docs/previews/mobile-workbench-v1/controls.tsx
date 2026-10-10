@@ -11,7 +11,8 @@ export { Flag } from './flag';
 
 export function useControlWidth(inset = 0) {
   const { width } = useWindowDimensions();
-  return Math.max(0, Math.min(width, layout.maxContentWidth) - spacing.medium * 2 - inset);
+  // SDK 57 Compose width modifiers accept integer dp, while window dimensions can be fractional.
+  return Math.floor(Math.max(0, Math.min(width, layout.maxContentWidth) - spacing.medium * 2 - inset));
 }
 
 export function Copy({ kind = 'body', style, ...props }: TextProps & { kind?: 'body' | 'muted' | 'label' | 'heading' | 'error' }) {

@@ -9,7 +9,8 @@ export type FlagProps = {
 
 export function Flag(props: FlagProps) {
   const { width } = useWindowDimensions();
-  const controlWidth = Math.max(0, Math.min(width, layout.maxContentWidth) - spacing.medium * 2);
+  // Keep the shared preview's native control widths in integer dp.
+  const controlWidth = Math.floor(Math.max(0, Math.min(width, layout.maxContentWidth) - spacing.medium * 2));
   return <Host matchContents colorScheme="dark" seedColor={colors.accent} style={{ width: controlWidth }}>
     <Switch {...props} />
   </Host>;
