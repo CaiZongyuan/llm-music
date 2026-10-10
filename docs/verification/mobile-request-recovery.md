@@ -44,3 +44,5 @@ uv run --project services/api --no-sync mypy --config-file services/api/pyprojec
 Root 同候选实际消费者结果：两次 CPU export 与生成 schema/严格 TypeScript 检查通过；Node 七项真实 HTTP/FormData/WS 检查通过（23 秒），包含 lost-response/restart 与 bodyless keyed retry；Web 类型检查通过。真实 Chromium 七项既有用户流程通过（约 1.1 分钟），loopback keyless 保持。文档十五项来源/章节/语言检查通过，Astro 十九文件零错误，构建六十六页并核对 5,219 个引用；agent-browser 实际核对中英文 `/request-recovery` 章节、锚点和语言切换。截图为 `.scratch/m2/docs-request-{zh,en}.png`。验证设置中的错误 project 名与拼写已纠正，不计为产品缺陷。
 
 有限复杂度检查覆盖已更改的 transaction、matching、Job owner、Header 和生成消费者；删除创建者对同步 receipt 读回的依赖，由唯一 creator 交出自己分配的 UUID，保留 replay、DB guard 与既有 startup 的不同责任。未新增设备 ACL、自动推理重提交、调度器或手机业务模拟。源代码、测试、生成客户端、配对/生成/恢复双语指南同票交付。
+
+最后候选的 CI 暴露了既有重启 fixture 发布 ready JSON 的竞争：PR API 255 项通过、一项在 startup `json.loads('')` 失败；同 head 的 push API 已通过。writer 先创建最终文件再写入时，reader 的 `exists()` 可以看到空内容。修复只在 `recovery_api_server.py` 将完整 JSON 写入同目录临时文件后原子 replace，复用既有 CPU fixture 的发布模式；保留原 reader、10 秒启动预算与 HTTP readiness 检查，不修改产品源码。原有五个 missing/unavailable/wrong-client/duplicate/malformed 公开重启用例全部通过，38.83 秒；输出/JUnit 为 `.scratch/m2/ready-publication-fix.{log,xml}`。最后 head 的完整 CI 仍由 PM 登记。

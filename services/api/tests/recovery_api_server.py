@@ -124,7 +124,12 @@ if cursor_fault or startup_delay:
     event.listen(Engine,"before_cursor_execute",cursor_read)
 owned = socket.socket()
 owned.bind(("127.0.0.1",0))
-Path(ready).write_text(json.dumps({"port":owned.getsockname()[1],"pid":os.getpid()}),encoding="utf-8")
+# Publish complete bound-socket metadata atomically; the parent still probes
+# HTTP readiness within its existing budget after reading this record.
+ready_path = Path(ready)
+temporary_ready = ready_path.with_suffix(".tmp")
+temporary_ready.write_text(json.dumps({"port":owned.getsockname()[1],"pid":os.getpid()}),encoding="utf-8")
+temporary_ready.replace(ready_path)
 server = uvicorn.Server(uvicorn.Config(app,log_level="warning"))
 def stop():
     while not server.should_exit:
