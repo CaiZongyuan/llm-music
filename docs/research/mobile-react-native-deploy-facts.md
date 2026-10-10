@@ -8,6 +8,8 @@ Root 的适配准备文件为 `.github/workflows/eas-build.yml` 和 `apps/mobile
 
 已用既有 mobile-client 工作流做一次真实非主分支 dispatch，GitHub API 返回成功；该工作流当前不存在于 main，因此不以“必须先把所有 mobile 源码合入 main”的推测阻止已证实的分支路径。新 APK 工作流的 push 只检查配置并登记工作流，编译只在明确 dispatch 时运行。官方 0.3.0 会把该轻量配置 run 也列成 Android build；本轮必须使用明确的 `--build-id` 下载，不使用 latest/platform 自动挑选。校验和在 build 目录内生成，与解压后的 APK 同目录。
 
+后续完整源码首次真实 dispatch：2026-10-10T15:37:02Z，源码 `52917aa024833cdeea00fe4fd68601c64500a3ce`，[Actions run 38064332565](https://github.com/CaiZongyuan/llm-music/actions/runs/38064332565)，CLI build ID `01299f88-58c7-4743-8e07-cde294e2c36b`。GitHub 凭据仅通过子进程环境传递。`--wait --non-interactive --json` 实际 exit 0 但返回 `IN_QUEUE`，所以该退出状态只证明启动，编译、下载及安装必须继续核对。Windows 本次 `pnpm --dir apps/mobile dlx ... build` 未改变 CLI 的工作目录，报找不到 eas.json；改为先进入 `apps/mobile` 后调用 `pnpm dlx` 才成功，不靠重新生成配置解决。
+
 ## 结论与建议
 
 可以把 React Native Deploy 作为 Android GitHub Actions 构建入口试用。它编译独立 APK；日常继续使用 Expo Go。当前 `@react-native-feel/deploy@0.3.0` 的默认模板假定应用就在仓库根目录，**不能直接套用本仓库的 `apps/mobile` pnpm 工作区**。先调整工作流，再用明确的 Android `preview` profile 构建，最后把同一份已验证 APK 放到 GitHub Releases。无需为此部署 Cloudflare 安装服务。[构建行为][building]、[固定版本模板][template]
@@ -80,7 +82,7 @@ Actions 的 `application-archive` 保留期为 90 天。它是待下载的 ZIP a
 
 ## 下一步命令与成功标准
 
-先完成上面的工作流适配、独立审查和推送。**下面是待执行命令，不是本次执行结果**。在最终整合工作树的仓库根运行；本地环境按现有 pnpm 和 Node 版本使用。
+先完成上面的工作流适配、独立审查和推送。以下为复用命令；实际执行范围以本文记录和对应构建报告为准。CLI 在最终整合工作树的 `apps/mobile` 目录运行；本地环境按现有 pnpm 和 Node 版本使用。
 
 可用的 `apps/mobile/eas.json` preview 方向：
 
@@ -101,14 +103,17 @@ Actions 的 `application-archive` 保留期为 90 天。它是待下载的 ZIP a
 该 `pnpm` 字段确保 CLI 选择 pnpm；版本固定由已适配工作流保证。不要依靠 `autoIncrement`：官方说明它目前只是读取，runner 不实施，需要直接维护 `app.json` 中的版本号。[building]、[differences]
 
 ```powershell
+Push-Location apps/mobile
+try {
 # 只读核对配置；尚未发起构建。
-pnpm --dir apps/mobile dlx @react-native-feel/deploy@0.3.0 project:info
-pnpm --dir apps/mobile dlx @react-native-feel/deploy@0.3.0 config --platform android --profile preview --json
+pnpm dlx @react-native-feel/deploy@0.3.0 project:info
+pnpm dlx @react-native-feel/deploy@0.3.0 config --platform android --profile preview --json
 
 # 在工作流/源码已推送、GitHub 凭据仅传给子进程后，Root 负责执行。
-pnpm --dir apps/mobile dlx @react-native-feel/deploy@0.3.0 build --platform android --profile preview --wait --non-interactive
-pnpm --dir apps/mobile dlx @react-native-feel/deploy@0.3.0 build:list --platform android --limit 5 --json
-pnpm --dir apps/mobile dlx @react-native-feel/deploy@0.3.0 build:download --build-id <BUILD_ID> --all-artifacts --non-interactive
+pnpm dlx @react-native-feel/deploy@0.3.0 build --platform android --profile preview --wait --non-interactive
+pnpm dlx @react-native-feel/deploy@0.3.0 build:list --platform android --limit 5 --json
+pnpm dlx @react-native-feel/deploy@0.3.0 build:download --build-id <BUILD_ID> --all-artifacts --non-interactive
+} finally { Pop-Location }
 ```
 
 成功必须同时满足：

@@ -1,6 +1,6 @@
 # 声间移动端
 
-Expo SDK 57 / React Native / Expo Router / TypeScript，属于根目录 pnpm workspace。首页进入连接或我的项目；`/connect` 接入真实局域网 API，SQLite 保存草稿与提交意图，SecureStore 保存设备凭据。正式工作流支持生成、取消、使用原输入明确重试、前台原始 FLAC 试听与 seek、命名保存 Version 和版本历史。数据与恢复规则见 [连接与数据接口](src/data/README.md)，播放器边界见 [音频模块](src/media/README.md)。`/bootstrap` 和 `/preview` 保留隔离预览。
+Expo SDK 57 / React Native / Expo Router / TypeScript，属于根目录 pnpm workspace。首页进入连接或我的项目；`/connect` 接入真实局域网 API，SQLite 保存草稿与提交意图，SecureStore 保存设备凭据。正式工作流支持生成、取消、使用原输入明确重试、前台原始 FLAC 试听与 seek、命名保存 Version 和版本历史。数据与恢复规则见 [连接与数据接口](src/data/README.md)，播放器边界见 [音频模块](src/media/README.md)。`/preview` 保留隔离预览。
 
 从仓库根目录运行：
 
@@ -33,16 +33,9 @@ pnpm mobile:android --localhost --port 18081
 pnpm mobile:check
 pnpm --filter @llm-music/mobile test
 pnpm --filter @llm-music/mobile check:test
-pnpm test:mobile
 ```
 
-test:mobile 要求 Metro 已就绪、目标设备已启动、Expo Go 已安装，默认设备为 emulator-5562，开发 URL 为 exp://127.0.0.1:18081。它显式使用 Android SDK 的 ADB，默认查找 %USERPROFILE%\.maestro\bin\maestro.bat。其他设备或 Maestro 路径可以指定：
-
-```powershell
-pnpm test:mobile -Device emulator-5562 -ExpoUrl exp://127.0.0.1:18081 -MaestroPath C:\Tools\maestro\bin\maestro.bat
-```
-
-测试证据保存到 .scratch/mobile-bootstrap/maestro-<时间>/，包含 JUnit、命令、日志和截图。`test:mobile` 针对原初始化页面；正式配对、持久恢复、创作与原始音频使用独立验收流程。物理真机、独立 APK 与真实 GPU 闭环的证据另行记录。
+历史 `pnpm test:mobile` 针对初始化阶段的 bootstrap 首页，证据保存在 `.scratch/mobile-bootstrap/`。当前首页已进入正式连接/项目流程，该历史脚本不适用于当前应用；使用下面的正式工作流入口。物理真机、独立 APK 与真实 GPU 闭环的证据另行记录。
 
 正式正常工作流通过 `scripts/test-mobile-workflow.ps1` 运行。先启动隔离 Fake API，并在目标应用中完成配对；从仓库根目录指定实际设备、已保存的 LAN 地址和该隔离数据库的 `server_id`：
 
