@@ -2,7 +2,11 @@
 
 日期：2026-10-11。父规格：[SPEC-017 / #99](https://github.com/CaiZongyuan/llm-music/issues/99)，验收票据：[#105](https://github.com/CaiZongyuan/llm-music/issues/105)。本页是内部维护证据，不登记为公开 Starlight 页面。界面沿用[已确认预览](../ui/mobile-workbench-preview.md)，架构与阶段遵循[产品规划](../production.md)。
 
-独立 APK 已在 Windows Android Emulator 中完成配对、真实 GPU 生成、原始 FLAC 试听、明确命名保存和版本历史。最新本地探针也恢复了同一个 GPU Project 的冷启动入口。**最终云 APK、源码检查、GitHub Release 和物理 Android 仍待验收；#105 尚未完成。** 本次实际设备只有 `emulator-5562`，没有 WSL 或 Android 物理真机执行证据。
+独立 APK 已在 Windows Android Emulator 中完成配对、真实 GPU 生成、原始 FLAC 试听、明确命名保存和版本历史。最终云 APK 已恢复同一个 GPU Project 的冷启动入口，实际校验后发布到 [Android Preview 1](https://github.com/CaiZongyuan/llm-music/releases/tag/mobile-v1.0.0-preview.1)。**物理 Android 仍待验收；#105 尚未完成，PR #112 保持 Draft。** 本次实际设备只有 `emulator-5562`，没有 WSL 或 Android 物理真机执行证据。
+
+最终交付 APK 来自 [Actions run 38072022820](https://github.com/CaiZongyuan/llm-music/actions/runs/38072022820)，源码/tag 为 `ef727d5aeaae2ec3f115f1d84007ed2229078ea2`。官方 CLI 以 numeric build ID `38072022820` 下载 `3063bd76-b4cf-4423-bfb4-a8cb9efe6acc.zip`；APK **73,877,767 bytes**，SHA-256 **`c286cd1c2f153a337d6db65378311d97e2b655868c31994fb31d85889e534b4f`**，与归档 checksum、实际安装文件及 Release asset digest 一致。Signer 与 E2 同为 `fac61745dc0903786fb9ede62a962b399f7348f0bb6f899b8332667591033b9c`；Manifest 实测 LAN cleartext=true、无录音/后台音频权限与服务。源、校验、Manifest、签名及最终文件留在 Root `rnd-ef-final/`。
+
+关闭 Metro 后，最终云 APK 用同一 GPU Project/Version 完成 `m6-final-cloud-gpu-cold-restore.log` / JUnit：**1 flow、22 秒、terminal exit 0**，恢复完整中文草稿、原版本历史，确认没有自动播放，再明确点击播放原始 39 秒音频。没有重复推理或再次保存。发布于 `2026-10-10T17:49:41Z`，tag 的 GitHub readback 指向上述源码 SHA，三个附件均已 uploaded；M6 物理设备验收不由此次预发布替代。
 
 ## 源码、构建与二进制
 
@@ -13,7 +17,7 @@
 | 本地完整 APK E293 | `e29329008d16db9532283acb5bf8674688b3c0d8`；73,877,810 bytes；SHA-256 `eb448fcb30f1edf61e0224c02dcde7ed8645ef18fc24705d2cc8ab073b02bf47` | 安装后完成独立配对、SecureStore 冷启动、Fake 正常流程与后台暂停。历史路径 `D:/m/sg/apps/mobile/android/app/build/outputs/apk/release/app-release.apk` 已被后续构建覆盖，不能再从该路径取得 E293 字节。 |
 | 云 APK E2 | `e2fad9b9c1a4fd8b2dda868c50f995713ab8792b`；[Actions run 38067329953](https://github.com/CaiZongyuan/llm-music/actions/runs/38067329953) `SUCCESS` | 官方 CLI 以明确 numeric build ID `38067329953` 下载；源码收据、校验和、Manifest 和 signer 已核对。安装、冷启动、撤销自己创建的 Fake 设备、真实 GPU LAN 配对与生成试听已执行。 |
 | Expo Go 正常流程 | runner checkout `78fc44c3b08f4a5805f0adebc79d0c5213d81fd5`；Go `host.exp.exponent` 57.0.9 / code 444 | 完整 Fake 流程及后台检查通过；Go 的二进制身份不能代替本项目 Manifest 与签名验收。 |
-| 本地 library 探针 | `ef727d5aeaae2ec3f115f1d84007ed2229078ea2` | 仅对 library FlatList 取消 native subtree clipping。实际冷启动恢复原 GPU Project/Version、中文草稿、不自动播放、明确点击后原音频播放均通过。最终云构建尚待核对，不能称为已发布产物。 |
+| 本地 library 探针 | `ef727d5aeaae2ec3f115f1d84007ed2229078ea2`；73,877,834 bytes；SHA-256 `b396af4c2d8240272dd74d53d598ba226e2a50c6f0abfd5e06914ced90b8ae25` | 仅对 library FlatList 取消 native subtree clipping。实际冷启动恢复原 GPU Project/Version、中文草稿、不自动播放、明确点击后原音频播放均通过。最终交付另用同源码的云产物复测，见上文。 |
 
 E2 留存于原工作区 `.scratch/mobile-implementation/rnd-e2-final/`：
 
@@ -70,7 +74,7 @@ owner 下载全量原始文件并在 CPU 解码：3,520,198 bytes，SHA-256 `17c
 
 E2 原生 UI 通过播放、暂停、从 0 试听、seek 至 10 秒，以及实际 slider 拖动到 31–33 秒。主 GPU flow 在已输入 Version 名称后，`hideKeyboard` 返回 library，找不到 save 元素而失败；已输入名称仍持久化。`m6-cloud-gpu-save-remainder.log` 继续原 Candidate，明确点击保存并打开历史与详情，**没有再次 Generate**。该失败和续跑必须一起保留。
 
-E2 随后冷启动时只能看到原 GPU 项目标题，row 很小，open button 没有 Compose view；`m6-cloud-gpu-cold-restore.log` 保留该失败。`ef727d5` 本地探针的 `m6-unclipped-gpu-cold-restore.log` 已实际通过：停止并启动同一个 App，打开上述 Project，核对完整中文 style/lyrics，打开上述 Version，确认无自动播放，再明确点击播放原始 39 秒音频。该结果支持 library clipping 修复；最终云 APK 是否包含并保留这个结果仍需单独核验。
+E2 随后冷启动时只能看到原 GPU 项目标题，row 很小，open button 没有 Compose view；`m6-cloud-gpu-cold-restore.log` 保留该失败。`ef727d5` 本地探针的 `m6-unclipped-gpu-cold-restore.log` 实际通过后，相同源码的最终云 APK 再次以 `m6-final-cloud-gpu-cold-restore.log` 完成同一场景：停止并启动 App，打开上述 Project，核对完整中文 style/lyrics，打开上述 Version，确认无自动播放，再明确点击播放原始 39 秒音频。结果支持本场景的 library clipping 修复，不推断所有列表或 SDK 生命周期都已穷尽验证。
 
 原始 GPU 收据均在 `D:/Projects/Backend/llm-music/.scratch/mobile-implementation/`：`gpu-launcher/runtime-evidence-8188.json`、`m6-gpu-before-submit-health.json`、`m6-gpu-run-input.json`、`m6-gpu-api-receipt.json`、`m6-gpu-byte-decode-receipt.json`，以及上述 Maestro log 和截图目录。本页不记录永久 token、PIN 或 launcher session 的停止凭据。
 
@@ -85,7 +89,7 @@ E2 随后冷启动时只能看到原 GPU 项目标题，row 很小，open button
 | standalone Compose width `379.428…` | 实际 native 类型转换崩溃。仅取整后 `379.0` 仍崩溃，反证 rounding-only 修复。 |
 | RN Host 边界修复 | connection-only 8b7533a 探针存活；all-Host E293 探针存活并完成原生 Fake 流程。保留 `m6-apk-integer-width-red.json`、`m6-apk-integer-width-retest-failed.json` 和两个 Host probe 收据。 |
 | GPU 命名后返回 library | 主 flow 失败；继续同一 Candidate 的保存与历史通过。没有新增生成。 |
-| E2 原 GPU row 冷启动不可打开 | 本地 ef727d5 取消 row clipping 后恢复通过；最终云 artifact 待验。 |
+| E2 原 GPU row 冷启动不可打开 | 本地 ef727d5 取消 row clipping 后恢复通过；最终同源码云 artifact 复测 22 秒通过并发布。 |
 
 日志未能证明原因的失败继续记为 unknown；不能从后续通过倒推出早期失败已由某项产品修复解释。公共 Fake runner、原始音频字节、slider 拖动、真实 GPU、物理设备分别提供证据，任一项不能代替其他项。
 
