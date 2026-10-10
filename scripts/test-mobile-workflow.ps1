@@ -69,9 +69,11 @@ if ($AppMode -eq 'Go') {
         $mobileMetro.Scheme -ne 'exp' -or $mobileMetro.Port -lt 1 -or $mobileMetro.UserInfo -or $mobileMetro.Query -or
         $mobileMetro.Fragment -or $mobileMetro.AbsolutePath -ne '/') { throw 'Go requires host.exp.exponent and an explicit root ExpoUrl with its Metro port.' }
     $mobileConnectUrl = $ExpoUrl.TrimEnd('/') + '/--/connect'
+    $mobileWorkbenchUrl = $ExpoUrl.TrimEnd('/') + '/--/workbench'
 } else {
     if ($AppId -eq 'host.exp.exponent' -or $ExpoUrl) { throw 'Apk requires its own installed AppId and no ExpoUrl.' }
     $mobileConnectUrl = 'unused-for-apk'
+    $mobileWorkbenchUrl = 'unused-for-apk'
 }
 
 $mobileRepo = Split-Path -Parent $PSScriptRoot
@@ -137,6 +139,7 @@ try {
         $mobileReceipt | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath (Join-Path $mobileRun 'receipt.json') -Encoding UTF8
         $ErrorActionPreference = 'Continue'
         & $MaestroPath --device $Device test $mobileFlow --env "APP_ID=$AppId" --env "APP_MODE=$AppMode" --env "CONNECT_URL=$mobileConnectUrl" `
+            --env "WORKBENCH_URL=$mobileWorkbenchUrl" `
             --env "PAIRED_API_PATTERN=$mobilePairedPattern" --env "PROJECT_NAME=$($mobileReceipt.projectName)" --env "VERSION_NAME=$($mobileReceipt.versionName)" `
             --env "CHECK_BACKGROUND=$($CheckBackground.IsPresent.ToString().ToLowerInvariant())" --test-output-dir $mobileRun --format JUNIT `
             --output (Join-Path $mobileRun 'junit.xml') --no-ansi 2>&1 | ForEach-Object {

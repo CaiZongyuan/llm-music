@@ -123,9 +123,39 @@ name: Paired isolated Fake API creation and explicit Version save
       true: ${CHECK_BACKGROUND == 'true'}
     commands:
       - pressKey: HOME
-      - launchApp:
-          stopApp: false
-          clearState: false
+      # Expo Go launchApp may foreground its HomeActivity rather than the experience.
+      - runFlow:
+          when:
+            true: ${APP_MODE == 'Go'}
+          commands:
+            - openLink: ${WORKBENCH_URL}
+            - extendedWaitUntil:
+                visible:
+                  id: new-project-name
+                timeout: 90000
+            - scrollUntilVisible:
+                element:
+                  text: ${PROJECT_NAME}
+                direction: DOWN
+            - tapOn:
+                id: open-project-.*
+                below: ${PROJECT_NAME}
+                index: 0
+            - extendedWaitUntil:
+                visible:
+                  id: draft-style
+                timeout: 30000
+            - scrollUntilVisible:
+                element:
+                  id: playback-.*
+                direction: DOWN
+      - runFlow:
+          when:
+            true: ${APP_MODE == 'Apk'}
+          commands:
+            - launchApp:
+                stopApp: false
+                clearState: false
       - extendedWaitUntil:
           visible:
             id: playback-.*
