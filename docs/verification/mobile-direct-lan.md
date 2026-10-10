@@ -27,7 +27,9 @@ API 在原数据目录和 Server ID `aa8adce4-b293-49ec-978b-51b2ef38fe30` 上�
 
 新版公共 Maestro 流程使用地址直连；设备为 `emulator-5562`，Expo Go 57.0.9。首次运行保留了旧地址尾缀，应用正确返回 `invalid_address`；失败收据为 `.scratch/mobile-workflow/maestro-20261011-051752-373-eae3beeb/receipt.json`。定位为测试输入光标位置，修复仅涉及输入框右端定位、清除 100 字符和连接前精确地址断言，没有改产品 Field。
 
-修复后的设备执行结果在本次交付收据中追加。此前 Preview 1 APK 仍是旧配对实现；其历史验收不能作为新版直连 APK 的证明。iOS 使用用户实际 Expo Go 测试，本机没有 iOS 模拟器。
+修复后使用同一个模拟器和保留的数据重跑，新流程 1/1 通过、退出码 0、实际耗时 2 分 20 秒。完成地址直连、新建 Project、填写中文输入、Generate、试听与按钮跳转、明确命名保存 Version，以及历史读取。使用隔离 Fake API 的 Server ID `9b77a6ad-5b1c-4771-baef-c3f71a2152c6`；没有把 Fake 结果当成真实 GPU 推理。收据与 JUnit 为 `.scratch/mobile-workflow/maestro-20261011-052239-099-e088a004/`。
+
+此前 Preview 1 APK 仍是旧配对实现；其历史验收不能作为新版直连 APK 的证明。iOS 使用用户实际 Expo Go 测试，本机没有 iOS 模拟器。
 
 ## 影响与收敛
 
