@@ -297,7 +297,7 @@ export interface paths {
         put?: never;
         /**
          * Create Project
-         * @description Device Bearer authorization is required on the actual LAN listener. Existing local business consumers may omit it. Authentication runs before route/object lookup and every Asset GET/HEAD/Range request.
+         * @description Device Bearer authorization is required on the actual LAN listener. Existing local business consumers may omit it. Authentication runs before route/object lookup and every Asset GET/HEAD/Range request. Idempotency-Key must be a UUID for LAN writes and is optional for existing local callers. The same key and validated intent replay the original resource with status 200 before current Runtime readiness/retry checks. A different operation/target/input returns 409. Persist the key and frozen intent before sending; query GET /requests/{request_id} after an uncertain response.
          */
         post: operations["create_project_projects_post"];
         delete?: never;
@@ -485,7 +485,7 @@ export interface paths {
         put?: never;
         /**
          * Retry Job
-         * @description Device Bearer authorization is required on the actual LAN listener. Existing local business consumers may omit it. Authentication runs before route/object lookup and every Asset GET/HEAD/Range request.
+         * @description Device Bearer authorization is required on the actual LAN listener. Existing local business consumers may omit it. Authentication runs before route/object lookup and every Asset GET/HEAD/Range request. Idempotency-Key must be a UUID for LAN writes and is optional for existing local callers. The same key and validated intent replay the original resource with status 200 before current Runtime readiness/retry checks. A different operation/target/input returns 409. Persist the key and frozen intent before sending; query GET /requests/{request_id} after an uncertain response.
          */
         post: operations["retry_job_projects__project_id__jobs__job_id__retry_post"];
         delete?: never;
@@ -569,7 +569,7 @@ export interface paths {
         put?: never;
         /**
          * Create Generate Job
-         * @description Device Bearer authorization is required on the actual LAN listener. Existing local business consumers may omit it. Authentication runs before route/object lookup and every Asset GET/HEAD/Range request.
+         * @description Device Bearer authorization is required on the actual LAN listener. Existing local business consumers may omit it. Authentication runs before route/object lookup and every Asset GET/HEAD/Range request. Idempotency-Key must be a UUID for LAN writes and is optional for existing local callers. The same key and validated intent replay the original resource with status 200 before current Runtime readiness/retry checks. A different operation/target/input returns 409. Persist the key and frozen intent before sending; query GET /requests/{request_id} after an uncertain response.
          */
         post: operations["create_generate_job_projects__project_id__jobs_generate_post"];
         delete?: never;

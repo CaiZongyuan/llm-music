@@ -58,6 +58,9 @@ class MusicAPI(FastAPI):
                         access = "Validate the submitted Device Bearer credential on either known listener. A revoked or unknown device is rejected."
                     operation["x-listener-access"] = "lan-device"
                 operation["description"] = (operation.get("description", "") + "\n\n" + access).strip()
+                if method == "post" and path in {"/projects", "/projects/{project_id}/jobs/generate", "/projects/{project_id}/jobs/{job_id}/retry"}:
+                    operation["description"] += " Idempotency-Key must be a UUID for LAN writes and is optional for existing local callers. The same key and validated intent replay the original resource with status 200 before current Runtime readiness/retry checks. A different operation/target/input returns 409. Persist the key and frozen intent before sending; query GET /requests/{request_id} after an uncertain response."
+                    operation["x-idempotency-required-on"] = "lan"
         document["x-websockets"] = {str(route): {
             "message": {"$ref": "#/components/schemas/JobEventRead"},
             "security": [{"DeviceBearer": []}, {}],

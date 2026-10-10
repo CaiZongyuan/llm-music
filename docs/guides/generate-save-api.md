@@ -50,7 +50,7 @@ Candidate 可从 `GET /projects/{project_id}/candidates` 列表，或 `/candidat
 | `project_id` | 资源所属 Project |
 | `resource_type` / `resource_id` | `project` 或 `job` 及其精确 id |
 | `source_job_id` | retry 的原 Job id；其他操作为 null |
-| `created_at` | 请求引用的提交时间 |
+| `created_at` | 请求引用的创建时间 |
 
 随后按引用读取 `/projects/{project_id}` 或 `/projects/{project_id}/jobs/{resource_id}`。不要用相同歌词、最新时间或列表顺序猜原任务。`404 request_not_found` 只表示当前没有已提交引用，原 POST 仍可能在途；保留冻结意图，让创作者明确选择重发同一 key。读取、返回前台和网络恢复不会自动重发写入，也不能换一个新 key 代替未知请求。
 

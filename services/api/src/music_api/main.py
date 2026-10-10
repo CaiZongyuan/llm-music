@@ -8,7 +8,7 @@ from pathlib import Path
 import hashlib
 from uuid import UUID, uuid4
 
-from fastapi import Depends, FastAPI, Request, Response, UploadFile
+from fastapi import Depends, FastAPI, Header, Request, Response, UploadFile
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import FileResponse
 from sqlalchemy import select, update
@@ -39,6 +39,9 @@ from music_api.runtime_types import InferenceRuntime
 from music_api.workflow_registry import WorkflowRegistry
 from music_api.pairing import PairingService, router as pairing_router
 from music_api.access import AccessPolicy, Bindings, DeviceAccess
+from music_api.requests import RequestIntent, matching_request, record_request, request_read, require_request_key, reserve_request_writer
+from music_api.request_models import ClientRequest
+from music_api.request_schemas import RequestRead
 
 
 log = logging.getLogger("music_api")
@@ -131,13 +134,39 @@ def create_app(settings: Settings | None = None, runtime: InferenceRuntime | Non
     app.add_middleware(DeviceAccess, policy=app.state.access)
     app.include_router(diagnostics_router)
 
-    @app.post("/projects", response_model=ProjectRead, status_code=201)
-    def create_project(value: ProjectCreate, session: Session = Depends(session_for)) -> ProjectRead:
+    @app.get("/requests/{request_id}", response_model=RequestRead)
+    def get_request(request_id: UUID, session: Session = Depends(session_for)) -> RequestRead:
+        receipt = session.get(ClientRequest, str(request_id))
+        if receipt is None:
+            raise DomainError(404, "request_not_found", "No committed request is visible for this key.",
+                              "The original request may still be in flight; explicitly retry only the same key and frozen intent.", request_id)
+        return request_read(receipt)
+
+    @app.post("/projects", response_model=ProjectRead, status_code=201,
+              responses={200: {"model": ProjectRead}, 409: {"model": ErrorResponse}})
+    def create_project(value: ProjectCreate, request: Request, response: Response, session: Session = Depends(session_for),
+                       idempotency_key: UUID | None = Header(default=None, alias="Idempotency-Key")) -> ProjectRead:
+        key = require_request_key(request, idempotency_key)
+        intent = RequestIntent(key, "create_project", value.model_dump()) if key else None
+        if intent is not None:
+            reserve_request_writer(session)
+            existing = matching_request(session, intent)
+            if existing is not None:
+                response.status_code = 200
+                return ProjectRead.model_validate(project_in(session, UUID(existing.project_id)))
         project = Project(id=str(uuid4()), name=value.name, description=value.description)
         try:
             session.add(project)
+            if intent is not None:
+                session.flush()
+                record_request(session, intent, project.id)
             session.commit()
-        except SQLAlchemyError as error:
+        except Exception as error:
+            if intent is not None:
+                raise DomainError(503, "request_commit_unconfirmed", "Project request creation could not be confirmed.",
+                                  "Query this exact request key before explicitly replaying its frozen intent.", intent.request_id) from error
+            if not isinstance(error, SQLAlchemyError):
+                raise
             log.exception("Project persistence failed", extra={"event": "project_commit_failed", "project_id": project.id})
             raise DomainError(503, "project_persistence_failed", "Project could not be saved.", "Read Projects before retrying.") from error
         return ProjectRead.model_validate(project)
@@ -240,10 +269,15 @@ def create_app(settings: Settings | None = None, runtime: InferenceRuntime | Non
         return job_read(job)
 
     @app.post("/projects/{project_id}/jobs/{job_id}/retry", response_model=JobRead, status_code=202,
-              responses={409: {"model": ErrorResponse}})
-    def retry_job(project_id: UUID, job_id: UUID, request: Request) -> JobRead:
+              responses={200: {"model": JobRead}, 409: {"model": ErrorResponse}})
+    def retry_job(project_id: UUID, job_id: UUID, request: Request, response: Response,
+                  idempotency_key: UUID | None = Header(default=None, alias="Idempotency-Key")) -> JobRead:
+        key = require_request_key(request, idempotency_key)
+        intent = RequestIntent(key, "retry", {}, project_id, job_id) if key else None
         jobs: JobService = request.app.state.jobs
-        return job_read(jobs.retry(project_id, job_id))
+        job, created = jobs.retry_once(project_id, job_id, intent)
+        response.status_code = 202 if created else 200
+        return job_read(job)
 
     @app.post("/projects/{project_id}/scores/validate", response_model=ScoreValidationRead)
     def validate_edited_score(project_id: UUID, value: ScoreValidate, session: Session = Depends(session_for)) -> ScoreValidationRead:

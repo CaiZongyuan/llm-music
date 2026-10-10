@@ -50,7 +50,7 @@ After a timeout, disconnection or App restart, read authenticated `GET /requests
 | `project_id` | Project that owns the resource |
 | `resource_type` / `resource_id` | `project` or `job` and its exact id |
 | `source_job_id` | Original Job for retry; null for other operations |
-| `created_at` | Commit time of the request reference |
+| `created_at` | Creation time of the request reference |
 
 Then read `/projects/{project_id}` or `/projects/{project_id}/jobs/{resource_id}`. Do not guess the original Job from identical lyrics, recent timestamps or list order. `404 request_not_found` means no committed reference is currently visible; the original POST may still be in flight. Retain the frozen intent and let the creator explicitly resend the same key. Reads, foreground recovery and network recovery must not automatically resend writes or replace an uncertain request with a new key.
 
