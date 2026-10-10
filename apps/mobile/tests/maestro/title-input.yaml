@@ -1,0 +1,47 @@
+appId: host.exp.exponent
+---
+# Caller owns an isolated Fake API and a paired Go session. CANDIDATE_ID must
+# belong to PROJECT_URL and remain unsaved; both actions write real test records.
+- launchApp
+- openLink: ${WORKBENCH_URL}
+- tapOn:
+    text: Continue
+    optional: true
+- extendedWaitUntil:
+    visible:
+      id: new-project-name
+    timeout: 45000
+- tapOn:
+    id: new-project-name
+- eraseText
+- inputText: ${PROJECT_TITLE}
+- hideKeyboard
+# Submit immediately in this mounted scene, without navigation or cold restore.
+- tapOn:
+    id: create-project
+- extendedWaitUntil:
+    visible: 这次想唱什么？
+    timeout: 15000
+- assertNotVisible: 给这个项目起一个名字。
+- assertVisible: ${PROJECT_TITLE}
+- openLink: ${PROJECT_URL}
+- scrollUntilVisible:
+    element:
+      id: version-name-${CANDIDATE_ID}
+    direction: DOWN
+    timeout: 15000
+- tapOn:
+    id: version-name-${CANDIDATE_ID}
+- eraseText
+- inputText: ${VERSION_TITLE}
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: save-${CANDIDATE_ID}
+    direction: DOWN
+- tapOn:
+    id: save-${CANDIDATE_ID}
+- extendedWaitUntil:
+    visible: 已明确保存为「${VERSION_TITLE}」
+    timeout: 15000
+- assertNotVisible: 给这个版本起一个名字。

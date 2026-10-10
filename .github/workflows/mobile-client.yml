@@ -1,0 +1,49 @@
+name: Mobile client foundation
+
+on:
+  push:
+    paths:
+      - apps/mobile/**
+      - packages/api-client/**
+      - package.json
+      - pnpm-workspace.yaml
+      - pnpm-lock.yaml
+      - .github/workflows/mobile-client.yml
+  pull_request:
+    paths:
+      - apps/mobile/**
+      - packages/api-client/**
+      - package.json
+      - pnpm-workspace.yaml
+      - pnpm-lock.yaml
+      - .github/workflows/mobile-client.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  mobile-client:
+    runs-on: windows-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '24.18.0'
+      - uses: pnpm/action-setup@f40ffcd9367d9f12939873eb1018b921a783ffaa # v4
+      - name: Install locked JS workspace
+        run: pnpm install --frozen-lockfile
+      - name: Build shared client
+        run: pnpm --filter @llm-music/api-client build
+      - name: Verify public session behavior
+        run: pnpm --filter @llm-music/mobile test
+      - name: Check public test types
+        run: pnpm --filter @llm-music/mobile check:test
+      - name: Check application types
+        run: pnpm mobile:check
+      - name: Verify SDK dependency versions
+        run: pnpm --filter @llm-music/mobile exec expo install --check

@@ -377,6 +377,7 @@
       "sectionIds": [
         "start",
         "candidate",
+        "request-recovery",
         "selected-score",
         "save",
         "recovery"
@@ -596,7 +597,7 @@
       "titles": { "zh-cn": "一条命令打开本地工作台", "en": "Start the local workbench with one command" },
       "labels": { "zh-cn": "启动本地工作台", "en": "Start the local workbench" },
       "sources": { "zh-cn": "docs/guides/dev-launcher.md", "en": "docs/guides/dev-launcher.en.md" },
-      "sectionIds": ["start", "ownership", "native", "recover"]
+      "sectionIds": ["start", "mobile-lan", "ownership", "native", "recover"]
     },
     {
       "id": "web-runtime-guide",

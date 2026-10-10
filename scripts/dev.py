@@ -101,12 +101,15 @@ def live_service(record: dict, expected: dict) -> bool:
     if record.get("signature") != signature(expected) or record.get("identity") != expected:
         return False
     process = matching(record.get("process", {}))
-    if process is None or listeners(expected["port"]) != {process.pid}:
+    bindings = {("127.0.0.1", expected["port"])}
+    if expected.get("service") == "api" and expected.get("lan_host") is not None:
+        bindings.add((expected["lan_host"], expected["lan_port"]))
+    if process is None or any(listeners(port) != {process.pid} for _, port in bindings):
         return False
     try:
-        addresses = [item.laddr.ip for item in process.net_connections(kind="tcp")
-                     if item.status == psutil.CONN_LISTEN and item.laddr.port == expected["port"]]
-        return bool(addresses) and all(address == "127.0.0.1" for address in addresses)
+        addresses = {(item.laddr.ip, item.laddr.port) for item in process.net_connections(kind="tcp")
+                     if item.status == psutil.CONN_LISTEN and item.laddr.port in {port for _, port in bindings}}
+        return addresses == bindings
     except psutil.Error:
         return False
 
@@ -154,7 +157,10 @@ class Launcher:
                 evidence_path = self.args.runtime_evidence.resolve()
             value.update(data_dir=str(self.args.data_dir.resolve()), runtime_url=self.args.runtime_url,
                          runtime_evidence=str(evidence_path) if evidence_path else None,
-                         python_environment=str(environment(ROOT / "services/api")))
+                         python_environment=str(environment(ROOT / "services/api")),
+                         owner_origins=[f"http://127.0.0.1:{self.args.web_port}", f"http://localhost:{self.args.web_port}"])
+            if getattr(self.args, "api_lan_host", None) is not None:
+                value.update(lan_host=self.args.api_lan_host, lan_port=self.args.api_lan_port)
             if self.args.mode == "comfyui":
                 value["runtime_configuration"] = {name: str(getattr(self.args, name).resolve()) for name in
                                                    ["runtime_project", "runtime_root", "models_root", "runtime_state_root"]}
@@ -171,6 +177,8 @@ class Launcher:
 
     def find_service(self, expected: dict) -> dict | None:
         holders = listeners(expected["port"])
+        if expected.get("lan_host") is not None:
+            holders |= listeners(expected["lan_port"])
         if not holders:
             return None
         try:
@@ -198,10 +206,14 @@ class Launcher:
                     if health["backend"]["status"] == "ready" and health["runtime"]["mode"] == self.args.mode:
                         if health["runtime"]["ready"]:
                             if role != "web" or b'id="root"' in http(url):
+                                if role == "api" and record["identity"].get("lan_host") is not None:
+                                    lan = record["identity"]
+                                    if json.loads(http(f"http://{lan['lan_host']}:{lan['lan_port']}/connection"))["server_id"] != json.loads(http(url + "/connection"))["server_id"]:
+                                        raise LaunchError("Local and LAN connection identities differ; preserve the existing services and inspect their owner receipts.")
                                 return
                         else:
                             reasons = [item["code"] for item in health["runtime"]["reasons"]]
-                            raise LaunchError(f"Runtime/models are not ready: {', '.join(reasons)}. Run Doctor or obtain a fresh matching owner receipt; logs: {self.folder}.")
+                            raise LaunchError(f"Runtime/models are not ready: {', '.join(reasons)}. Check current health and matching owner/model identity; logs: {self.folder}.")
             except (URLError, TimeoutError, ValueError, KeyError, OSError):
                 pass
             time.sleep(0.1)
@@ -300,13 +312,13 @@ class Launcher:
             write_json(args.runtime_evidence, bounded_collect(args.runtime_url, record["process"]["pid"], requirements, deadline - time.monotonic()).model_dump(mode="json"))
         input_path = args.runtime_evidence or self.evidence_slot
         if not input_path.is_file() or input_path.stat().st_size > 131072:
-            raise LaunchError("Native owner evidence unavailable or oversized. Supply a fresh matching --runtime-evidence; no reused service was changed.")
+            raise LaunchError("Native owner evidence unavailable or oversized. Supply matching --runtime-evidence; no reused service was changed.")
         snapshot = self.folder / "runtime-evidence-input.json"
         snapshot.write_bytes(input_path.read_bytes())
         evidence = read_runtime_evidence(snapshot, runtime_url=args.runtime_url, now=datetime.now(timezone.utc), max_age_seconds=300, requirements=requirements)
         problems = list(evidence.reasons) + [code for model in evidence.models if model.state != "ready" for code in model.reasons]
         if not evidence.binding_verified or problems:
-            raise LaunchError(f"Native owner/model evidence refused: {', '.join(problems) or 'model verification unavailable'}. Obtain a fresh collector receipt for the exact listener and model root; no reused process was changed.")
+            raise LaunchError(f"Native owner/model evidence refused: {', '.join(problems) or 'model verification unavailable'}. Check the exact current listener, source and model root; collect proof only after a real identity or weight change. No reused process was changed.")
         receipt = RuntimeReceipt.model_validate_json(snapshot.read_bytes())
         if receipt.runtime_root.resolve() != args.runtime_root.resolve() or receipt.models_root.resolve() != args.models_root.resolve():
             raise LaunchError("Native receipt runtime/model directories differ from requested paths. Use matching paths; no reused process was changed.")
@@ -370,6 +382,8 @@ class Launcher:
                 self.wait_ready("web", web, deadline)
             url = f"http://127.0.0.1:{self.args.web_port}"
             self.receipt.update(status="ready", url=url)
+            if getattr(self.args, "api_lan_host", None) is not None:
+                self.receipt["lan_url"] = f"http://{self.args.api_lan_host}:{self.args.api_lan_port}"
             self.save()
             self.release()
             print(f"Web ready: {url}\nCtrl+C stops only this session's children. Separate-terminal stop: pnpm dev -- --stop-session \"{self.folder / 'session.json'}\"", flush=True)
@@ -379,6 +393,8 @@ class Launcher:
                 for record in self.receipt["services"]:
                     if matching(record["process"]) is None:
                         raise LaunchError(f"{record['identity']['service']} exited or changed identity. Inspect its owner log and restart the launcher.")
+                    if record["identity"].get("lan_host") is not None and not live_service(record, record["identity"]):
+                        raise LaunchError("API dual listener identity changed. Inspect its owner log and restart the launcher.")
                 for owned in self.owned:
                     self.observe_children(owned)
                 time.sleep(0.2)
@@ -426,6 +442,8 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--mode", choices=["fake", "comfyui"], default="fake")
     parser.add_argument("--api-port", type=int, default=8000)
+    parser.add_argument("--api-lan-host", help="Explicit active local IPv4; enables the direct second API socket")
+    parser.add_argument("--api-lan-port", type=int, default=8001)
     parser.add_argument("--web-port", type=int, default=5173)
     parser.add_argument("--runtime-port", type=int, default=8188)
     parser.add_argument("--data-dir", type=Path)
@@ -462,6 +480,16 @@ def main() -> int:
         return 0
     if any(not 1 <= port <= 65535 for port in [args.api_port, args.web_port, args.runtime_port]) or len({args.api_port, args.web_port, args.runtime_port}) != 3:
         parser.error("Service ports must be distinct integers between 1 and 65535")
+    if args.api_lan_host is not None:
+        from music_api.config import Settings
+        from music_api.serving import validate_lan_address
+        try:
+            selected = Settings(lan_host=args.api_lan_host, lan_port=args.api_lan_port)
+            validate_lan_address(selected.lan_host)
+            if args.api_lan_port in {args.api_port, args.web_port, args.runtime_port}:
+                parser.error("LAN port must differ from the API, Web and Runtime ports")
+        except ValueError as error:
+            parser.error(str(error))
     if not 1 <= args.timeout <= 300:
         parser.error("timeout must be between 1 and 300 seconds")
     args.data_dir = args.data_dir or ROOT / "data/dev" / args.mode / "application"

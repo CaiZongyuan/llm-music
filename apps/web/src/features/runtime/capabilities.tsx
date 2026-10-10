@@ -8,6 +8,7 @@ import { capabilityMessages } from './messages';
 type CapabilitiesRead = components['schemas']['CapabilitiesRead'];
 type Operation = components['schemas']['CapabilityRead']['operation'];
 function expiresAt(observation: components['schemas']['DiagnosticSource']) {
+  if (observation.max_age_seconds === null) return observation.observed_at ? Infinity : NaN;
   return observation.observed_at ? Date.parse(observation.observed_at) + observation.max_age_seconds * 1000 : NaN;
 }
 export function operationReady(data: CapabilitiesRead | undefined, operation: Operation, mode?: 'melody' | 'full'): boolean {

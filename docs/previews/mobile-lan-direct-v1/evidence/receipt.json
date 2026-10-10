@@ -1,0 +1,21 @@
+{
+  "date": "2026-10-11",
+  "sourceBaseline": "0bfa73bb9a761014550f0ba95d490d1a896a8608",
+  "artifact": "docs/previews/mobile-lan-direct-v1/index.html",
+  "producer": "preview author; actual Chromium through agent-browser",
+  "data": "isolated in-memory simulation; CSP connect-src none",
+  "viewports": [[1280, 1000], [390, 844]],
+  "checks": [
+    "empty address disables connect",
+    "example address, real button click, loading disables address and submit",
+    "success opens project list; back and change address work",
+    "unreachable retains original address; explicit retry succeeds",
+    "different server and invalid address show failures",
+    "empty projects create only an in-memory new idea",
+    "loading projects disable creation; failed read retries",
+    "browser JavaScript errors empty; own browser session closed",
+    "loading and mobile ready screenshots visually inspected"
+  ],
+  "screenshots": ["empty.png", "loading.png", "ready.png", "failure.png", "projects-empty.png", "projects-failure.png", "mobile-ready.png"],
+  "limits": "No production Expo/API/device/GPU/APK acceptance. No runtime writes. Source review is separate from this author's preview validation."
+}

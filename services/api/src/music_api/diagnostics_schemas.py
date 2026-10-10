@@ -19,7 +19,7 @@ class DiagnosticSource(BaseModel):
     observed_at: AwareDatetime | None
     age_seconds: float | None = Field(ge=0, allow_inf_nan=False)
     freshness: Literal["fresh", "stale", "unavailable"]
-    max_age_seconds: float = Field(gt=0, allow_inf_nan=False)
+    max_age_seconds: float | None = Field(gt=0, allow_inf_nan=False, description="Age limit for live observations; null for immutable proof validated against the current process/source/model identity. observed_at retains its original verification time.")
 
 
 class CapabilityRead(BaseModel):

@@ -111,6 +111,47 @@ def test_bound_plugin_models_remain_eligible_with_empty_generic_inventory_then_r
             assert not writes.exists()
 
 
+def test_aged_bound_receipt_models_are_ready_with_live_health_and_original_times(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    with bound_evidence(tmp_path) as (url, requirements, receipt, receipt_path, model_file, writes):
+        import hashlib
+        write_registry_fixture(tmp_path, requirements)
+        old = datetime.now(timezone.utc) - timedelta(days=30)
+        facts = json.loads(receipt.model_dump_json())
+        facts["checked_at"] = facts["models"][0]["checked_at"] = old.isoformat()
+        receipt_path.write_text(json.dumps(facts), encoding="utf-8")
+        original = receipt_path.read_bytes()
+
+        def forbidden_hash(*args, **kwargs):
+            raise AssertionError("Ordinary readiness must not hash unchanged weights")
+
+        monkeypatch.setattr(hashlib, "file_digest", forbidden_hash)
+        registry = WorkflowRegistry(tmp_path)
+        settings = Settings(data_dir=tmp_path / "application", runtime_mode="comfyui", runtime_url=url,
+                            runtime_evidence_path=receipt_path, diagnostics_max_age_seconds=1)
+        with TestClient(create_app(settings, registry=registry)) as client:
+            assert client.get("/health").json()["runtime"]["ready"] is True
+            transcribe = next(item for item in client.get("/runtime/capabilities").json()["capabilities"] if item["operation"] == "Transcribe")
+            assert transcribe["ready"] and transcribe["reasons"] == []
+            assert transcribe["observation"]["max_age_seconds"] == 1
+            model = client.get("/runtime/models").json()["models"][0]
+            assert model["state"] == "ready" and model["reasons"] == []
+            assert model["observation"]["max_age_seconds"] is None
+            assert model["observation"]["age_seconds"] >= 30 * 86400
+            assert datetime.fromisoformat(model["observation"]["observed_at"].replace("Z", "+00:00")) == old
+            diagnostics = client.get("/runtime/diagnostics").json()
+            for name in ("runtime_revision", "plugin_revision"):
+                assert diagnostics["versions"][name]["availability"] == "available"
+                assert diagnostics["versions"][name]["observation"]["max_age_seconds"] is None
+            assert diagnostics["source_observations"]["owner_receipt"]["max_age_seconds"] is None
+            assert receipt_path.read_bytes() == original
+            model_file.unlink()
+            assert client.get("/health").json()["runtime"]["ready"] is False
+            missing = client.get("/runtime/models").json()["models"][0]
+            assert missing["state"] == "missing"
+            assert "model_missing" in [item["code"] for item in missing["reasons"]]
+            assert not writes.exists()
+
+
 def test_backend_health_reports_unreachable_runtime_without_gpu_dependency(tmp_path: Path) -> None:
     with diagnostics_peer(unavailable=True) as (url, _):
         settings = Settings(data_dir=tmp_path, runtime_mode="comfyui", runtime_url=url)
@@ -210,7 +251,7 @@ def test_settings_metadata_exports_real_defaults_and_environment_names(tmp_path:
         policy = metadata["settings_schema"]["properties"]["diagnostics_max_age_seconds"]
         assert policy["default"] == 300
         assert policy["exclusiveMinimum"] == 0
-        assert "Freshness policy" in policy["description"]
+        assert "live Runtime observations" in policy["description"]
         assert "current_values" not in metadata
 
 

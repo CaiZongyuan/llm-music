@@ -1,9 +1,9 @@
 # Local AI Music Workbench  
 ## Architecture & Implementation Plan
 
-**更新日期：2026-10-10**
+**更新日期：2026-10-11**
 
-**阶段：Web 架构基线 / 移动端初始化验证**
+**阶段：Web 架构基线 / 移动端正式实施**
 
 ---
 
@@ -147,13 +147,15 @@ FastAPI = clean HTTP / WebSocket API
 
 开发与测试均在 Windows 运行，使用 Expo SDK 57；日常优先 Expo Go，最终交付独立 Android APK，并用项目自己的二进制验证原生配置。手机首版通过局域网连接保持运行的 GPU 电脑。生成在后端继续执行，返回 App 时以 HTTP 恢复状态；首版只做前台试听，锁屏播放和完成推送列入后续能力。
 
-首次连接由电脑显示地址与短时配对码，手机手工输入并保存设备凭据，电脑可撤销配对；继续维持单用户工作台。设备授权覆盖 HTTP、WebSocket 与音频读取，决策见 [ADR-006](adr/0006-mobile-lan-pairing.md)。局域网入口需要单独实现，不能由当前 loopback 启动方式推导为已支持。
+2026-10-11 用户明确纠正局域网单用户自用流程：手机只输入电脑地址即可连接，不要求 PIN 配对或设备授权。手机保存电脑地址与服务器身份，HTTP、WebSocket 与原始音频直接访问同一 FastAPI 局域网入口；保持电脑身份核对、按服务器隔离草稿与未确认请求。新决策见 [ADR-007](adr/0007-direct-lan-and-stable-runtime-evidence.md)，取代 [ADR-006](adr/0006-mobile-lan-pairing.md) 的配对产品流程。旧配对实现及证据保留历史含义，直连变更须独立验证。
 
-首版操作包括项目列表/新建、风格与歌词输入、生成、任务状态/取消/明确重试、播放/暂停/seek、命名保存 Version 和查看已有版本。手机保留编辑草稿；断网保留输入，恢复连接后读取原任务，提交结果未知时先核对已有记录。扫码配对、录音/素材上传/分享与离线音乐库列入后续按需扩展。
+模型与源码的已校验事实在当前 Runtime 进程、监听、配置和文件仍匹配时继续有效，不能仅因经过五分钟使启动或创作失败。保留原来源时间，不伪造新的模型校验时间；真实进程/绑定改变、源码或文件变化、缺失权重和实际 Runtime 不可达仍按事实处理。动态健康、GPU 和内存观测与稳定模型事实分别报告。
+
+首版操作包括项目列表/新建、风格与歌词输入、生成、任务状态/取消/明确重试、播放/暂停/seek、命名保存 Version 和查看已有版本。手机保留编辑草稿；断网保留输入，恢复连接后读取原任务，提交结果未知时先核对已有记录。地址扫描、录音/素材上传/分享与离线音乐库列入后续按需扩展。
 
 验收要求 Android 模拟器、至少一台 Android 真机及独立 APK。日常 Maestro 使用隔离 Fake Runtime，覆盖中文/多行歌词、正常/空/加载/失败状态、连接与重启恢复、未知结果及重复提交控制；交付时运行真实 GPU 的生成、试听、明确保存闭环，并验证原始 FLAC 播放/seek。UI、音频及 GPU 证据分别记录。
 
-三轮产品选择已经确认，完整方案及执行顺序见 [移动端方案访谈](design/mobile-interview.md)。移动端复用已确认的黑色 Acid Hardware 视觉方向，新增流程遵循交互预览与反馈确认规则。2026-10-10 用户明确授权先初始化 mobile 并试跑，已创建 `apps/mobile` 和隔离启动预览，实际结果见 [初始化验证](verification/mobile-bootstrap.md)。正式项目创作与配对流程继续按预览、规格及实施顺序推进。
+三轮产品选择及最新纠正见 [移动端方案访谈](design/mobile-interview.md)。移动端复用已确认的黑色 Acid Hardware 视觉方向。2026-10-10 已完成 `apps/mobile` 初始化、完整手机工作流及电脑配对入口的隔离预览，用户回复“确认”，见 [原 UI 确认记录](ui/mobile-workbench-preview.md)。2026-10-11 新的[地址直连预览](previews/mobile-lan-direct-v1/index.html)已先交付；本次用户明确纠正已授权正式改动，不重复询问确认，见[纠正记录](ui/mobile-lan-direct.md)。初始化与历史预览的实际结果见 [初始化验证](verification/mobile-bootstrap.md) 和 [工作流预览验证](verification/mobile-workbench-preview.md)；旧 APK/GPU 证据不自动成为直连验收，持久恢复、原始音频、直连 APK 与物理 Android 继续单独取证。
 
 其他客户端仍可通过该边界接入：
 
@@ -2202,7 +2204,7 @@ Ready
 
 # 52. 当前 Non-goals
 
-Web MVP 的 non-goals 如下。移动端已进入下一阶段规划；其局域网配对与鉴权是新增边界，不改变 Web MVP 原有范围。公网访问、账号体系、锁屏播放和完成推送不属于移动端首版。
+Web MVP 的 non-goals 如下。移动端进入正式实施，在局域网单用户自用范围直接连接 FastAPI，不改变 Web MVP 原有范围。公网访问、账号体系、锁屏播放和完成推送不属于移动端首版。
 
 ```text
 完整移动音乐工作台
@@ -2530,7 +2532,7 @@ release validation
 127.0.0.1
 ```
 
-FastAPI：
+FastAPI 默认本地入口：
 
 ```text
 localhost only
@@ -2544,7 +2546,7 @@ localhost only
 
 不要把 ComfyUI 暴露到局域网。
 
-移动端下一阶段已确定需要局域网：
+移动端已确定需要局域网：
 
 ```text
 remote control
@@ -2556,9 +2558,9 @@ remote control
 FastAPI
 ```
 
-进入，并单独增加鉴权。
+进入同一个应用 API；手机输入电脑地址即可连接。
 
-该入口目前处于规划阶段。ComfyUI 仍仅监听本机；既有 API loopback 启动默认值保持作为本地入口。移动端采用可撤销的设备配对，其局域网接入、HTTP/WebSocket/音频鉴权及撤销机制另行实现及验收，见 [ADR-006](adr/0006-mobile-lan-pairing.md)。
+当前保留 API loopback 默认值，并以明确局域网地址启用额外监听，两者共享同一数据和队列；ComfyUI 仍仅监听本机。2026-10-11 用户选择单用户局域网直接访问，手机 HTTP、WebSocket 与音频均不以 PIN 或设备凭据作为操作前提，见 [ADR-007](adr/0007-direct-lan-and-stable-runtime-evidence.md)。真实 socket 归属、服务器身份、实际 Runtime 绑定与文件仍按事实核对；未变更的模型校验结果不按五分钟时钟失效。局域网直连的实际入口与二进制另行验证，历史配对证据保留原时点。
 
 ---
 

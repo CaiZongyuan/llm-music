@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>声间 · 电脑配对入口预览</title>
+<style>
+:root{color-scheme:dark;--bg:#050505;--panel:#101010;--line:#232923;--text:#eefff0;--muted:#7d8a7d;--accent:#e1f607;--error:#ff4d3d}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:16px/1.6 system-ui,"Microsoft YaHei",sans-serif}main{max-width:900px;margin:auto;padding:32px 24px}header{display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--line);padding-bottom:20px;gap:16px}.brand{font-size:25px;font-weight:800;letter-spacing:2px}.label{color:var(--accent);font:12px monospace;letter-spacing:1px}h1{font-size:30px;margin:32px 0 8px}h2{font-size:20px}p{margin:8px 0;color:var(--muted)}.preview{border-left:3px solid var(--accent);padding-left:12px;margin:24px 0}.columns{display:grid;grid-template-columns:1.1fr 1fr;gap:32px}.section{border-top:1px solid var(--line);padding-top:20px;margin-top:24px}button{padding:12px 18px;border:1px solid var(--line);background:var(--panel);color:var(--text);cursor:pointer;font:600 15px system-ui}button.primary{background:var(--accent);color:var(--bg);border-color:var(--accent)}button:disabled{opacity:.35;cursor:default}.actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:16px}.code{display:block;font:800 44px monospace;letter-spacing:8px;color:var(--accent);padding:16px 0}.address{display:block;font:16px monospace;overflow-wrap:anywhere;color:var(--text)}.device{border-left:2px solid var(--accent);padding:16px;background:var(--panel);margin-top:16px}.state{color:var(--accent)}.error{color:var(--error)}[hidden]{display:none!important}@media(max-width:650px){.columns{grid-template-columns:1fr}main{padding:20px 16px}h1{font-size:26px}.code{font-size:36px}}
+</style></head><body><main>
+<header><span class="brand">声间</span><span class="label">SETTINGS / MOBILE</span></header>
+<div class="preview"><strong class="label">电脑端交互预览</strong><p>演示只保留本页内存，不会开启真实服务或授权设备；与手机预览分别演示。</p></div>
+<h1>让手机连接这台音乐电脑</h1><p>电脑保持运行。手机连接同一 Wi-Fi，再输入电脑地址与短时配对码。</p>
+<div class="columns"><section class="section"><h2>移动端连接</h2><p id="status">当前未启用</p>
+<div class="actions"><button class="primary" id="enable">开启演示入口</button><button id="disable" disabled>关闭入口</button></div>
+<div id="pairing" hidden><h2>音乐电脑地址</h2><code class="address">http://192.168.31.209:8001</code><h2>短时配对码</h2><strong class="code" id="code">246810</strong><p id="expiry"></p><p>仅本次配对使用，不是账号密码。已配对的手机无需反复输入。</p>
+<div class="actions"><button id="renew">生成新的演示码</button><button id="pair">模拟手机完成配对</button></div></div></section>
+<section class="section"><h2>已配对设备</h2><p id="empty">还没有手机连接。配对后设备会显示在这里。</p><div id="device" class="device" hidden><strong>我的手机 · 演示设备</strong><p id="device-state" class="state">已授权</p><p>此设备可使用这台电脑的音乐项目。</p><button id="revoke">撤销这台手机</button></div>
+<div class="section"><h2>操作结果</h2><p id="notice">开启入口以查看配对流程。</p><div class="actions"><button id="next-failure">模拟下一次配对失败</button><button id="reset">重置演示</button></div></div></section></div>
+</main><script>
+let enabled=false,expires=0,authorized=false,failNext=false;const $=id=>document.getElementById(id);
+function refresh(){const remaining=Math.max(0,Math.ceil((expires-Date.now())/1000));$('status').textContent=enabled?'演示入口已开启':'当前未启用';$('status').className=enabled?'state':'';$('pairing').hidden=!enabled;$('enable').disabled=enabled;$('disable').disabled=!enabled;$('expiry').textContent=remaining?'有效期还剩 '+remaining+' 秒':'配对码已过期，请生成新码。';$('pair').disabled=!enabled||remaining===0;$('empty').hidden=authorized;$('device').hidden=!authorized;}
+function renew(){expires=Date.now()+120000;$('code').textContent=String(100000+Math.floor(Math.random()*900000));$('notice').textContent='新码已生成，原码失效。';$('notice').className='';refresh();}
+$('enable').onclick=()=>{enabled=true;expires=Date.now()+120000;$('code').textContent='246810';$('notice').textContent='在手机的电脑连接页输入地址与配对码。';refresh();};
+$('disable').onclick=()=>{enabled=false;$('notice').textContent='入口已关闭；重新开启前手机无法连接。';refresh();};
+$('renew').onclick=renew;
+$('pair').onclick=()=>{if(!enabled||Date.now()>=expires){$('notice').textContent='配对码已过期或入口已关闭，请重新生成有效配对码。';$('notice').className='error';refresh();return;}if(failNext){failNext=false;$('notice').textContent='演示配对未完成。请确认配对码仍有效，再重试。';$('notice').className='error';$('next-failure').textContent='模拟下一次配对失败';return;}authorized=true;$('device-state').textContent='已授权';$('device-state').className='state';$('revoke').disabled=false;expires=0;$('notice').textContent='手机已配对，短码已失效。';$('notice').className='';refresh();};
+$('revoke').onclick=()=>{$('device-state').textContent='授权已撤销';$('device-state').className='error';$('revoke').disabled=true;$('notice').textContent='这台手机必须重新配对，原凭据不再有效。';};
+$('next-failure').onclick=()=>{failNext=!failNext;$('next-failure').textContent=failNext?'已设置：下一次失败':'模拟下一次配对失败';};
+$('reset').onclick=()=>{enabled=false;expires=0;authorized=false;failNext=false;$('notice').textContent='演示已重置。';$('notice').className='';$('next-failure').textContent='模拟下一次配对失败';refresh();};
+setInterval(refresh,1000);refresh();
+</script></body></html>

@@ -1,6 +1,6 @@
 # 移动端方案访谈
 
-日期：2026-10-09 起。状态：三轮建议均已确认，用户于 2026-10-10 明确授权先初始化 mobile 并试跑。本文记录 `grill-with-docs` 的设计访谈与后续授权，不是实施规格；规格与实施票据沿用 GitHub Issues。
+日期：2026-10-09 起。状态：三轮建议与 2026-10-10 完整交互预览已确认；2026-10-11 用户纠正为局域网直接连接与未变更模型证据不按时钟失效，已授权实施。本文记录 `grill-with-docs` 的设计访谈与后续授权，不是实施规格；规格与实施票据沿用 GitHub Issues。早期配对内容保留为历史，当前连接规则以文末最新纠正为准。
 
 ## 第一轮：已确认
 
@@ -22,7 +22,7 @@ flowchart TD
   M --> L[生成、试听 Candidate、保存 Version：已确认]
   M --> A[Android 优先：已确认]
   S --> N[局域网、电脑保持运行：已确认]
-  N --> P[手工配对；设备凭据可撤销：已确认]
+  N --> P[仅输入地址直接连接：2026-10-11 最新纠正]
   L --> B[前台试听；返回时恢复任务：已确认]
   B --> F[项目、生成、任务、试听、保存与历史：已确认]
   F --> O[手机保留草稿；联网恢复：已确认]
@@ -92,6 +92,8 @@ Android Studio 安装后的最初 SDK/AVD 状态见 [Windows 环境调研](../re
 
 ## 事实与验证边界
 
+2026-10-10，完整手机工作流与电脑配对入口的隔离预览已交付，并完成 Android Maestro、Chromium、控件兼容修复及非作者审阅。用户收到预览入口与接入真实后端的确认请求后明确回复“确认”。该确认授权按此界面与流程继续正式业务实施、发布规格和实施票据，见 [UI 记录](../ui/mobile-workbench-preview.md)。不重复请求已确认的产品选择或视觉准入；新增实质范围另按实际需要处理。
+
 - Expo SDK 57 已发布。固定原生宿主中的调试结果不能代替本项目二进制的原生配置与权限验证；详见 [Expo 调研](../research/mobile-expo-facts.md)。
 - Maestro 官方提供 Expo Go 与 Windows 原生路径；本机尚未实际启动模拟器并完成整条测试链路。详见 [Windows 与 Maestro 调研](../research/mobile-windows-maestro-facts.md)。
 - 当前 API CLI 的 `--host` 只接受 loopback 地址，开发启动器同样固定 `127.0.0.1`。真实手机局域网访问会改变当前连接边界，不能仅更换客户端 URL。来源：[API CLI](../../services/api/src/music_api/cli.py)、[API 启动器](../../scripts/dev_api.py)、[生产规划安全边界](../production.md#62-安全边界)。
@@ -99,3 +101,11 @@ Android Studio 安装后的最初 SDK/AVD 状态见 [Windows 环境调研](../re
 - 现有生成音频采用 48kHz、双声道、16bit FLAC。Android 媒体框架的格式支持不等于真实样本的播放、seek 与网络读取已通过；移动端仍需验证原始生成样本。来源：[音频验证](../../services/api/src/music_api/generation_audio.py)、[Expo 调研](../research/mobile-expo-facts.md)。
 
 三轮产品选择已经记录，用户后续授权的初始化与试跑已完成，见 [初始化验证](../verification/mobile-bootstrap.md)。正式移动端规格与业务流程实施尚未发布或验收。
+
+## 2026-10-11：最新用户纠正，直接实施
+
+用户明确反对局域网自用要求配对码及模型校验几分钟后拦截；原话和实施授权记在[本轮 UI 记录](../ui/mobile-lan-direct.md)。当前手机只输入电脑地址，读取同一 FastAPI 数据，保持服务器身份、创作草稿和未知请求恢复；HTTP、WebSocket 与原始音频直接访问局域网入口。旧配对决策由 [ADR-007](../adr/0007-direct-lan-and-stable-runtime-evidence.md) 取代，第三轮 Q8 及旧执行顺序不再要求 PIN 或设备授权。
+
+原模型及源码校验在真实进程/监听、配置和文件仍匹配时继续有效，不因经过五分钟失败；来源时间照实保留。缺文件、校验不符、实际绑定改变和 Runtime 不可达仍属真实失败，动态健康与 GPU 观测保持实际来源。
+
+Root 已回应并承诺实际修改。新的[地址直连预览](../previews/mobile-lan-direct-v1/index.html)先于正式 UI 改动交付，可执行空输入、连接中、成功/失败和进入项目操作；预览仅内存且禁止网络连接。按用户明确纠正继续正式实现，不再次要求确认。修订跟踪 [#113](https://github.com/CaiZongyuan/llm-music/issues/113)；旧 [Android 交付证据](../verification/mobile-android-delivery.md)保留历史时点，物理 Android 仍待验收。

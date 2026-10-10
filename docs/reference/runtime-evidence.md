@@ -28,11 +28,11 @@ uv run --project services/api --no-sync python -m music_api.runtime_evidence col
 | `models[]` | 注册 id、`missing/downloading/ready/invalid`、revision、时间、实际 hash/size 和文件指纹 |
 | `models[].fingerprint` | `resolved_path`、`size_bytes`、`mtime_ns` |
 
-## 当前授权与历史事实
+## 当前匹配校验与历史事实
 
-新鲜度是明确的配置策略，默认窗口为 300 秒。读取收据的时间与来源时间不同。新写入但来源时间已过期的文件仍为 stale；未来时间、外部 URL、不同 Runtime mode/revision、被复用的 PID、不可读取身份或变化的模型指纹都不能证明当前就绪。
+读取收据的时间与原校验时间不同。实际 Runtime 进程、监听、源码、配置和模型指纹仍匹配时，原校验继续有效，不因经过五分钟失效。API 的稳定事实来源以 `max_age_seconds: null` 表示这一规则，同时保留真实来源时间和 age。未来时间、外部 URL、不同 Runtime mode/revision、被复用的 PID、不可读取身份或变化的模型指纹仍不能证明当前就绪。
 
-当前健康检查、节点和实际模型 layout 可以否定旧的 ready。`/models/{folder}` 只列通用 ComfyUI 文件名，不能证明已加载或 SHA256 有效。锁定的 YuE2 插件从独立的 `YUE2_MODELS_ROOT` 获取权重；因此通用清单为空也不能证明这些模型缺失。只有 registry 明确映射到该清单的模型才能使用其缺失信息。当前 YuE2/SheetSage2 以本机绑定、实际 layout 和来源校验为准，且只在配置窗口内参与同一个提交就绪判断。未变化的 stat 指纹不会成为永久的密码学证明。拒绝当前授权时保留最后校验的 hash 和来源时间作为历史诊断。
+当前健康检查、节点和实际模型 layout 可以否定旧的 ready。`/models/{folder}` 只列通用 ComfyUI 文件名，不能证明已加载或 SHA256 有效。锁定的 YuE2 插件从独立的 `YUE2_MODELS_ROOT` 获取权重；因此通用清单为空也不能证明这些模型缺失。只有 registry 明确映射到该清单的模型才能使用其缺失信息。当前 YuE2/SheetSage2 以仍匹配的本机绑定、实际 layout 和原 SHA256 校验为准，参与同一个提交就绪判断；不按时钟重复计算模型 hash。当前条件不匹配时保留最后校验的 hash 和来源时间作为历史诊断。动态健康与 GPU/内存观测继续使用有限观测窗口，不能借稳定模型证据把旧动态读数当作现在。
 
 ## 读取指标
 

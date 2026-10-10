@@ -10,7 +10,21 @@
 
 启动器先构建生成的 API client，再启动独立 API 和 Web，等待 HTTP 健康检查。成功后输出 `Web ready: http://127.0.0.1:5173`，`--open` 打开该地址。Web 只通过 `/api` 代理连接 FastAPI。Fake 模式的 Runtime 在 API 进程内；合计两个服务进程。它使用 CPU 测试素材，生成音频为 440 Hz 测试音，不能用于判断音乐质量。
 
-默认 API 端口为 `8000`，Web 为 `5173`，真实 Runtime 为 `8188`。全部绑定 `127.0.0.1`。使用 `--api-port 18045 --web-port 18046 --runtime-port 18047` 可选择另一组互不相同的端口。启动器不会自动寻找其他端口或把 Web 指向未知服务。
+默认 API 端口为 `8000`，Web 为 `5173`，真实 Runtime 为 `8188`。默认全部绑定 `127.0.0.1`。使用 `--api-port 18045 --web-port 18046 --runtime-port 18047` 可选择另一组互不相同的端口。启动器不会自动寻找其他端口或把 Web 指向未知服务。
+
+## 开启手机局域网入口 {#mobile-lan}
+
+先在电脑核对当前局域网网卡 IPv4，再调用以下示例，并传入 `-LanHost 实际IPv4`。`LanPort` 默认 `8001`，必须与 API、Web、Runtime 端口不同。启动器只绑定这个明确地址，不自动选择虚拟网卡，不使用 wildcard，也不扩大 ComfyUI 或 Web 的监听范围。
+
+<<< ../../scripts/examples/dev-mobile-lan.ps1
+
+同一 API 进程同时服务原有 loopback 和额外 LAN socket，共享 Project、Asset、Job、Candidate、Version 与队列。默认例子仍为 CPU Fake Runtime；真实音乐需要按后文准备原生 Runtime。会话记录新增 `lan_url`，API 配置签名记录 `lan_host`、`lan_port` 和允许的本地 Web Origin。地址/端口不同、其中一个监听被占用或归属不匹配会拒绝启动；复用及停止都核对两个真实 socket。
+
+手机和电脑连接同一 Wi-Fi，在声间输入电脑的 LAN HTTP 地址并点击“连接电脑”。`GET /connection` 返回稳定的 `server_id`、`protocol_version: 1`、`access_method: "direct"`、`pairing_available: false` 和当前 `lan_address`。手机保存地址与服务器身份；下次打开先读取原电脑。连接失败时保留地址与创作草稿，确认电脑运行后重连。
+
+配置的局域网入口直接提供业务 HTTP、任务 WebSocket 和音频 GET/HEAD/Range，无需 PIN、设备 token 或授权步骤。手机仍核对服务器身份，并按服务器隔离草稿和未确认请求。默认不开 LAN 的本地业务消费者保持原有用法。旧 `/pairing/*` 管理接口仅保留兼容，不是当前手机连接流程；当前规则见 [ADR-007](../adr/0007-direct-lan-and-stable-runtime-evidence.md)。
+
+局域网新建 Project、Generate 与明确 retry 还需要持久 UUID `Idempotency-Key`；响应未知时查询原请求，不能自动新建另一份任务。见[请求恢复规则](generate-save-api.md#request-recovery)。
 
 ## 数据、复用与停止 {#ownership}
 
@@ -18,7 +32,7 @@ Fake 应用数据默认位于 `data/dev/fake/application/`；真实模式位于 
 
 每次启动输出唯一 `Session receipt` 路径。会话记录模式、进程 PID、创建时间、实际命令、端口、目录、已启动与已复用服务。稳定服务登记位于 `data/dev/<mode>/launcher/`，使用 `--state-dir PATH` 可隔离另一个启动组。服务日志、owner、停止确认和最终清理结果保留在该会话目录。
 
-原生 API 从启动组内稳定的 `runtime-evidence-<端口>.json` 读取证据。输入 receipt 的文件名属于来源记录；自动生成的会话路径或另一个新文件名不会改变同一服务配置。启动器先保留输入副本并验证实际 Runtime、环境、模型和全部服务配置，再将通过验证的原始内容复制到该读取位置。原始 `checked_at` 与模型校验时间不变；后续新证据不会改写旧会话的输入副本。同配置、同 Runtime 的新鲜证据可以更新现有 API 的读取来源，复用后的进程仍属于原 owner。
+原生 API 从启动组内稳定的 `runtime-evidence-<端口>.json` 读取证据。输入 receipt 的文件名属于来源记录；自动生成的会话路径或另一个新文件名不会改变同一服务配置。启动器先保留输入副本并验证实际 Runtime、环境、模型和全部服务配置，再将通过验证的原始内容复制到该读取位置。原始 `checked_at` 与模型校验时间不变；后续新证据不会改写旧会话的输入副本。同配置、同 Runtime 的匹配证据可以更新现有 API 的读取来源，复用后的进程仍属于原 owner。
 
 再次用同一配置启动时，启动器核对登记、实际 PID/创建时间、命令、工作目录和本地监听身份，再检查健康状态。匹配服务会显示 `Reusing`，属于此前会话。配置不同、身份不可读或端口归属未知时拒绝复用。
 
@@ -32,15 +46,15 @@ Fake 应用数据默认位于 `data/dev/fake/application/`；真实模式位于 
 
 <<< ../../scripts/examples/dev-native-reuse.ps1
 
-collector 验证进程、源 revision、模型 SHA256 和文件指纹。启动器重新验证 receipt、目录及监听/状态参数，并保持原始时间戳。默认有效期为 300 秒；过期或不匹配会拒绝启动，不能把旧模型状态继续当成 ready。已复用 Runtime 不属于本次 owner，退出不会中断它。
+collector 验证进程、源 revision、模型 SHA256 和文件指纹。启动器重新验证 receipt、目录及监听/状态参数，并保持原始时间戳。实际进程、监听、源码和模型指纹仍匹配时，这份校验继续有效，经过五分钟本身不会拒绝启动或新任务。不匹配、缺失文件或当前 Runtime 不可达需恢复实际条件。已复用 Runtime 不属于本次 owner，退出不会中断它。
 
-未指定 `--runtime-evidence` 的再次启动，只能复用启动组内仍有效的证据。该证据过期后，先用上述例子收集真正的新证据；复制或再次读取旧文件不会更新它的时间。不同 Runtime 进程、目录、环境或应用数据配置会拒绝复用；由原 owner 按新配置重启相应应用服务。
+未指定 `--runtime-evidence` 的再次启动可以复用启动组内与实际进程、目录和文件仍匹配的证据，不需要定时重新计算模型 hash。复制或再次读取文件不更新来源时间。不同 Runtime 进程、目录、环境或应用数据配置会拒绝复用；由原 owner 按新配置恢复服务或重新取得匹配证据。
 
 API 和 Runtime 始终使用不同 uv 项目和环境。启动器检查当前 Runtime 环境是否与自己的 `uv.lock` 同步，并记录 lock SHA256。它还核对实际 listener 的启动解释器路径、PID/创建时间与命令。Windows listener 常显示两个环境共用的基础 Python；这时必须找到仍存活的直接 venv redirector，证明它用所配置环境的解释器启动了同一命令。新的配置探测进程、共同基础 Python 或更远的祖先进程不能代替该来源。无法证明来源时，启动器拒绝复用并保留原服务，不猜测当前进程的 `sys.prefix`。
 
 不同 Git checkout 的 LF/CRLF 换行差异只在四份登记配置文本的兼容性比较中归一化。文件不被重写；实际 `uv.lock` 原始字节 SHA256、已安装环境同步、进程来源、模型及源码校验保持独立。依赖或配置值改变仍拒绝。
 
-可先运行 `pnpm dev -- --inspect-runtime-origin 实际PID --runtime-project 已准备的Runtime项目路径` 单独读取来源。该命令只查验启动路径、进程身份及当前 lock，不读取模型、连接 Runtime HTTP 或证明推理就绪。完整启动仍需要上面的新鲜 collector receipt。
+可先运行 `pnpm dev -- --inspect-runtime-origin 实际PID --runtime-project 已准备的Runtime项目路径` 单独读取来源。该命令只查验启动路径、进程身份及当前 lock，不读取模型、连接 Runtime HTTP 或证明推理就绪。完整启动仍需要上面已核验且与当前条件匹配的 collector receipt。
 
 ## 失败恢复 {#recover}
 
