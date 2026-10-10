@@ -26,6 +26,8 @@ The phone first securely saves its UUID and 32-byte random token (64 lowercase h
 
 `device_id` identifies one authorization record. Explicit pairing after revocation needs a fresh UUID and token. An uncertain initial claim must retain and replay the original UUID, token, name and code; do not replace an unknown request with another authorization.
 
+LAN Project creation, Generate and explicit retry also require a durable UUID `Idempotency-Key`. Query the original request after an uncertain response; do not automatically create another Job. See the [request recovery rules](generate-save-api.en.md#request-recovery).
+
 ## Data, reuse and stop {#ownership}
 
 Fake application data defaults to `data/dev/fake/application/`; native mode uses `data/dev/comfyui/application/`. Use `--data-dir PATH` for a different persistent directory. Deleting that directory loses its Projects, Assets and Versions. Stopping services does not delete data.

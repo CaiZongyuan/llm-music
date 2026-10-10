@@ -94,7 +94,7 @@ def test_real_socket_pairing_cannot_spoof_local_privilege(tmp_path: Path) -> Non
                  "device_name": "Real socket phone", "code": challenge["code"]}
         assert phone.post("/pairing/claim", json=claim).status_code == 201
         phone.headers["Authorization"] = "Bearer " + claim["device_token"]
-        project = phone.post("/projects", json={"name": "Shared socket Project"})
+        project = phone.post("/projects", json={"name": "Shared socket Project"}, headers={"Idempotency-Key": str(uuid4())})
         assert project.status_code == 201
         assert local.get("/projects/" + project.json()["id"]).json() == project.json()
         listeners = [item for item in psutil.net_connections(kind="tcp") if item.status == psutil.CONN_LISTEN
@@ -198,7 +198,7 @@ def test_revoke_closes_active_websocket_without_cancelling_shared_jobs(tmp_path:
         project = local.post("/projects", json={"name": "Shared queue"}).json()
         base = "/projects/" + project["id"]
         inputs = {"style": "测试 folk", "lyrics": "[verse]\n第一行\n第二行", "seed": 42, "max_seconds": 0}
-        first = phone.post(base + "/jobs/generate", json=inputs, headers=auth).json()
+        first = phone.post(base + "/jobs/generate", json=inputs, headers={**auth, "Idempotency-Key": str(uuid4())}).json()
         deadline = time.monotonic() + 5
         while local.get(base + "/jobs/" + first["id"]).json()["status"] != "running":
             assert time.monotonic() < deadline

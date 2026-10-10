@@ -38,6 +38,26 @@ The request returns `202` and an application Job id. Read `GET /projects/{projec
 
 List Candidates with `GET /projects/{project_id}/candidates`, or read `/candidates/{candidate_id}`. A Candidate retains inputs, execution settings, Workflow/Runtime provenance, and output facts. Generated output currently requires PCM16 FLAC, 48 kHz stereo; the duration must fall between 1 second and the ceiling +2 (360 +2 for auto), with agreement between all decoded frames and the STREAMINFO declaration. Legal streaming FLAC with a zero declared sample count cannot yet be confirmed under this verified profile.
 
+## Recover an uncertain request {#request-recovery}
+
+Before creating a Project, submitting Generate, or explicitly retrying through the [LAN listener](dev-launcher.en.md#mobile-lan), persist a UUID request key, operation, target and frozen input on the client. Send the key in the `Idempotency-Key` header. These three LAN writes return `422 idempotency_key_required` without a key; an invalid UUID returns `422 invalid_request`. Existing local consumers may still omit it. A new Project returns `201`; a new Job returns `202`. Replaying the same key and normalized intent returns `200` with the original resource's current state. Identical input with a different key may create an independent resource.
+
+After a timeout, disconnection or App restart, read authenticated `GET /requests/{request_id}`, using the original UUID key as request_id. A successful response contains exact references only:
+
+| Field | Meaning |
+| --- | --- |
+| `request_id` / `operation` | Original key; `create_project`, `generate` or `retry` |
+| `project_id` | Project that owns the resource |
+| `resource_type` / `resource_id` | `project` or `job` and its exact id |
+| `source_job_id` | Original Job for retry; null for other operations |
+| `created_at` | Creation time of the request reference |
+
+Then read `/projects/{project_id}` or `/projects/{project_id}/jobs/{resource_id}`. Do not guess the original Job from identical lyrics, recent timestamps or list order. `404 request_not_found` means no committed reference is currently visible; the original POST may still be in flight. Retain the frozen intent and let the creator explicitly resend the same key. Reads, foreground recovery and network recovery must not automatically resend writes or replace an uncertain request with a new key.
+
+The key belongs to the server's data directory, not a device token. A device paired again after revocation can recover the original reference. Changing the operation, target or normalized input under one key returns `409 idempotency_conflict`, even when the new target does not exist. Replay reads the committed resource first; later resource or Runtime unavailability does not create another Job. Explicit retry remains bodyless `POST /projects/{project_id}/jobs/{job_id}/retry`. It retains the original Job and input; the new Job records its original in `provenance.retry_of_job_id`.
+
+The business resource and reference commit in one transaction. Only a newly created Job enters the existing queue after commit. API restart retains existing Job recovery rules; an undispatched Job is not guaranteed to continue inference automatically. After terminal failure, the creator decides whether to retry explicitly. Editing the current draft does not change an uncertain request's frozen input. Cancellation still confirms the original job_id. Version save still checks Candidate, name and parent under the rules below.
+
 ## Generate from a selected Score {#selected-score}
 
 Creators can complete the same operation in the formal Web using the [editing and regeneration tutorial](../learn/edit-score.en.md#regenerate). Explicitly select a valid saved Score on its page; the Job and result show actual submitted ABC and source parent. The API and CLI below support scripted creation.

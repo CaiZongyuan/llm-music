@@ -16,7 +16,7 @@ from sqlalchemy.dialects.sqlite import insert
 from sqlalchemy import select, update
 
 from music_api.config import Settings
-from music_api.database import Asset, Database, utc_now
+from music_api.database import Asset, Database, Project, utc_now
 from music_api.errors import DomainError
 from music_api.job_models import Job, Namespace, job_for_write
 from music_api.result_import import ImportMaterial, ResultRegistrar
@@ -27,6 +27,7 @@ from music_api.schemas import JobRead
 from music_api.storage import Storage
 from music_api.workflow_registry import WorkflowRegistry
 from music_api.runtime_errors import failure_detail
+from music_api.requests import RequestIntent, matching_request, record_request, reserve_request_writer
 
 
 log = logging.getLogger("music_api")
@@ -169,7 +170,14 @@ class JobService:
         return job
 
     def retry(self, project_id: UUID, identifier: UUID) -> Job:
+        return self.retry_once(project_id, identifier)[0]
+
+    def retry_once(self, project_id: UUID, identifier: UUID, intent: RequestIntent | None = None) -> tuple[Job, bool]:
         with self.transition_lock:
+            if intent is not None:
+                previous = self._request_job(intent)
+                if previous is not None:
+                    return previous, False
             with self.database.sessions() as session:
                 job = session.scalar(select(Job).where(Job.id == str(identifier), Job.project_id == str(project_id)))
                 if job is None:
@@ -194,7 +202,7 @@ class JobService:
                                       "Retain this Job and confirm the owned Runtime attempt before explicitly retrying.", identifier)
             # Never write the original Job. New submission rechecks current readiness
             # and records current registry evidence with a fresh application/attempt id.
-            return self.submit(project_id, operation, inputs, retry_of_job_id=str(identifier))
+            return self.submit_once(project_id, operation, inputs, retry_of_job_id=str(identifier), intent=intent)
 
     def register_result(self, operation: Operation, registrar: ResultRegistrar, validator: ResultValidator | None = None) -> None:
         self.registrars[operation] = registrar
@@ -221,6 +229,76 @@ class JobService:
             log.error("Application Job worker still finishing an owned bounded Runtime request", extra={"event": "job_shutdown_unconfirmed"})
 
     def submit(self, project_id: UUID, operation: Operation, inputs: dict[str, object], retry_of_job_id: str | None = None) -> Job:
+        return self.submit_once(project_id, operation, inputs, retry_of_job_id)[0]
+
+    def _request_job(self, intent: RequestIntent) -> Job | None:
+        with self.database.sessions() as session:
+            previous = matching_request(session, intent)
+            if previous is None:
+                return None
+            job = session.get(Job, previous.job_id)
+            if job is None:
+                raise DomainError(503, "request_resource_unavailable", "The confirmed request's Job is unavailable.",
+                                  "Restore the original request and Job metadata; do not create a replacement.", intent.request_id)
+            return job
+
+    def submit_once(self, project_id: UUID, operation: Operation, inputs: dict[str, object], retry_of_job_id: str | None = None,
+                    intent: RequestIntent | None = None) -> tuple[Job, bool]:
+        if intent is not None:
+            previous = self._request_job(intent)
+            if previous is not None:
+                return previous, False
+            with self.database.sessions() as session:
+                if session.get(Project, str(project_id)) is None:
+                    raise DomainError(404, "project_not_found", "Project does not exist.", "Select an existing Project or create one.")
+        try:
+            job = self._new_job(project_id, operation, inputs, retry_of_job_id)
+        except Exception:
+            # An original may commit while this caller is doing bounded native
+            # preflight. An accepted replay is independent of current readiness.
+            if intent is not None:
+                previous = self._request_job(intent)
+                if previous is not None:
+                    return previous, False
+            raise
+        commit_error = None
+        with self.database.sessions() as session:
+            if intent is not None:
+                reserve_request_writer(session)
+                previous_request = matching_request(session, intent)
+                if previous_request is not None:
+                    previous = session.get(Job, previous_request.job_id)
+                    if previous is None:
+                        raise DomainError(503, "request_resource_unavailable", "The confirmed request's Job is unavailable.",
+                                          "Restore the original request and Job metadata; do not create a replacement.", intent.request_id)
+                    return previous, False
+            try:
+                session.add(job)
+                session.flush()
+                if intent is not None:
+                    record_request(session, intent, job.project_id, job.id)
+                session.commit()
+            except Exception as error:
+                if intent is None:
+                    raise
+                commit_error = error
+                try:
+                    session.rollback()
+                except Exception:
+                    log.exception("Request rollback acknowledgement unavailable", extra={"event": "request_rollback_unconfirmed", "request_id": str(intent.request_id)})
+        # Only this creator hands its allocated UUID to the sole worker.
+        # _begin freshly reads committed metadata before preparing/dispatch;
+        # absent or terminal rows are no-ops. Receipt readback availability
+        # cannot strand a durable Job, and stored replays never enqueue.
+        self.pending.put(job.id)
+        self.notify(job.id)
+        if commit_error is not None:
+            assert intent is not None
+            raise DomainError(503, "request_commit_unconfirmed", "Request creation could not be confirmed.",
+                              "Query this exact request key before explicitly replaying its frozen intent.", intent.request_id) from commit_error
+        return job, True
+
+    def _new_job(self, project_id: UUID, operation: Operation, inputs: dict[str, object], retry_of_job_id: str | None) -> Job:
         observation = self.runtime.health()
         capability = next(item for item in self.runtime.capabilities(observation) if item.operation == operation)
         if not capability.ready:
@@ -248,11 +326,6 @@ class JobService:
             provenance["settings"] = dict(self.registry.settings(operation), cot=inputs["mode"])
         job = Job(id=str(uuid4()), project_id=str(project_id), operation=operation, inputs=deepcopy(inputs), provenance=provenance,
                   runtime_mode=self.runtime.mode, attempt_id=str(uuid4()), status="queued", phase="preparing", progress=None, submission_state="pending")
-        with self.database.sessions() as session:
-            session.add(job)
-            session.commit()
-        self.pending.put(job.id)
-        self.notify(job.id)
         return job
 
     def _run(self) -> None:

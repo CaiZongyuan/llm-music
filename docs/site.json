@@ -377,6 +377,7 @@
       "sectionIds": [
         "start",
         "candidate",
+        "request-recovery",
         "selected-score",
         "save",
         "recovery"
