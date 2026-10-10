@@ -5,14 +5,14 @@ import { ScrollView, Text, View, useWindowDimensions, type TextProps } from 'rea
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { colors, fontSize, layout, spacing } from '../../../apps/mobile/src/constants/theme';
+import { controlWidthLayout } from '../../../apps/mobile/src/screens/native-control-width';
 
 export { colors, fontSize, layout, spacing };
 export { Flag } from './flag';
 
 export function useControlWidth(inset = 0) {
   const { width } = useWindowDimensions();
-  // SDK 57 Compose width modifiers accept integer dp, while window dimensions can be fractional.
-  return Math.floor(Math.max(0, Math.min(width, layout.maxContentWidth) - spacing.medium * 2 - inset));
+  return Math.max(0, Math.min(width, layout.maxContentWidth) - spacing.medium * 2 - inset);
 }
 
 export function Copy({ kind = 'body', style, ...props }: TextProps & { kind?: 'body' | 'muted' | 'label' | 'heading' | 'error' }) {
@@ -42,8 +42,9 @@ export function PreviewNotice() {
 
 export function Actions({ children, inset = 0 }: { children: ReactNode; inset?: number }) {
   const width = useControlWidth(inset);
-  return <Host matchContents colorScheme="dark" seedColor={colors.accent} ignoreSafeArea="all">
-    <Column spacing={spacing.small} style={{ width }}>{children}</Column>
+  const widthLayout = controlWidthLayout(width);
+  return <Host {...widthLayout.host} colorScheme="dark" seedColor={colors.accent} ignoreSafeArea="all">
+    <Column {...widthLayout.content} spacing={spacing.small}>{children}</Column>
   </Host>;
 }
 
@@ -62,13 +63,15 @@ export function Field({ label, hint, initialValue, onChangeText, ...props }: Omi
   label: string; hint?: string; initialValue: string;
 }) {
   const width = useControlWidth();
+  const widthLayout = controlWidthLayout(width);
   return <View style={{ gap: spacing.small }}>
     <Copy style={{ fontWeight: '600' }}>{label}</Copy>
-    <Host matchContents colorScheme="dark" seedColor={colors.accent} ignoreSafeArea="all">
+    <Host {...widthLayout.host} colorScheme="dark" seedColor={colors.accent} ignoreSafeArea="all">
       <TextInput {...props} defaultValue={initialValue} onChangeText={onChangeText} autoCorrect={false}
         cursorColor={colors.accent} selectionColor={colors.accent} placeholderTextColor={colors.muted}
         textStyle={{ color: colors.text, fontSize: fontSize.body }}
-        style={{ width, padding: spacing.medium, backgroundColor: colors.panel, borderColor: colors.line, borderWidth: 1, borderRadius: 4 }} />
+        modifiers={widthLayout.content.modifiers ? [...widthLayout.content.modifiers, ...(props.modifiers ?? [])] : props.modifiers}
+        style={{ ...widthLayout.content.style, padding: spacing.medium, backgroundColor: colors.panel, borderColor: colors.line, borderWidth: 1, borderRadius: 4 }} />
     </Host>
     {hint ? <Copy kind="label">{hint}</Copy> : null}
   </View>;

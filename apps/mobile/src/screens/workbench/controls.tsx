@@ -4,10 +4,11 @@ import { Text, View, useWindowDimensions, type TextProps } from 'react-native';
 
 import { colors, fontSize, layout, spacing } from '@/constants/theme';
 
+import { controlWidthLayout } from '../native-control-width';
+
 export function useControlWidth() {
   const { width } = useWindowDimensions();
-  // SDK 57 Compose width modifiers accept integer dp, while window dimensions can be fractional.
-  return Math.floor(Math.max(0, Math.min(width, layout.maxContentWidth) - spacing.medium * 2));
+  return Math.max(0, Math.min(width, layout.maxContentWidth) - spacing.medium * 2);
 }
 
 export function Copy({ kind = 'body', style, ...props }: TextProps & { kind?: 'body' | 'muted' | 'label' | 'heading' | 'error' }) {
@@ -21,8 +22,9 @@ export function Copy({ kind = 'body', style, ...props }: TextProps & { kind?: 'b
 
 export function Actions({ children }: { children: ReactNode }) {
   const width = useControlWidth();
-  return <Host matchContents colorScheme="dark" seedColor={colors.accent} ignoreSafeArea="all">
-    <Column spacing={spacing.small} style={{ width }}>{children}</Column>
+  const widthLayout = controlWidthLayout(width);
+  return <Host {...widthLayout.host} colorScheme="dark" seedColor={colors.accent} ignoreSafeArea="all">
+    <Column {...widthLayout.content} spacing={spacing.small}>{children}</Column>
   </Host>;
 }
 
@@ -42,6 +44,7 @@ export function Field({ label, hint, initialValue, replacement, ...props }: Omit
   label: string; hint?: string; initialValue: string; replacement?: string | number;
 }) {
   const width = useControlWidth();
+  const widthLayout = controlWidthLayout(width);
   const text = useNativeState(initialValue), previousReplacement = useRef(replacement);
   useEffect(() => {
     if (replacement !== previousReplacement.current) {
@@ -51,11 +54,12 @@ export function Field({ label, hint, initialValue, replacement, ...props }: Omit
   }, [text, replacement, initialValue]);
   return <View style={{ gap: spacing.small }}>
     <Copy style={{ fontWeight: '600' }}>{label}</Copy>
-    <Host matchContents colorScheme="dark" seedColor={colors.accent} ignoreSafeArea="all">
+    <Host {...widthLayout.host} colorScheme="dark" seedColor={colors.accent} ignoreSafeArea="all">
       <TextInput {...props} value={text} autoCorrect={false}
         cursorColor={colors.accent} selectionColor={colors.accent} placeholderTextColor={colors.muted}
         textStyle={{ color: colors.text, fontSize: fontSize.body }}
-        style={{ width, padding: spacing.medium, backgroundColor: colors.panel, borderColor: colors.line, borderWidth: 1, borderRadius: 4 }} />
+        modifiers={widthLayout.content.modifiers ? [...widthLayout.content.modifiers, ...(props.modifiers ?? [])] : props.modifiers}
+        style={{ ...widthLayout.content.style, padding: spacing.medium, backgroundColor: colors.panel, borderColor: colors.line, borderWidth: 1, borderRadius: 4 }} />
     </Host>
     {hint ? <Copy kind="label">{hint}</Copy> : null}
   </View>;
