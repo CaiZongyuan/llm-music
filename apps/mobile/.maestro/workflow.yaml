@@ -1,0 +1,216 @@
+# Preparation only; not yet executed. Requires integrated M4/M5 and prior pairing.
+# Run via scripts/test-mobile-workflow.ps1: it checks the explicit Fake API/SID.
+# Public selectors come from M4 40fcf487; no preview or private test route is used.
+# This covers button seeks. Slider dragging/native bytes/GPU/APK config remain separate.
+appId: ${APP_ID}
+name: Paired isolated Fake API creation and explicit Version save
+---
+- launchApp:
+    clearState: false
+- runFlow:
+    when:
+      true: ${APP_MODE == 'Go'}
+    commands:
+      - openLink: ${CONNECT_URL}
+      - tapOn:
+          text: Continue
+          optional: true
+      - tapOn:
+          text: Close
+          optional: true
+- runFlow:
+    when:
+      true: ${APP_MODE == 'Apk'}
+    commands:
+      - extendedWaitUntil:
+          visible:
+            id: open-mobile-connection
+          timeout: 90000
+      - tapOn:
+          id: open-mobile-connection
+- extendedWaitUntil:
+    visible:
+      id: connection-status
+      text: 电脑已连接
+    timeout: 90000
+- assertVisible:
+    id: connected-address
+    text: ${PAIRED_API_PATTERN}
+- tapOn:
+    id: open-workbench
+- extendedWaitUntil:
+    visible:
+      id: new-project-name
+    timeout: 30000
+- tapOn:
+    id: new-project-name
+- eraseText: 200
+- inputText: ${PROJECT_NAME}
+- hideKeyboard
+- tapOn:
+    id: create-project
+- extendedWaitUntil:
+    visible:
+      id: draft-style
+    timeout: 30000
+- tapOn:
+    id: draft-style
+- eraseText: 1024
+- inputText: 独立流行，温暖女声，轻快鼓点
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: draft-lyrics
+    direction: DOWN
+- tapOn:
+    id: draft-lyrics
+- eraseText: 10000
+- inputText: |-
+    [Verse]
+    末班车穿过雨后的街
+    霓虹在车窗慢慢重叠
+    [Chorus]
+    把没说的话唱成明天
+- hideKeyboard
+- assertVisible: |-
+    [Verse]
+    末班车穿过雨后的街
+    霓虹在车窗慢慢重叠
+    [Chorus]
+    把没说的话唱成明天
+- takeScreenshot: workflow-chinese-multiline
+- scrollUntilVisible:
+    element:
+      id: draft-duration
+    direction: DOWN
+- tapOn:
+    id: draft-duration
+- eraseText: 20
+- inputText: '35'
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: generate-submit
+    direction: DOWN
+- tapOn:
+    id: generate-submit
+- scrollUntilVisible:
+    element:
+      id: job-.*-state
+    direction: DOWN
+- extendedWaitUntil:
+    visible:
+      id: job-.*-state
+      text: 已完成
+    timeout: 30000
+- takeScreenshot: workflow-real-job-completed
+- scrollUntilVisible:
+    element:
+      id: play-.*
+    direction: DOWN
+- tapOn:
+    id: play-.*
+    waitToSettleTimeoutMs: 300
+- extendedWaitUntil:
+    visible:
+      id: playback-.*
+      text: '播放中.*'
+    timeout: 30000
+- takeScreenshot: workflow-candidate-playing
+# Optional UI recovery subflow; position/cache/source recovery has separate M5 evidence.
+- runFlow:
+    when:
+      true: ${CHECK_BACKGROUND == 'true'}
+    commands:
+      - pressKey: HOME
+      - launchApp:
+          stopApp: false
+          clearState: false
+      - extendedWaitUntil:
+          visible:
+            id: playback-.*
+            text: '(等待试听|已暂停|试听结束).*'
+          timeout: 30000
+      - assertNotVisible:
+          id: playback-.*
+          text: '播放中.*'
+      - takeScreenshot: workflow-foreground-no-autoplay
+      - tapOn:
+          id: play-.*
+          waitToSettleTimeoutMs: 300
+      - extendedWaitUntil:
+          visible:
+            id: playback-.*
+            text: '播放中.*'
+          timeout: 30000
+- tapOn:
+    id: play-.*
+- extendedWaitUntil:
+    visible:
+      id: playback-.*
+      text: '已暂停.*'
+    timeout: 30000
+- scrollUntilVisible:
+    element:
+      id: seek-start-.*
+    direction: DOWN
+- tapOn:
+    id: seek-start-.*
+- extendedWaitUntil:
+    visible:
+      id: playback-.*
+      text: '已暂停 · 0:00 / .*'
+    timeout: 30000
+- tapOn:
+    id: seek-forward-.*
+- extendedWaitUntil:
+    visible:
+      id: playback-.*
+      text: '已暂停 · 0:10 / .*'
+    timeout: 30000
+- takeScreenshot: workflow-candidate-paused-seek
+- scrollUntilVisible:
+    element:
+      id: version-name-.*
+    direction: DOWN
+- tapOn:
+    id: version-name-.*
+- eraseText: 200
+- inputText: ${VERSION_NAME}
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: save-.*
+    direction: DOWN
+- tapOn:
+    id: save-.*
+- extendedWaitUntil:
+    visible:
+      id: saved-.*
+      text: '已明确保存为「${VERSION_NAME}」'
+    timeout: 30000
+- takeScreenshot: workflow-explicit-version-save
+- scrollUntilVisible:
+    element:
+      id: tab-versions
+    direction: UP
+- tapOn:
+    id: tab-versions
+- assertVisible: ${VERSION_NAME}
+- takeScreenshot: workflow-version-history
+- scrollUntilVisible:
+    element:
+      id: open-version-.*
+    direction: DOWN
+- tapOn:
+    id: open-version-.*
+- extendedWaitUntil:
+    visible:
+      id: saved-version-name
+      text: ${VERSION_NAME}
+    timeout: 30000
+- assertVisible: 独立流行，温暖女声，轻快鼓点
+- takeScreenshot: workflow-version-details
+# Background the selected app so its session releases temporary playback resources.
+# The runner retains the Fake data and shared Metro/API services for their owner.
+- pressKey: HOME

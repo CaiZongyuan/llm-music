@@ -1,0 +1,158 @@
+﻿<#
+.SYNOPSIS
+Run the formal mobile journey against an explicitly isolated, already-paired Fake API.
+.DESCRIPTION
+Preparation only: this entrypoint has not yet been executed on Android. M6 remains
+blocked by actual M4/M5 integration. Root owns final source/binary execution.
+Start the isolated Fake API and the intended Metro/build yourself. Pair the selected
+installed app to PairedApiUrl first; this runner never handles PINs or reads credentials.
+API readiness, identity and the visible paired address are checked before UI writes.
+The bootstrap entrypoint scripts/test-mobile.ps1 remains separate.
+.EXAMPLE
+./scripts/test-mobile-workflow.ps1 -Device emulator-5562 -AppId host.exp.exponent `
+  -ExpoUrl exp://127.0.0.1:18084 -FakeApiUrl http://127.0.0.1:18700 `
+  -PairedApiUrl http://192.168.1.8:18701 -ExpectedServerId '<isolated-server-UUID>' -Paired -Isolated
+.EXAMPLE
+./scripts/test-mobile-workflow.ps1 -AppMode Apk -Device '<serial>' -AppId '<installed-package>' `
+  -FakeApiUrl http://127.0.0.1:18700 -PairedApiUrl http://192.168.1.8:18701 `
+  -ExpectedServerId '<isolated-server-UUID>' -Paired -Isolated -CheckBackground
+.NOTES
+Creates a new Project/Job/Version in the selected Fake namespace; it does not delete
+data or stop shared services. UI play/pause/button seek is separate from audio bytes,
+decoder, slider drag, GPU and APK configuration evidence. Artifacts are retained under
+.scratch/mobile-workflow/. This runner reuses the existing SDK ADB / Metro / Maestro
+checks and JUnit arguments, without running the bootstrap flow.
+#>
+param(
+    [ValidateSet('Go', 'Apk')][string]$AppMode = 'Go',
+    [ValidatePattern('^[A-Za-z0-9_.:-]+$')][string]$Device,
+    [string]$AppId,
+    [string]$ExpoUrl,
+    [string]$FakeApiUrl,
+    [string]$PairedApiUrl,
+    [string]$ExpectedServerId,
+    [switch]$Paired,
+    [switch]$Isolated,
+    [switch]$CheckBackground,
+    [string]$MaestroPath
+)
+
+$ErrorActionPreference = 'Stop'
+foreach ($mobileRequired in @('Device', 'AppId', 'FakeApiUrl', 'PairedApiUrl', 'ExpectedServerId')) {
+    if (-not (Get-Variable -Name $mobileRequired -ValueOnly)) { throw "Specify -$mobileRequired explicitly; no target is inferred." }
+}
+if (-not $Paired -or -not $Isolated) { throw 'Pair this installed app with the isolated Fake namespace first, then supply -Paired -Isolated.' }
+if ($AppId -notmatch '^[A-Za-z][A-Za-z0-9_]*(\.[A-Za-z][A-Za-z0-9_]*)+$') { throw 'AppId must be the installed Android package.' }
+$mobileServerId = [guid]::Empty
+if (-not [guid]::TryParse($ExpectedServerId, [ref]$mobileServerId) -or $mobileServerId -eq [guid]::Empty) { throw 'ExpectedServerId must be the isolated namespace UUID.' }
+
+function MobileBaseUri([string]$Value) {
+    $mobileParsed = $null
+    if (-not [uri]::TryCreate($Value, [UriKind]::Absolute, [ref]$mobileParsed) -or $mobileParsed.Scheme -ne 'http' -or
+        $mobileParsed.UserInfo -or $mobileParsed.Query -or $mobileParsed.Fragment -or $mobileParsed.AbsolutePath -ne '/' -or $mobileParsed.Port -eq 8188) {
+        throw 'API URLs must be explicit HTTP base addresses, without credentials, query, path or Runtime8188.'
+    }
+    return $mobileParsed
+}
+$mobileFake = MobileBaseUri $FakeApiUrl
+$mobilePaired = MobileBaseUri $PairedApiUrl
+if ($mobileFake.Host -notin @('127.0.0.1', 'localhost', '[::1]')) { throw 'FakeApiUrl must be the isolated API owner loopback listener.' }
+$mobileLanIp = $null
+if (-not [Net.IPAddress]::TryParse($mobilePaired.Host, [ref]$mobileLanIp) -or $mobileLanIp.AddressFamily -ne [Net.Sockets.AddressFamily]::InterNetwork -or
+    [Net.IPAddress]::IsLoopback($mobileLanIp) -or $mobileLanIp.Equals([Net.IPAddress]::Any)) { throw 'PairedApiUrl must be the selected LAN IPv4 address saved by the phone.' }
+$mobilePairedAddress = $PairedApiUrl.TrimEnd('/')
+$mobilePairedPattern = [regex]::Escape($mobilePairedAddress)
+
+$mobileMetro = $null
+if ($AppMode -eq 'Go') {
+    if ($AppId -ne 'host.exp.exponent' -or -not [uri]::TryCreate($ExpoUrl, [UriKind]::Absolute, [ref]$mobileMetro) -or
+        $mobileMetro.Scheme -ne 'exp' -or $mobileMetro.Port -lt 1 -or $mobileMetro.UserInfo -or $mobileMetro.Query -or
+        $mobileMetro.Fragment -or $mobileMetro.AbsolutePath -ne '/') { throw 'Go requires host.exp.exponent and an explicit root ExpoUrl with its Metro port.' }
+    $mobileConnectUrl = $ExpoUrl.TrimEnd('/') + '/--/connect'
+} else {
+    if ($AppId -eq 'host.exp.exponent' -or $ExpoUrl) { throw 'Apk requires its own installed AppId and no ExpoUrl.' }
+    $mobileConnectUrl = 'unused-for-apk'
+}
+
+$mobileRepo = Split-Path -Parent $PSScriptRoot
+$mobileFlow = Join-Path $mobileRepo 'apps\mobile\.maestro\workflow.yaml'
+$mobileRunId = (Get-Date -Format 'yyyyMMdd-HHmmss-fff') + '-' + [guid]::NewGuid().ToString('N').Substring(0, 8)
+$mobileRun = Join-Path $mobileRepo ('.scratch\mobile-workflow\maestro-' + $mobileRunId)
+New-Item -ItemType Directory -Path $mobileRun -Force | Out-Null
+$mobileReceipt = [ordered]@{ startedAt = [DateTimeOffset]::UtcNow.ToString('o'); status = 'preflight'; appMode = $AppMode; appId = $AppId;
+    device = $Device; fakeApiUrl = $mobileFake.AbsoluteUri; pairedApiUrl = $mobilePairedAddress; serverId = $mobileServerId.ToString();
+    runnerCheckout = (& git -C $mobileRepo rev-parse HEAD); flowSha256 = (Get-FileHash -LiteralPath $mobileFlow -Algorithm SHA256).Hash.ToLowerInvariant();
+    runnerSha256 = (Get-FileHash -LiteralPath $PSCommandPath -Algorithm SHA256).Hash.ToLowerInvariant();
+    projectName = "手机验证 $mobileRunId"; versionName = "雨后 · 手机验证 $mobileRunId"; checkBackground = [bool]$CheckBackground;
+    maestroStarted = $false; terminalExit = $false; exitCode = $null; coverage = 'UI journey only; native audio/binary/drag/GPU evidence remain separate' }
+$mobileEnvironment = @{}
+foreach ($mobileKey in @('JAVA_OPTS', 'MAESTRO_CLI_NO_ANALYTICS', 'MAESTRO_CLI_ANALYSIS_NOTIFICATION_DISABLED')) {
+    $mobileEnvironment[$mobileKey] = [Environment]::GetEnvironmentVariable($mobileKey, 'Process')
+}
+$mobileConsoleEncoding = [Console]::OutputEncoding
+$mobileOutputEncoding = $OutputEncoding
+$mobileExit = 1
+try {
+    $mobileHealth = Invoke-RestMethod -Uri ($mobileFake.AbsoluteUri + 'health') -TimeoutSec 10 -MaximumRedirection 0
+    if ($mobileHealth.runtime.mode -ne 'fake' -or $mobileHealth.backend.status -ne 'ready' -or $mobileHealth.runtime.ready -ne $true -or
+        $mobileHealth.runtime.observation.freshness -ne 'fresh') { throw 'The selected API is not a ready CPU Fake Runtime; no device action was started.' }
+    $mobileCapabilities = Invoke-RestMethod -Uri ($mobileFake.AbsoluteUri + 'runtime/capabilities') -TimeoutSec 10 -MaximumRedirection 0
+    if ($mobileCapabilities.mode -ne 'fake' -or -not @($mobileCapabilities.capabilities | Where-Object { $_.operation -eq 'Generate' -and $_.ready -eq $true -and $_.observation.freshness -eq 'fresh' }).Count) {
+        throw 'The isolated Fake Generate capability is not ready; no device action was started.'
+    }
+    foreach ($mobileTarget in @($mobileFake, $mobilePaired)) {
+        $mobileConnection = Invoke-RestMethod -Uri ($mobileTarget.AbsoluteUri + 'connection') -TimeoutSec 10 -MaximumRedirection 0
+        if ($mobileConnection.server_id -ne $mobileServerId.ToString() -or $mobileConnection.protocol_version -ne 1) { throw 'The requested API listeners do not match the explicit isolated server identity.' }
+    }
+    $mobileSdk = if ($env:ANDROID_HOME) { $env:ANDROID_HOME } else { Join-Path $env:LOCALAPPDATA 'Android\Sdk' }
+    $mobileAdb = Join-Path $mobileSdk 'platform-tools\adb.exe'
+    if (-not (Test-Path -LiteralPath $mobileAdb -PathType Leaf)) { throw 'Android SDK adb.exe was not found. Set ANDROID_HOME to your SDK.' }
+    if (-not $MaestroPath) { $MaestroPath = Join-Path $env:USERPROFILE '.maestro\bin\maestro.bat' }
+    if (-not (Test-Path -LiteralPath $MaestroPath -PathType Leaf) -or [IO.Path]::GetExtension($MaestroPath).ToLowerInvariant() -notin @('.bat', '.cmd', '.exe')) {
+        throw 'Maestro was not found. Supply its Windows CLI .bat/.cmd/.exe launcher.'
+    }
+    $mobileState = & $mobileAdb -s $Device get-state
+    if ($LASTEXITCODE -ne 0 -or $mobileState.Trim() -ne 'device') { throw "Android device $Device is not ready." }
+    $mobilePackage = & $mobileAdb -s $Device shell pm path $AppId
+    if ($LASTEXITCODE -ne 0 -or -not ($mobilePackage -match '^package:')) { throw 'The selected app package is not installed.' }
+    $mobileReceipt.binary = @(& $mobileAdb -s $Device shell dumpsys package $AppId | Select-String 'versionName=|versionCode=') | ForEach-Object { $_.ToString().Trim() }
+    if ($LASTEXITCODE -ne 0) { throw 'Could not read the installed app version.' }
+    if ($mobileMetro) {
+        $mobilePackager = Invoke-WebRequest -UseBasicParsing -Uri "http://$($mobileMetro.Host):$($mobileMetro.Port)/status" -TimeoutSec 10 -MaximumRedirection 0
+        if ($mobilePackager.Content -ne 'packager-status:running') { throw 'The target Metro server is not ready.' }
+        if ($mobileMetro.Host -in @('127.0.0.1', 'localhost')) {
+            & $mobileAdb -s $Device reverse "tcp:$($mobileMetro.Port)" "tcp:$($mobileMetro.Port)"
+            if ($LASTEXITCODE -ne 0) { throw 'Could not forward Metro to the selected Android device.' }
+        }
+    }
+    $env:JAVA_OPTS = ($mobileEnvironment.JAVA_OPTS + ' -Dfile.encoding=UTF-8').Trim()
+    $env:MAESTRO_CLI_NO_ANALYTICS = '1'
+    $env:MAESTRO_CLI_ANALYSIS_NOTIFICATION_DISABLED = 'true'
+    [Console]::OutputEncoding = New-Object System.Text.UTF8Encoding($false)
+    $OutputEncoding = [Console]::OutputEncoding
+    $mobileReceipt.status = 'running'; $mobileReceipt.maestroStarted = $true
+    $mobileReceipt | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath (Join-Path $mobileRun 'receipt.json') -Encoding UTF8
+    $ErrorActionPreference = 'Continue'
+    & $MaestroPath --device $Device test $mobileFlow --env "APP_ID=$AppId" --env "APP_MODE=$AppMode" --env "CONNECT_URL=$mobileConnectUrl" `
+        --env "PAIRED_API_PATTERN=$mobilePairedPattern" --env "PROJECT_NAME=$($mobileReceipt.projectName)" --env "VERSION_NAME=$($mobileReceipt.versionName)" `
+        --env "CHECK_BACKGROUND=$($CheckBackground.IsPresent.ToString().ToLowerInvariant())" --test-output-dir $mobileRun --format JUNIT `
+        --output (Join-Path $mobileRun 'junit.xml') --no-ansi 2>&1 | Tee-Object -FilePath (Join-Path $mobileRun 'maestro.log')
+    $mobileExit = $LASTEXITCODE; $ErrorActionPreference = 'Stop'
+    $mobileReceipt.terminalExit = $true; $mobileReceipt.exitCode = $mobileExit
+    if ($mobileExit -ne 0) { throw "Maestro ended with exit $mobileExit; inspect retained artifacts." }
+    [xml]$mobileJunit = Get-Content -Raw -Encoding UTF8 -LiteralPath (Join-Path $mobileRun 'junit.xml')
+    if (-not $mobileJunit.SelectNodes('//*[local-name()="testcase"]').Count -or $mobileJunit.SelectNodes('//*[local-name()="failure" or local-name()="error"]').Count) { throw 'JUnit did not record a passing executed test.' }
+    $mobileReceipt.status = 'passed'
+} catch {
+    $mobileReceipt.status = 'failed'; $mobileReceipt.error = $_.Exception.Message; $mobileExit = 1
+    Write-Error -Message $_.Exception.Message -ErrorAction Continue
+} finally {
+    $ErrorActionPreference = 'Stop'
+    foreach ($mobileKey in $mobileEnvironment.Keys) { [Environment]::SetEnvironmentVariable($mobileKey, $mobileEnvironment[$mobileKey], 'Process') }
+    [Console]::OutputEncoding = $mobileConsoleEncoding; $OutputEncoding = $mobileOutputEncoding
+    if ($mobileReceipt.status -eq 'running' -and -not $mobileReceipt.terminalExit) { $mobileReceipt.status = 'interrupted' }
+    $mobileReceipt.endedAt = [DateTimeOffset]::UtcNow.ToString('o')
+    $mobileReceipt | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath (Join-Path $mobileRun 'receipt.json') -Encoding UTF8
+    Write-Host "Workflow artifacts: $mobileRun"
+}
+exit $mobileExit
