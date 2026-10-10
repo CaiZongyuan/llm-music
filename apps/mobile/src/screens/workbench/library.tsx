@@ -27,6 +27,7 @@ export function ProjectLibraryScreen() {
   const ready = state.connection === 'connected' && state.storage === 'ready' && state.foreground;
   return <><Stack.Screen options={{ title: '声间 · 我的项目' }} />
     <FlatList contentInsetAdjustmentBehavior="automatic" keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag"
+      removeClippedSubviews={false}
       style={{ backgroundColor: colors.background }} data={query.data ?? []} keyExtractor={project => project.id}
       contentContainerStyle={{ maxWidth: layout.maxContentWidth, width: '100%', alignSelf: 'center', padding: spacing.medium,
         paddingBottom: insets.bottom + spacing.large, gap: spacing.large }}
