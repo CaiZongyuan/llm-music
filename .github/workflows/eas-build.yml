@@ -1,0 +1,125 @@
+# Android adapter for @react-native-feel/deploy 0.3.0's dispatch protocol.
+# The APK remains a preview build; publication uses the verified artifact later.
+name: Mobile Android APK
+
+run-name: >-
+  ${{ inputs.platform || 'android' }} ${{ inputs.profile || 'configuration' }} build
+  [eas:dispatch_id=${{ inputs.dispatch_id }};platform=${{ inputs.platform }};profile=${{ inputs.profile }};distribution=${{ fromJSON(inputs.config_json || '{}').distribution }};simulator=${{ fromJSON(inputs.config_json || '{}').simulator }}]
+
+on:
+  push:
+    branches: [mobile/android-delivery]
+    paths: [.github/workflows/eas-build.yml, apps/mobile/eas.json]
+  workflow_dispatch:
+    inputs:
+      dispatch_id:
+        description: React Native Deploy build correlation ID
+        required: true
+      platform:
+        description: android
+        required: true
+        default: android
+      profile:
+        description: preview
+        required: true
+        default: preview
+      runner:
+        description: ubuntu-latest
+        required: true
+        default: ubuntu-latest
+      config_json:
+        description: Resolved React Native Deploy build plan
+        required: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mobile-apk-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  configuration:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: Check preview profile
+        run: python3 -c "import json; p=json.load(open('apps/mobile/eas.json'))['build']['preview']; assert p['pnpm']=='11.22.0' and p['distribution']=='internal' and p['android']['buildType']=='apk' and p['android']['withoutCredentials'] is True"
+
+  build:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      CI: '1'
+      CMAKE_BUILD_PARALLEL_LEVEL: '2'
+    steps:
+      - name: Validate preview request
+        shell: bash
+        env:
+          BUILD_PLAN: ${{ inputs.config_json }}
+          BUILD_PLATFORM: ${{ inputs.platform }}
+          BUILD_PROFILE: ${{ inputs.profile }}
+          BUILD_RUNNER: ${{ inputs.runner }}
+        run: |
+          python3 - <<'PY'
+          import json, os
+          plan = json.loads(os.environ['BUILD_PLAN'])
+          assert (os.environ['BUILD_PLATFORM'], os.environ['BUILD_PROFILE'], os.environ['BUILD_RUNNER']) == ('android', 'preview', 'ubuntu-latest')
+          assert plan['package_manager'] == 'pnpm' and plan['node_version'] == '24.18.0'
+          assert plan['distribution'] == 'internal' and plan['gradle_command'] == ':app:assembleRelease'
+          assert plan['android_package'] == 'com.shengjian.mobile'
+          assert not plan.get('prebuild_command') and json.loads(plan.get('env_json') or '{}') == {}
+          PY
+      - name: Checkout dispatched source
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+          fetch-depth: 0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '24.18.0'
+      - uses: pnpm/action-setup@f40ffcd9367d9f12939873eb1018b921a783ffaa # v4
+        with:
+          version: '11.22.0'
+      - name: Install locked workspace and shared client
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm --filter @llm-music/api-client build
+      - uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3 # v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@be39fa834029ff78f1a44aa3bb0819b8fc2bd8fd # v4
+      - name: Generate native Android configuration
+        run: pnpm --filter @llm-music/mobile exec expo prebuild --platform android --no-install
+      - name: Build standalone preview APK
+        working-directory: apps/mobile/android
+        env:
+          NODE_ENV: production
+        run: ./gradlew :app:assembleRelease -PreactNativeArchitectures=arm64-v8a,x86_64 --max-workers=2 --no-daemon
+      - name: Record APK and source
+        shell: bash
+        run: |
+          mkdir -p build
+          cp apps/mobile/android/app/build/outputs/apk/release/app-release.apk build/shengjian-mobile-preview.apk
+          test -s build/shengjian-mobile-preview.apk
+          (cd build && sha256sum shengjian-mobile-preview.apk > SHA256SUMS.txt)
+          python3 - <<'PY'
+          import json, os, subprocess
+          from pathlib import Path
+          source = subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip()
+          assert source == os.environ['GITHUB_SHA']
+          Path('build/source.json').write_text(json.dumps({'source':source, 'run':os.environ['GITHUB_RUN_ID'], 'profile':'preview', 'signing':'Expo generated debug key; internal APK', 'node':'24.18.0', 'pnpm':'11.22.0', 'producer':'GitHub Actions / React Native Deploy dispatch'}, indent=2) + '\n')
+          PY
+      - name: Upload application archive
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: application-archive
+          path: build/*
+          if-no-files-found: error
+          retention-days: 90
