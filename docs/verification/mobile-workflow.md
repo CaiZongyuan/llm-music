@@ -107,4 +107,6 @@ Root 后续在 Server B 的实际 Project 点击填入示例/生成时得到 `Ex
 
 以上日志和收据在 Root 主工作区 `.scratch/mobile-implementation/`，只读来源未导出设备token或owner CSRF。Source67 Field的67/67、实时意图66/66独立 hash复核与 changed-scope Standards/Spec均0未解决源码项；实际compiler产物由非作者逐字复核，公开M3投影视图阶段/稳定snapshot/跨SID probe也通过。源码结论不替代原生或最终CI。
 
-**当前仍待独立验收：** Source67最后整段公开正常旅程及该最终提交的CI/合并回读。正常runner首轮preflight因PS5 Byte[]/缺ContentType对/status误判而停止，Maestro未启动、POST0。随后runner5392启动的Maestro在command24对新空歌词执行eraseText10000超过120秒而exit1，尚无Generate；Root已定位为runner操作预算并由其作者修正。这两次失败分别保留，不改Field67产品源，也未计为整段正常旅程通过。物理 Android、项目自身独立APK配置/安装运行和真实GPU闭环继续属于M6，未在本M4候选声称完成。
+**历史候选阶段的待验状态：** 当时 Source67最后整段公开正常旅程及最终CI/合并回读尚未完成。正常runner首轮preflight因PS5 Byte[]/缺ContentType对/status误判而停止，Maestro未启动、POST0。随后runner5392在command24对新空歌词执行eraseText10000超过120秒而exit1，尚无Generate；Root已定位为runner操作预算并修正。这两次失败继续保留，不改Field67产品源，也未计为整段正常旅程通过。
+
+**2026-10-11 后续回读：** 最终产品候选 `4da443926efe6744a3fe21ecb500e1f5d91d6f63` 保持67项已审查内容。公开 Go 正常旅程及持久对象回读通过，最终适用CI全部通过，[PR #110](https://github.com/CaiZongyuan/llm-music/pull/110) 实际合并为 `a842aedd84220957dd03d0562bc25234c7229d95`，#103/#104 已关闭。独立APK、真实GPU和物理Android继续按M6分别记录，实际进展见 [Android交付核验](mobile-android-delivery.md)；不能将M4完成视为物理设备已验收。
