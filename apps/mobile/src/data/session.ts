@@ -1,7 +1,7 @@
 import { createMusicClient, jobEventsUrl, type components, type ErrorResponse, type JobRead } from '@llm-music/api-client';
-import { emptyDocument, freeze, parseDocument, parseIntentInput, scopedKey, uuidPattern as uuid,
-  type CreationDraft, type IntentInput, type LocalDocument, type PendingIntent, type ServerRecord } from './local-state.ts';
-export type { CreationDraft, IntentInput, LocalDocument, PendingIntent, ServerRecord } from './local-state.ts';
+import { emptyDocument, freeze, parseDocument, parseIntentInput, scopedKey, titleDraftKey, uuidPattern as uuid,
+  type CreationDraft, type IntentInput, type LocalDocument, type PendingIntent, type ServerRecord, type TitleTarget } from './local-state.ts';
+export type { CreationDraft, IntentInput, LocalDocument, PendingIntent, ServerRecord, TitleTarget } from './local-state.ts';
 
 type PairingClaim = components['schemas']['PairingClaim'];
 type DeviceConnectionRead = components['schemas']['DeviceConnectionRead'];
@@ -266,6 +266,23 @@ export function createMobileSession(options: SessionOptions) {
       maxSeconds: typeof changes.maxSeconds === 'string' ? changes.maxSeconds : previous.maxSeconds,
     });
     document = { ...document, drafts: { ...document.drafts, [key]: next } };
+    publish({});
+    await persist();
+  }
+
+  function titleKey(target: TitleTarget) {
+    if (!snapshot.hydrated || !snapshot.server) throw new MobileFailure('draft_unavailable');
+    try { return titleDraftKey(snapshot.server.serverId, target); }
+    catch { throw new MobileFailure('draft_unavailable'); }
+  }
+  function getTitleDraft(target: TitleTarget): string {
+    const key = titleKey(target);
+    return document.titles?.[key] ?? '';
+  }
+  async function updateTitleDraft(target: TitleTarget, value: string) {
+    const key = titleKey(target);
+    if (typeof value !== 'string') throw new MobileFailure('draft_unavailable');
+    document = { ...document, titles: { ...document.titles, [key]: value } };
     publish({});
     await persist();
   }
@@ -559,7 +576,7 @@ export function createMobileSession(options: SessionOptions) {
   }
 
   return {
-    hydrate, pair, verify, switchServer, retryStorage, setForeground, watchJob, authorizeMedia, getDraft, updateDraft,
+    hydrate, pair, verify, switchServer, retryStorage, setForeground, watchJob, authorizeMedia, getDraft, updateDraft, getTitleDraft, updateTitleDraft,
     getProjects, getProject, getJobs, getJob, getCandidates, getCandidate, getVersions, getVersion, getAsset, cancelJob,
     prepareIntent, prepareGenerate, submitIntent, recoverIntent, listIntents,
     getServers: () => freeze(Object.values(document.servers)),
