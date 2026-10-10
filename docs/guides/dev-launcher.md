@@ -26,6 +26,8 @@
 
 `device_id` 标识一次设备授权记录。撤销后明确重新配对，要生成新的 UUID 和 token；初次 claim 响应未知时则保留并重放原 UUID、token、名称和配对码，不能把未知请求换成另一份授权。
 
+局域网新建 Project、Generate 与明确 retry 还需要持久 UUID `Idempotency-Key`；响应未知时查询原请求，不能自动新建另一份任务。见[请求恢复规则](generate-save-api.md#request-recovery)。
+
 ## 数据、复用与停止 {#ownership}
 
 Fake 应用数据默认位于 `data/dev/fake/application/`；真实模式位于 `data/dev/comfyui/application/`。使用 `--data-dir PATH` 指定持久数据目录。删除该目录会丢失相应 Project、Asset 和 Version；停止服务不会删除数据。
