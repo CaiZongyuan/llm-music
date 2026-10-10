@@ -165,6 +165,10 @@ name: Paired isolated Fake API creation and explicit Version save
           id: playback-.*
           text: '播放中.*'
       - takeScreenshot: workflow-foreground-no-autoplay
+      - scrollUntilVisible:
+          element:
+            id: play-.*
+          direction: DOWN
       - tapOn:
           id: play-.*
           waitToSettleTimeoutMs: 300
