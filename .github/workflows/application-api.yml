@@ -25,8 +25,8 @@ permissions:
 jobs:
   api:
     runs-on: windows-latest
-    # A cold locked install took 5m53s; leave room for the existing full CPU suite.
-    timeout-minutes: 15
+    # Cold install took 5m53s; the expanded 245-case CPU suite took 10m57s locally.
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
