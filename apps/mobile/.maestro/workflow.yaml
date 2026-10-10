@@ -73,10 +73,10 @@ name: Paired isolated Fake API creation and explicit Version save
     把没说的话唱成明天
 - hideKeyboard
 - assertVisible: |-
-    [Verse]
+    \[Verse\]
     末班车穿过雨后的街
     霓虹在车窗慢慢重叠
-    [Chorus]
+    \[Chorus\]
     把没说的话唱成明天
 - takeScreenshot: workflow-chinese-multiline
 - scrollUntilVisible:

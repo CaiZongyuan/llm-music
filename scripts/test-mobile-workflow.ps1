@@ -130,18 +130,23 @@ try {
     $env:MAESTRO_CLI_ANALYSIS_NOTIFICATION_DISABLED = 'true'
     [Console]::OutputEncoding = New-Object System.Text.UTF8Encoding($false)
     $OutputEncoding = [Console]::OutputEncoding
-    $mobileReceipt.status = 'running'; $mobileReceipt.maestroStarted = $true
-    $mobileReceipt | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath (Join-Path $mobileRun 'receipt.json') -Encoding UTF8
-    $ErrorActionPreference = 'Continue'
-    & $MaestroPath --device $Device test $mobileFlow --env "APP_ID=$AppId" --env "APP_MODE=$AppMode" --env "CONNECT_URL=$mobileConnectUrl" `
-        --env "PAIRED_API_PATTERN=$mobilePairedPattern" --env "PROJECT_NAME=$($mobileReceipt.projectName)" --env "VERSION_NAME=$($mobileReceipt.versionName)" `
-        --env "CHECK_BACKGROUND=$($CheckBackground.IsPresent.ToString().ToLowerInvariant())" --test-output-dir $mobileRun --format JUNIT `
-        --output (Join-Path $mobileRun 'junit.xml') --no-ansi 2>&1 | Tee-Object -FilePath (Join-Path $mobileRun 'maestro.log')
-    $mobileExit = $LASTEXITCODE; $ErrorActionPreference = 'Stop'
+    $mobileLogWriter = [IO.StreamWriter]::new((Join-Path $mobileRun 'console.log'), $false, [Text.UTF8Encoding]::new($false))
+    try {
+        $mobileReceipt.status = 'running'; $mobileReceipt.maestroStarted = $true
+        $mobileReceipt | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath (Join-Path $mobileRun 'receipt.json') -Encoding UTF8
+        $ErrorActionPreference = 'Continue'
+        & $MaestroPath --device $Device test $mobileFlow --env "APP_ID=$AppId" --env "APP_MODE=$AppMode" --env "CONNECT_URL=$mobileConnectUrl" `
+            --env "PAIRED_API_PATTERN=$mobilePairedPattern" --env "PROJECT_NAME=$($mobileReceipt.projectName)" --env "VERSION_NAME=$($mobileReceipt.versionName)" `
+            --env "CHECK_BACKGROUND=$($CheckBackground.IsPresent.ToString().ToLowerInvariant())" --test-output-dir $mobileRun --format JUNIT `
+            --output (Join-Path $mobileRun 'junit.xml') --no-ansi 2>&1 | ForEach-Object {
+                $mobileLogWriter.WriteLine($_.ToString()); Write-Host ($_.ToString())
+            }
+        $mobileExit = $LASTEXITCODE
+    } finally { $mobileLogWriter.Dispose(); $ErrorActionPreference = 'Stop' }
     $mobileReceipt.terminalExit = $true; $mobileReceipt.exitCode = $mobileExit
     if ($mobileExit -ne 0) { throw "Maestro ended with exit $mobileExit; inspect retained artifacts." }
     [xml]$mobileJunit = Get-Content -Raw -Encoding UTF8 -LiteralPath (Join-Path $mobileRun 'junit.xml')
-    if (-not $mobileJunit.SelectNodes('//*[local-name()="testcase"]').Count -or $mobileJunit.SelectNodes('//*[local-name()="failure" or local-name()="error"]').Count) { throw 'JUnit did not record a passing executed test.' }
+    if (-not $mobileJunit.SelectNodes('//*[local-name()="testcase" and not(*[local-name()="skipped"])]').Count -or $mobileJunit.SelectNodes('//*[local-name()="failure" or local-name()="error"]').Count) { throw 'JUnit did not record a passing executed test.' }
     $mobileReceipt.status = 'passed'
 } catch {
     $mobileReceipt.status = 'failed'; $mobileReceipt.error = $_.Exception.Message; $mobileExit = 1
