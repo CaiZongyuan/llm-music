@@ -4,7 +4,7 @@
 
 已确认范围来自 [移动端访谈](mobile-interview.md)、[生产规划](../production.md)、[ADR-005](../adr/0005-mobile-companion-scope.md)、[ADR-006](../adr/0006-mobile-lan-pairing.md) 和 [领域定义](../../GLOSSARY.md)：Android 便携客户端、局域网手工配对、前台试听、手机保留 Creation Draft、后端继续生成、返回时恢复 Job、明确保存 Candidate 为 Version。保留 Web；iOS 的开发连接成功不扩大正式验收范围。
 
-核查基线：`1ce3268577c4fc25f533b5f01993b608bf5cf267`，同时读取当前工作树的实际消费者。工作树有大量既有 Web 改动，本草案没有修改这些文件。以下“现状”均为源码检查结果；“建议”是待实现选择，不表示接口已可用。
+核查基线：`1ce3268577c4fc25f533b5f01993b608bf5cf267`，同时读取当时工作树的实际消费者。本草案没有修改既有 Web 改动。表格保留核查基线的历史缺口；2026-10-10 M5 收口时已更新音频行及原生音频段，采用受控下载方案，M1 的 HEAD/设备授权也已落到源码。其余早期“建议”保留提案语境，完成状态以实施票据和独立验证记录为准。
 
 ## 已有闭环与真实缺口
 
@@ -18,7 +18,7 @@
 | 明确重试 | `POST /projects/{project_id}/jobs/{job_id}/retry` | 只允许 failed/cancelled 且原 Runtime 尝试已安全终止；成功产生新 Job，`provenance.retry_of_job_id` 指向原任务，不覆盖原输入/结果 |
 | 实时观察 | `WS /projects/{project_id}/jobs/{job_id}/events` | `job.updated` 含完整 `JobRead`；首次发送持久快照；完成后关闭；当前没有鉴权 |
 | 查看候选结果 | `GET /projects/{project_id}/candidates`、`GET /projects/{project_id}/candidates/{candidate_id}` | 完成的生成通过 `JobRead.result.candidate_id` 找到 Candidate；完成不自动创建 Version |
-| 前台音频试听 | `GET /projects/{project_id}/assets/{asset_id}` 及 `/content` | 元数据及原始 FLAC；当前 content 使用 `FileResponse`，只有 GET 路由，没有 HEAD 路由，也没有设备鉴权 |
+| 前台音频试听 | `GET /projects/{project_id}/assets/{asset_id}` 及 content 的 `GET`/`HEAD` | 最初基线只有 GET、无设备鉴权；M1 已注册同权限 HEAD，并对 LAN 元数据、GET/HEAD/Range 校验设备授权。M5 受控下载原始 FLAC 到临时缓存后本地播放；当前实现与实际验证边界见 [音频核验](../verification/mobile-audio.md) |
 | 命名保存、版本历史 | `POST /projects/{project_id}/versions`、对应列表/详情 GET | 已按 candidate_id 保证同一 Candidate 一次保存；相同 name/parent 重发返回原 Version（200），不同意图返回 409 |
 
 来源：[HTTP 注册](../../services/api/src/music_api/main.py)、[生成注册](../../services/api/src/music_api/generation.py)、[JobService](../../services/api/src/music_api/jobs.py)、[WS](../../services/api/src/music_api/event_routes.py)、[候选/版本接口](../../services/api/src/music_api/version_routes.py)、[保存事务](../../services/api/src/music_api/versions.py)。移动首版不新增转谱、Cover、乐谱编辑、上传或分享流程。
@@ -61,7 +61,7 @@
 
 设备表、短码摘要/期限/尝试次数、稳定 server_id 使用现有 SQLite/Alembic 所有权。device_id 和显示名称不是身份凭据；不引入用户账号、权限角色或第二套 Project/Job 数据。移除/丢失 SecureStore 时重新配对，电脑可撤销旧设备；不把卸载 Go/APK 当成可靠的服务端撤销机制。凭据不写入 URL、二维码、日志、分析事件或一般草稿存储。
 
-撤销后新 HTTP/Asset 请求返回 401，活动 WS 关闭并停止推送；下次 Range/重连也重新鉴权。撤销设备不会取消已经由后端拥有的生成 Job。已经传送到手机的音频字节无法由服务端收回，不能承诺远程抹除本地缓存；手机观察到授权失效后暂停播放器并清理活动 handle，保留创作草稿。
+撤销后新 HTTP/Asset 请求返回 401，活动 WS 关闭并停止推送；下次 Range/重连也重新鉴权。撤销设备不会取消已经由后端拥有的生成 Job。已经传送到手机的音频字节无法由服务端收回，不能承诺远程抹除本地缓存；手机观察到授权失效后保存合理位置、暂停并解除注册/释放播放器，删除本会话临时文件及残片，保留创作草稿。M5 每次播放/seek 前复核授权，活动前台缓存定期复核，不能把没有新媒体 GET 当成持续授权。
 
 SDK 57 的 [Crypto](https://docs.expo.dev/versions/v57.0.0/sdk/crypto/) 和 [SecureStore](https://docs.expo.dev/versions/v57.0.0/sdk/securestore/) 包含于 Go，均为待接入依赖。上述 HTTP LAN 基线提供设备授权，不提供传输加密；首版仅在已确认的受信局域网显式启用，公网/TLS 部署另行规划。独立 Android APK 还须验证实际 cleartext/network security 配置，不能从 Go 的 LAN 成功推导为正式二进制已通过。
 
@@ -81,11 +81,13 @@ Version 沿用现有 candidate_id 幂等规则，不再引入第二个保存键�
 
 RN 0.86.3 的 WebSocket 实现支持第三参数 `options.headers`，可在 LAN handshake 发送 Authorization，不需要永久 token query。WS 在查询/订阅 Job 之前鉴权；活动连接需关联 device_id，撤销时关闭。App 进入后台时释放观察连接、暂停首版前台播放器；返回前台先 HTTP 读取原 Job，再重连。连接消息与 sequence 只用于实时观察，不作为唯一数据库或永久 replay cursor。切换电脑时清理连接与 server-scoped Query cache，草稿和 pending intent 按 server_id/project_id 隔离。
 
-`expo-audio@57.0.5` 的 `AudioSource.headers` 可给远程 uri 发送 Authorization；Android 源码将它设置到 `OkHttpDataSource`，iOS 使用 `AVURLAsset` HTTP headers。音频 URL 直接指向受保护 Asset content，不重定向到其他 origin，不把长期 token 改为 query。token/设备变化时重新创建 source，拒绝继续复用带旧授权的 player。
+原提案曾考虑 `expo-audio@57.0.5` 的 `AudioSource.headers` 远程 source。SDK57 AndroidAudioSource 没有禁止重定向的 JS 设置，且关闭后台模式仍会恢复保持注册的 player，因此 M5 已改为受控下载。`expo/fetch` 使用 M3 当前授权 lease 的 Request，并在实际调用的第二参数显式传入 `{ redirect: 'error' }`；原生 RN Request 不保留该属性，单靠 Request init 不足以拒绝重定向。永久 token 只在 Authorization header，不进入 URL。
 
-现有锁定 Starlette 1.7.0 `FileResponse` 已支持 `Accept-Ranges: bytes`、单/多 Range 的 206、越界 416、ETag/If-Range；但 FastAPI content 只注册 GET。建议增同一权限策略的 HEAD，保留完整 GET 的 200/MIME/字节内容与现有路径所有权检查，补充 OpenAPI 的 206/416。每一次 GET、HEAD 和 Range 请求都先鉴权；未授权请求不发送音频字节。真实 48kHz、双声道、16bit FLAC 的解码/seek、请求 header、加载失败和撤销后再 seek 都要用设备验证，不能由 HTTP 或 Maestro UI 通过替代。
+响应 body 按 chunk 写入当前授权会话的临时 FileSystem 缓存，校验 Asset identity、size/SHA256、FLAC MIME/signature 和 48kHz 双声道 PCM16 profile 后，`expo-audio` 仅接收本地 `file://` URI。没有 downloadFirst、远程回退、MP3 替代或离线音乐库。每次 play/seek 再复核 `authorizeMedia()`，前台有活动缓存时定期复核，不用会推进 epoch 的 `verify()` 代替。后台、断连、撤销、电脑/设备/epoch 变化保存实际位置、pause → remove SDK registration → release，删除完整文件和下载残片；前台返回后等待用户明确继续。启动清理本缓存命名空间的崩溃残留；删除失败保留清理责任并报告错误。
 
-来源：[RN 0.86.3 WS 实现](https://github.com/facebook/react-native/blob/v0.86.3/packages/react-native/Libraries/WebSocket/WebSocket.js)、[SDK 57 AudioSource](https://docs.expo.dev/versions/v57.0.0/sdk/audio/#audiosource)、[固定音频 Android 源码](https://github.com/expo/expo/blob/9e5319c0f821a27b7924841903abae50e2b41790/packages/expo-audio/android/src/main/java/expo/modules/audio/AudioModule.kt)、[固定音频 iOS 源码](https://github.com/expo/expo/blob/9e5319c0f821a27b7924841903abae50e2b41790/packages/expo-audio/ios/AudioUtils.swift)、[Starlette FileResponse](https://github.com/encode/starlette/blob/1.7.0/starlette/responses.py)。这些证明 API/代码路径存在，没有证明本项目设备运行结果。
+锁定 Starlette 1.7.0 `FileResponse` 支持 `Accept-Ranges: bytes`、单/多 Range 的 206、越界 416、ETag/If-Range。M1 已增加同一权限策略的 HEAD，并登记 OpenAPI 的 206/416，保留完整 GET 的 200/MIME/原字节与路径所有权检查。每一次 GET、HEAD 和 Range 都先走 LAN 设备鉴权；未授权请求不发送音频字节。M5 本地 seek 不产生服务器 Range，HTTP200/206/416/HEAD、原字节和原生 decoder seek 分别取证。请求 header、加载失败、后台中断和撤销后禁止新 play/seek 仍须真实设备验证，不能由 HTTP 或 Maestro UI 通过替代。
+
+来源：[RN 0.86.3 WS 实现](https://github.com/facebook/react-native/blob/v0.86.3/packages/react-native/Libraries/WebSocket/WebSocket.js)、[SDK 57 AudioSource](https://docs.expo.dev/versions/v57.0.0/sdk/audio/#audiosource)、[固定音频 Android 源码](https://github.com/expo/expo/blob/9e5319c0f821a27b7924841903abae50e2b41790/packages/expo-audio/android/src/main/java/expo/modules/audio/AudioModule.kt)、[固定音频 iOS 源码](https://github.com/expo/expo/blob/9e5319c0f821a27b7924841903abae50e2b41790/packages/expo-audio/ios/AudioUtils.swift)、[Starlette FileResponse](https://github.com/encode/starlette/blob/1.7.0/starlette/responses.py)、[媒体实现边界](../../apps/mobile/src/media/README.md)。源事实、已保留的原生重定向反例、首轮 Go 原 FLAC decoder 与独立 LAN 字节/Range 收据见 [M5 核验](../verification/mobile-audio.md)；当前完整生命周期、物理设备、APK 和 GPU 验收分别记录，不能由 API 存在推导通过。
 
 ## 真实消费者与验证安排
 

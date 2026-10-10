@@ -1,4 +1,5 @@
 import { Button, Column, Host, TextInput } from '@expo/ui';
+import { router } from 'expo-router';
 import { Stack } from 'expo-router/stack';
 import { useState } from 'react';
 import { ActivityIndicator, ScrollView, Text, useWindowDimensions, View } from 'react-native';
@@ -47,6 +48,9 @@ export function ConnectionScreen() {
         <Text selectable style={{ color: colors.text }}>{state.server?.deviceName}</Text>
         <Text selectable testID="connected-address" style={{ color: colors.muted }}>{state.server?.baseUrl}</Text>
         <Text style={{ color: colors.muted }}>设备凭据已安全保存。</Text>
+        <Host matchContents colorScheme="dark" seedColor={colors.accent}>
+          <Button testID="open-workbench" label="进入我的项目" onPress={() => router.replace('/workbench')} />
+        </Host>
       </View> : <Host matchContents colorScheme="dark" seedColor={colors.accent}>
         <Column spacing={spacing.medium} style={{ width: controlWidth }}>
           <TextInput testID="pair-address" defaultValue={address} onChangeText={setAddress} keyboardType="url" autoCapitalize="none" placeholder="电脑地址，例如 http://192.168.1.8:8001"
