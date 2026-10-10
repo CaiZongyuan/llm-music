@@ -249,8 +249,7 @@ def test_second_restart_does_not_renew_an_original_unknown_confirmation_window(t
             assert peer.get("/fixture/state").json()["accepted"] == 1
 
 
-def test_expired_new_submission_receipt_does_not_erase_original_accepted_recovery(tmp_path: Path,monkeypatch):
-    from datetime import datetime,timedelta,timezone
+def test_foreign_process_submission_receipt_does_not_erase_original_accepted_recovery(tmp_path: Path,monkeypatch):
     with recovery_peer(tmp_path,monkeypatch) as (url,receipt,registry),httpx.Client(base_url=url,trust_env=False) as peer:
         data = tmp_path/"application"
         with owned_api(data,url,receipt,registry.root,tmp_path) as first:
@@ -263,7 +262,7 @@ def test_expired_new_submission_receipt_does_not_erase_original_accepted_recover
                 assert time.monotonic()<deadline
                 time.sleep(0.02)
         facts = json.loads(receipt.read_text(encoding="utf-8"))
-        facts["checked_at"] = (datetime.now(timezone.utc)-timedelta(seconds=600)).isoformat()
+        facts["process"]["create_time"] -= 1
         receipt.write_text(json.dumps(facts),encoding="utf-8")
         peer.post("/fixture/control",json={"action":"complete"}).raise_for_status()
         with owned_api(data,url,receipt,registry.root,tmp_path,ORDINARY_RECOVERY) as recovered:
@@ -271,7 +270,7 @@ def test_expired_new_submission_receipt_does_not_erase_original_accepted_recover
             assert complete["status"] == "completed",complete
             assert peer.get("/fixture/state").json()["accepted"] == 1
             new = recovered.post(base+"/jobs/generate",json={"style":"gentle folk pop","lyrics":"New intent","seed":202625031})
-            assert new.status_code == 503 and new.json()["error"]["code"] == "runtime_evidence_stale"
+            assert new.status_code == 503 and new.json()["error"]["code"] == "runtime_process_identity_changed"
             assert recovered.get(route).json() == complete
 
 

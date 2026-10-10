@@ -103,14 +103,13 @@ def current_binding(receipt: RuntimeReceipt, runtime_url: str, requirements: Run
 
 def model_evidence(item: ModelReceipt, receipt: RuntimeReceipt, requirement: ModelRequirement,
                    now: datetime, max_age_seconds: float) -> ModelEvidence:
+    # The original hash proof is tied to this fingerprint, not to a clock TTL.
     def observed(state: Literal["missing", "downloading", "ready", "invalid", "unknown"], *codes: str) -> ModelEvidence:
         return ModelEvidence(item.id, state, receipt.source, item.checked_at, item.actual_sha256, tuple(codes))
 
     age = (now - item.checked_at).total_seconds()
     if age < 0:
         return observed("unknown", "model_evidence_future")
-    if age > max_age_seconds:
-        return observed("unknown", "model_evidence_stale")
     if item.revision != requirement.revision:
         return observed("invalid", "model_revision_mismatch")
     path = receipt.models_root / requirement.local_path
@@ -132,6 +131,7 @@ def model_evidence(item: ModelReceipt, receipt: RuntimeReceipt, requirement: Mod
 
 def read_runtime_evidence(path: Path | None, *, runtime_url: str, now: datetime,
                           max_age_seconds: float, requirements: RuntimeRequirements) -> RuntimeAttestation:
+    # Retain the keyword for callers; immutable proof is validated by current identity.
     if path is None:
         return RuntimeAttestation("comfyui", runtime_url, "owner receipt unavailable", None, False, None, None,
                                   reasons=("runtime_evidence_unavailable",))
@@ -147,8 +147,6 @@ def read_runtime_evidence(path: Path | None, *, runtime_url: str, now: datetime,
     reasons = []
     if age < 0:
         reasons.append("runtime_evidence_future")
-    elif age > max_age_seconds:
-        reasons.append("runtime_evidence_stale")
     if receipt.runtime_url.rstrip("/") != runtime_url.rstrip("/"):
         reasons.append("runtime_evidence_identity_mismatch")
     if receipt.runtime_revision != requirements.runtime_revision or receipt.plugin_revision != requirements.plugin_revision:
@@ -267,7 +265,7 @@ def main() -> None:
     if any(model.state != "ready" for model in receipt.models):
         print("Owner receipt records missing, downloading or invalid weights; restore the registered files before submission.", file=sys.stderr)
         raise SystemExit(1)
-    print("Owner receipt collected. API requests must still verify current health and source freshness.")
+    print("Owner receipt collected. API requests verify current health, process/source identity and model fingerprints.")
 
 
 if __name__ == "__main__":

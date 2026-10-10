@@ -2,6 +2,8 @@
 
 日期：2026-10-10。状态：用户已确认完整预览与接入真实后端；正式规格 [SPEC-017 #99](https://github.com/CaiZongyuan/llm-music/issues/99) 及实施票据已发布。本文件保留源代码兼容评估与技术提案，实际接口以实施后的 Pydantic/OpenAPI 为准；当前尚未将接口准备计为实现或 GPU 验收。
 
+2026-10-11 当前规则由 [ADR-007](../adr/0007-direct-lan-and-stable-runtime-evidence.md) 和用户[明确纠正](../ui/mobile-lan-direct.md)覆盖：配置的 LAN 入口提供直接业务 HTTP/WS/音频访问，`GET /connection` 返回 `access_method: "direct"` 与稳定服务器身份，不要求 PIN 或设备 token。仍匹配实际 Runtime、源码和模型指纹的原校验不按五分钟失效。下面的短码、设备授权/撤销及远程 Authorization 提案保留为原阶段历史，不再作为直连实施要求；请求幂等、按服务器隔离草稿、受控原始音频读取和明确保存 Version 继续有效。修订跟踪 [#113](https://github.com/CaiZongyuan/llm-music/issues/113)。
+
 已确认范围来自 [移动端访谈](mobile-interview.md)、[生产规划](../production.md)、[ADR-005](../adr/0005-mobile-companion-scope.md)、[ADR-006](../adr/0006-mobile-lan-pairing.md) 和 [领域定义](../../GLOSSARY.md)：Android 便携客户端、局域网手工配对、前台试听、手机保留 Creation Draft、后端继续生成、返回时恢复 Job、明确保存 Candidate 为 Version。保留 Web；iOS 的开发连接成功不扩大正式验收范围。
 
 核查基线：`1ce3268577c4fc25f533b5f01993b608bf5cf267`，同时读取当时工作树的实际消费者。本草案没有修改既有 Web 改动。表格保留核查基线的历史缺口；2026-10-10 M5 收口时已更新音频行及原生音频段，采用受控下载方案，M1 的 HEAD/设备授权也已落到源码。其余早期“建议”保留提案语境，完成状态以实施票据和独立验证记录为准。

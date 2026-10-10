@@ -16,8 +16,8 @@ export type SessionSnapshot = Readonly<{
 type SocketObserver = { message(value: unknown): void; close(code: number): void };
 type JobObserver = { job(value: JobRead): void; error(value: MobileFailure): void };
 export type SessionOptions = {
-  store: LocalStore; credentials: CredentialStore;
-  random: { uuid(): string; token(): Promise<string> };
+  store: LocalStore; credentials?: CredentialStore;
+  random: { uuid(): string; token?(): Promise<string> };
   fetch(request: Request): Promise<Response>; timeoutMs?: number;
   socket?(url: string, headers: Readonly<Record<string, string>>, observer: SocketObserver): { close(): void };
 };
@@ -92,6 +92,7 @@ export function createMobileSession(options: SessionOptions) {
     const value = await read; guard(captured); return value;
   }
   async function secureOperation<T>(captured: number, operation: () => Promise<T>): Promise<T> {
+    if (!options.credentials) throw new MobileFailure('pairing_unsupported');
     const next = (credentialQueues.get(options.credentials) ?? Promise.resolve()).then(() => {
       guard(captured); return operation();
     });
@@ -99,7 +100,7 @@ export function createMobileSession(options: SessionOptions) {
     const result = await next; guard(captured); return result;
   }
   async function secureSave(serverId: string, value: SavedCredential, captured: number) {
-    try { await secureOperation(captured, () => options.credentials.set(credentialKey(serverId), JSON.stringify(value))); }
+    try { await secureOperation(captured, () => options.credentials!.set(credentialKey(serverId), JSON.stringify(value))); }
     catch { guard(captured); publish({ storage: 'error', error: 'secure_storage_unavailable' }); throw new MobileFailure('secure_storage_unavailable'); }
     guard(captured);
   }
@@ -138,8 +139,30 @@ export function createMobileSession(options: SessionOptions) {
     if (value.protocol_version !== 1 || !uuid.test(value.server_id)) throw new MobileFailure('invalid_server');
     return value;
   }
-  async function validateDevice(server: ServerRecord, saved: SavedCredential, captured: number) {
+  const isDirect = (value: Awaited<ReturnType<typeof discover>>) => 'access_method' in value && value.access_method === 'direct';
+  async function completeDirectConnection(server: ServerRecord, captured: number) {
+    // Keep the existing SID partitions; obsolete device metadata is not part of a direct connection.
+    const directServer: ServerRecord = { serverId: server.serverId, baseUrl: server.baseUrl, accessMethod: 'direct' };
+    credential = null;
+    document = { ...document, activeServerId: server.serverId, servers: { ...document.servers, [server.serverId]: directServer } };
+    await persist(captured); guard(captured);
+    publish({ storage: 'ready', connection: 'connected', server: directServer, error: null });
+    await recoverPending(captured);
+    await Promise.all([...watchers].map(watcher => refreshWatcher(watcher, captured)));
+  }
+  async function restoreConnection(server: ServerRecord, captured: number) {
     const advertised = await discover(server.baseUrl, captured);
+    if (advertised.server_id !== server.serverId) throw new MobileFailure('server_mismatch');
+    if (isDirect(advertised)) { await completeDirectConnection(server, captured); return; }
+    const raw = await secureOperation(captured, () => options.credentials!.get(credentialKey(server.serverId)));
+    const saved = parseCredential(raw);
+    if (!saved) throw new MobileFailure('credential_missing');
+    if (saved.phase === 'rejected') { publish({ connection: 'unpaired' }); return; }
+    credential = saved;
+    await completeConnection(server, saved, captured, advertised);
+  }
+  async function validateDevice(server: ServerRecord, saved: SavedCredential, captured: number, knownIdentity?: Awaited<ReturnType<typeof discover>>) {
+    const advertised = knownIdentity ?? await discover(server.baseUrl, captured);
     if (advertised.server_id !== server.serverId) throw new MobileFailure('server_mismatch');
     const device = await execute(server.baseUrl, saved, captured, client => client.GET('/device'));
     confirmDevice(server, saved, device);
@@ -151,8 +174,8 @@ export function createMobileSession(options: SessionOptions) {
     await persist(captured); guard(captured);
     publish({ connection: 'connected', server: { ...confirmedServer, deviceId: saved.claim.device_id }, error: null });
   }
-  async function completeConnection(server: ServerRecord, saved: SavedCredential, captured: number) {
-    await validateDevice(server, saved, captured);
+  async function completeConnection(server: ServerRecord, saved: SavedCredential, captured: number, knownIdentity?: Awaited<ReturnType<typeof discover>>) {
+    await validateDevice(server, saved, captured, knownIdentity);
     await recoverPending(captured);
     await Promise.all([...watchers].map(watcher => refreshWatcher(watcher, captured)));
   }
@@ -164,8 +187,9 @@ export function createMobileSession(options: SessionOptions) {
   function failure(error: unknown, captured: number, prepared = false) {
     if (disposed || captured !== epoch) return;
     const problem = error instanceof MobileFailure ? error : new MobileFailure('connection_unavailable');
+    const paired = snapshot.server?.accessMethod !== 'direct';
     if (problem.status === 401 && !prepared) advance();
-    publish({ connection: problem.code === 'server_mismatch' ? 'server_mismatch' : problem.status === 401 && !prepared ? 'revoked' : 'disconnected', error: problem.code });
+    publish({ connection: problem.code === 'server_mismatch' ? 'server_mismatch' : problem.status === 401 && !prepared && paired ? 'revoked' : 'disconnected', error: problem.code });
   }
   function parseCredential(raw: string | null): SavedCredential | null {
     if (!raw) return null;
@@ -189,21 +213,30 @@ export function createMobileSession(options: SessionOptions) {
       const server = document.servers[document.activeServerId];
       if (!server || !uuid.test(server.serverId) || normalizeServerUrl(server.baseUrl) !== server.baseUrl) throw new MobileFailure('storage_invalid');
       publish({ server: checkingServer(server) });
-      const raw = await secureOperation(captured, () => options.credentials.get(credentialKey(server.serverId)));
-      const saved = parseCredential(raw);
-      if (!saved) throw new MobileFailure('credential_missing');
-      if (saved.phase === 'rejected') { publish({ hydrated: true, storage: 'ready', connection: 'unpaired' }); return; }
-      credential = saved;
       publish({ hydrated: true, storage: 'ready', connection: 'checking' });
-      try { await completeConnection(server, saved, captured); }
-      catch (error) { failure(error, captured, saved.phase === 'prepared'); }
+      try { await restoreConnection(server, captured); }
+      catch (error) { failure(error, captured, credential?.phase === 'prepared'); }
     } catch (error) {
       if (disposed || captured !== epoch) return;
       publish({ hydrated: true, connection: 'disconnected', storage: 'error', error: error instanceof MobileFailure ? error.code : 'storage_unavailable' });
     }
   }
 
+  async function connect(rawUrl: string) {
+    if (!snapshot.foreground || !snapshot.hydrated || snapshot.storage !== 'ready') throw new MobileFailure('storage_unavailable');
+    let baseUrl: string;
+    try { baseUrl = normalizeServerUrl(rawUrl); }
+    catch (error) { publish({ error: 'invalid_address' }); throw error; }
+    const captured = advance(); publish({ connection: 'checking', error: null });
+    try {
+      const advertised = await discover(baseUrl, captured);
+      if (!isDirect(advertised)) throw new MobileFailure('direct_connection_unavailable');
+      await completeDirectConnection({ serverId: advertised.server_id, baseUrl }, captured);
+    } catch (error) { failure(error, captured); throw error; }
+  }
+
   async function pair(rawUrl: string, code: string, name: string, freshAuthorization = false) {
+    if (!options.credentials || !options.random.token) throw new MobileFailure('pairing_unsupported');
     if (!snapshot.foreground || !snapshot.hydrated || snapshot.storage !== 'ready' && !(freshAuthorization && snapshot.error === 'credential_missing')) throw new MobileFailure('storage_unavailable');
     let baseUrl: string;
     try {
@@ -221,7 +254,7 @@ export function createMobileSession(options: SessionOptions) {
       document = { ...document, activeServerId: server.serverId, servers: { ...document.servers, [server.serverId]: server } };
       // The ordinary registry is saved first, so a safe credential cannot become undiscoverable after a cross-store interruption.
       await persist(captured); guard(captured); publish({ server: checkingServer(server), storage: 'ready' });
-      const raw = await secureOperation(captured, () => options.credentials.get(credentialKey(server.serverId)));
+      const raw = await secureOperation(captured, () => options.credentials!.get(credentialKey(server.serverId)));
       let saved = parseCredential(raw);
       if (!saved && server.credentialExpected && !fresh) throw new MobileFailure('credential_missing');
       if (saved && saved.phase === 'paired' && !fresh) { await completeConnection(server, saved, captured); return; }
@@ -288,7 +321,9 @@ export function createMobileSession(options: SessionOptions) {
   }
 
   function authorization(write = false) {
-    if (!snapshot.hydrated || !snapshot.foreground || snapshot.connection !== 'connected' || !snapshot.server || !credential) throw new MobileFailure('authorization_required');
+    if (!snapshot.hydrated || !snapshot.foreground || snapshot.connection !== 'connected' || !snapshot.server || !credential && snapshot.server.accessMethod !== 'direct') {
+      throw new MobileFailure(snapshot.server?.accessMethod === 'direct' ? 'connection_required' : 'authorization_required');
+    }
     if (write && snapshot.storage !== 'ready') throw new MobileFailure('storage_unavailable');
     return { server: snapshot.server, saved: credential, captured: epoch };
   }
@@ -331,11 +366,7 @@ export function createMobileSession(options: SessionOptions) {
     if (!server) { publish({ connection: 'unpaired', server: null }); return; }
     publish({ connection: 'checking', server: checkingServer(server), error: null });
     try {
-      const raw = await secureOperation(captured, () => options.credentials.get(credentialKey(server.serverId)));
-      const saved = parseCredential(raw);
-      if (!saved) throw new MobileFailure('credential_missing');
-      if (saved.phase === 'rejected') { publish({ connection: 'unpaired' }); return; }
-      await completeConnection(server, saved, captured);
+      await restoreConnection(server, captured);
     } catch (error) {
       if (error instanceof MobileFailure && ['credential_missing', 'secure_storage_invalid'].includes(error.code)) publish({ storage: 'error' });
       failure(error, captured); throw error;
@@ -353,21 +384,8 @@ export function createMobileSession(options: SessionOptions) {
     const captured = epoch;
     await persist(captured);
     const server = document.activeServerId ? document.servers[document.activeServerId] : undefined;
-    let shouldVerify = false;
-    if (server) {
-      try {
-        const raw = await secureOperation(captured, () => options.credentials.get(credentialKey(server.serverId)));
-        const saved = parseCredential(raw);
-        if (!saved && server.credentialExpected) throw new MobileFailure('credential_missing');
-        publish({ storage: 'ready', error: null });
-        shouldVerify = !!saved && saved.phase !== 'rejected';
-      } catch (error) {
-        guard(captured);
-        if (error instanceof MobileFailure && error.status === 0 && snapshot.storage !== 'ready') publish({ storage: 'error', error: error.code });
-        throw error;
-      }
-    }
-    if (shouldVerify) { await verify(); return; }
+    publish({ storage: 'ready', error: null });
+    if (server) { await verify(); return; }
     publish({ storage: 'ready', connection: 'unpaired', error: null });
   }
   async function setForeground(active: boolean) {
@@ -389,7 +407,7 @@ export function createMobileSession(options: SessionOptions) {
         if (connect && !watcher.socket && options.socket) {
           const { server, saved } = authorization();
           watcher.socket = options.socket(jobEventsUrl(server.baseUrl, watcher.projectId, watcher.jobId).toString(),
-            { Authorization: `Bearer ${saved.claim.device_token}` }, {
+            saved ? { Authorization: `Bearer ${saved.claim.device_token}` } : {}, {
               message: () => { if (captured === epoch && !watcher.stopped) void refreshWatcher(watcher, captured); },
               close: code => {
                 if (captured !== epoch || watcher.stopped) return;
@@ -424,17 +442,19 @@ export function createMobileSession(options: SessionOptions) {
     try {
       const advertised = await discover(server.baseUrl, captured);
       if (advertised.server_id !== server.serverId) throw new MobileFailure('server_mismatch');
-      const device = await execute(server.baseUrl, saved, captured, client => client.GET('/device'));
-      confirmDevice(server, saved, device);
+      if (saved) {
+        const device = await execute(server.baseUrl, saved, captured, client => client.GET('/device'));
+        confirmDevice(server, saved, device);
+      } else if (!isDirect(advertised)) throw new MobileFailure('direct_connection_unavailable');
       const asset = await getAsset(projectId, assetId); guard(captured);
       if (asset.id !== assetId || asset.project_id !== projectId || !['generated_audio', 'reference_audio'].includes(asset.kind)) throw new MobileFailure('invalid_media');
       const isCurrent = () => !disposed && captured === epoch && snapshot.foreground && snapshot.connection === 'connected';
       return Object.freeze({
-        epoch: captured, serverId: server.serverId, deviceId: saved.claim.device_id, projectId, assetId, isCurrent,
+        epoch: captured, serverId: server.serverId, deviceId: saved?.claim.device_id, projectId, assetId, isCurrent,
         createRequest: (signal?: AbortSignal) => {
           if (!isCurrent()) throw new MobileFailure('session_changed');
           return new Request(`${server.baseUrl}/projects/${projectId}/assets/${assetId}/content`, {
-            headers: { Authorization: `Bearer ${saved.claim.device_token}` }, redirect: 'error', signal,
+            headers: saved ? { Authorization: `Bearer ${saved.claim.device_token}` } : {}, redirect: 'error', signal,
           });
         },
       });
@@ -576,7 +596,7 @@ export function createMobileSession(options: SessionOptions) {
   }
 
   return {
-    hydrate, pair, verify, switchServer, retryStorage, setForeground, watchJob, authorizeMedia, getDraft, updateDraft, getTitleDraft, updateTitleDraft,
+    hydrate, connect, pair, verify, switchServer, retryStorage, setForeground, watchJob, authorizeMedia, getDraft, updateDraft, getTitleDraft, updateTitleDraft,
     getProjects, getProject, getJobs, getJob, getCandidates, getCandidate, getVersions, getVersion, getAsset, cancelJob,
     prepareIntent, prepareGenerate, submitIntent, recoverIntent, listIntents,
     getServers: () => freeze(Object.values(document.servers)),

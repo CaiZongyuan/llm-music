@@ -1,4 +1,4 @@
-"""Local and authorized LAN HTTP application with one business lifecycle."""
+"""Local and explicit direct LAN HTTP application with one business lifecycle."""
 
 from collections.abc import AsyncIterator, Iterator
 from typing import Callable

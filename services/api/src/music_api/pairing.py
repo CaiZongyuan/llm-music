@@ -57,10 +57,9 @@ class PairingService:
         return session.scalar(select(PairingChallenge).order_by(PairingChallenge.sequence.desc()).limit(1))
 
     def connection(self) -> ConnectionRead:
-        with self.database.sessions() as session:
-            value = self.current(session)
-            available = self.database.settings.lan_host is not None and value is not None and value.status == "active" and value.expires_at > time.time()
-        return ConnectionRead(server_id=UUID(self.server_id), pairing_available=available)
+        configured = self.database.settings
+        return ConnectionRead(server_id=UUID(self.server_id), pairing_available=False,
+                              lan_address=f"http://{configured.lan_host}:{configured.lan_port}" if configured.lan_host else None)
 
     def owner(self) -> OwnerRead:
         configured = self.database.settings
@@ -204,6 +203,4 @@ def paired_devices(request: Request) -> list[DeviceRead]:
 @router.delete("/pairing/devices/{device_id}", response_model=DeviceRead)
 async def revoke_device(device_id: UUID, request: Request) -> DeviceRead:
     pairing: PairingService = request.app.state.pairing
-    value = await run_in_threadpool(pairing.revoke, device_id)
-    request.app.state.access.revoke(str(device_id))
-    return value
+    return await run_in_threadpool(pairing.revoke, device_id)

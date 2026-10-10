@@ -213,7 +213,7 @@ class Launcher:
                                 return
                         else:
                             reasons = [item["code"] for item in health["runtime"]["reasons"]]
-                            raise LaunchError(f"Runtime/models are not ready: {', '.join(reasons)}. Run Doctor or obtain a fresh matching owner receipt; logs: {self.folder}.")
+                            raise LaunchError(f"Runtime/models are not ready: {', '.join(reasons)}. Check current health and matching owner/model identity; logs: {self.folder}.")
             except (URLError, TimeoutError, ValueError, KeyError, OSError):
                 pass
             time.sleep(0.1)
@@ -312,13 +312,13 @@ class Launcher:
             write_json(args.runtime_evidence, bounded_collect(args.runtime_url, record["process"]["pid"], requirements, deadline - time.monotonic()).model_dump(mode="json"))
         input_path = args.runtime_evidence or self.evidence_slot
         if not input_path.is_file() or input_path.stat().st_size > 131072:
-            raise LaunchError("Native owner evidence unavailable or oversized. Supply a fresh matching --runtime-evidence; no reused service was changed.")
+            raise LaunchError("Native owner evidence unavailable or oversized. Supply matching --runtime-evidence; no reused service was changed.")
         snapshot = self.folder / "runtime-evidence-input.json"
         snapshot.write_bytes(input_path.read_bytes())
         evidence = read_runtime_evidence(snapshot, runtime_url=args.runtime_url, now=datetime.now(timezone.utc), max_age_seconds=300, requirements=requirements)
         problems = list(evidence.reasons) + [code for model in evidence.models if model.state != "ready" for code in model.reasons]
         if not evidence.binding_verified or problems:
-            raise LaunchError(f"Native owner/model evidence refused: {', '.join(problems) or 'model verification unavailable'}. Obtain a fresh collector receipt for the exact listener and model root; no reused process was changed.")
+            raise LaunchError(f"Native owner/model evidence refused: {', '.join(problems) or 'model verification unavailable'}. Check the exact current listener, source and model root; collect proof only after a real identity or weight change. No reused process was changed.")
         receipt = RuntimeReceipt.model_validate_json(snapshot.read_bytes())
         if receipt.runtime_root.resolve() != args.runtime_root.resolve() or receipt.models_root.resolve() != args.models_root.resolve():
             raise LaunchError("Native receipt runtime/model directories differ from requested paths. Use matching paths; no reused process was changed.")
@@ -442,7 +442,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--mode", choices=["fake", "comfyui"], default="fake")
     parser.add_argument("--api-port", type=int, default=8000)
-    parser.add_argument("--api-lan-host", help="Explicit active local IPv4; enables the authenticated second API socket")
+    parser.add_argument("--api-lan-host", help="Explicit active local IPv4; enables the direct second API socket")
     parser.add_argument("--api-lan-port", type=int, default=8001)
     parser.add_argument("--web-port", type=int, default=5173)
     parser.add_argument("--runtime-port", type=int, default=8188)

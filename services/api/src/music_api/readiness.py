@@ -11,6 +11,10 @@ def stale(when: datetime | None, now: datetime, max_age_seconds: float) -> bool:
     return when is None or when.tzinfo is None or when > now or (now - when).total_seconds() > max_age_seconds
 
 
+def invalid_evidence_time(when: datetime | None, now: datetime) -> bool:
+    return when is None or when.tzinfo is None or when > now
+
+
 def evaluate_readiness(observation: RuntimeObservation, requirements: RuntimeRequirements,
                        workflow: WorkflowDefinition, *, now: datetime, max_age_seconds: float) -> CapabilityObservation:
     reasons: list[str] = []
@@ -64,8 +68,8 @@ def evaluate_readiness(observation: RuntimeObservation, requirements: RuntimeReq
             reasons.extend(attestation.reasons)
             if attestation.mode != observation.mode or not attestation.binding_verified:
                 reasons.append("runtime_binding_unverified")
-            if stale(attestation.checked_at, now, max_age_seconds):
-                reasons.append("runtime_evidence_stale")
+            if invalid_evidence_time(attestation.checked_at, now):
+                reasons.append("runtime_evidence_invalid")
             if attestation.runtime_revision != requirements.runtime_revision or attestation.plugin_revision != requirements.plugin_revision:
                 reasons.append("runtime_revision_mismatch")
             models = {item.id: item for item in attestation.models}
@@ -76,7 +80,7 @@ def evaluate_readiness(observation: RuntimeObservation, requirements: RuntimeReq
                     reasons.append("model_unverified")
                 elif model.state != "ready":
                     reasons.append("model_" + (model.state if model.state in {"missing", "downloading", "invalid"} else "unverified"))
-                elif model.sha256 != expected[identifier].sha256 or stale(model.checked_at, now, max_age_seconds):
+                elif model.sha256 != expected[identifier].sha256 or invalid_evidence_time(model.checked_at, now):
                     reasons.append("model_evidence_unverified")
         # Generic Comfy /models inventories do not own the pinned YuE2 model-root layout.
     return CapabilityObservation(workflow.operation, workflow.required_models, not reasons,

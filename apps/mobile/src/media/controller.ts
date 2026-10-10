@@ -16,7 +16,7 @@ export function createMediaController(options: MediaOptions) {
   let unsubscribeSession: (() => void) | undefined;
   let authorizationTimer: ReturnType<typeof setTimeout> | undefined;
   let rejectReady: ((reason: unknown) => void) | undefined;
-  let scope: { epoch: number; serverId: string; deviceId: string } | null = null;
+  let scope: { epoch: number; serverId: string; deviceId?: string } | null = null;
   let selectionServerId: string | null = null;
   let actionPending: number | null = null;
   let actionSequence = 0;

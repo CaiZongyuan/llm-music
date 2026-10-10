@@ -9,7 +9,9 @@ from pydantic import BaseModel, ConfigDict, Field
 class ConnectionRead(BaseModel):
     server_id: UUID
     protocol_version: Literal[1] = 1
+    access_method: Literal["direct"] = "direct"
     pairing_available: bool
+    lan_address: str | None
 
 
 class DeviceRead(BaseModel):

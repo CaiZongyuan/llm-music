@@ -1,14 +1,8 @@
 import * as Crypto from 'expo-crypto';
-import * as SecureStore from 'expo-secure-store';
 import * as SQLite from 'expo-sqlite';
 import { fetch as expoFetch } from 'expo/fetch';
 
-import { createMobileSession, type LocalStore, type CredentialStore } from './session';
-
-const credentials: CredentialStore = {
-  get: key => SecureStore.getItemAsync(key),
-  set: (key, value) => SecureStore.setItemAsync(key, value),
-};
+import { createMobileSession, type LocalStore } from './session';
 
 let database: Promise<SQLite.SQLiteDatabase> | undefined;
 function openDatabase() {
@@ -36,10 +30,8 @@ const store: LocalStore = {
 export function createNativeSession() {
   return createMobileSession({
     store,
-    credentials,
     random: {
       uuid: () => Crypto.randomUUID(),
-      token: async () => Array.from(await Crypto.getRandomBytesAsync(32), byte => byte.toString(16).padStart(2, '0')).join(''),
     },
     fetch: request => expoFetch(request, { redirect: 'error' }),
     socket: (url, headers, observer) => {

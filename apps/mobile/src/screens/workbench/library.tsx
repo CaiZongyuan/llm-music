@@ -35,7 +35,7 @@ export function ProjectLibraryScreen() {
         <Copy kind="label" style={{ color: colors.accent }}>声间 / 我的项目</Copy>
         <Copy kind="heading">把一点灵感，留在手机里。</Copy>
         <ConnectionState />
-        <Actions><Action label="电脑连接与授权" secondary testID="open-mobile-connection" onPress={() => router.push('/connect')} /></Actions>
+        <Actions><Action label="电脑连接" secondary testID="open-mobile-connection" onPress={() => router.push('/connect')} /></Actions>
         <Section title="新建项目">
           <Field key={title.key} replacement={reset} label="项目名称" initialValue={title.value} onChangeText={title.set} maxLength={200}
             readOnly={intents.length > 0 || !title.available} testID="new-project-name" placeholder="例如：夜行电台" />

@@ -31,7 +31,7 @@ class MusicAPI(FastAPI):
             raise ValueError("Job event discovery resolved a non-WebSocket route")
         document["components"]["securitySchemes"] = {
             "DeviceBearer": {"type": "http", "scheme": "bearer", "bearerFormat": "64 lowercase hex characters",
-                             "description": "Revocable 32-byte device credential. Required on every authenticated LAN HTTP/WS/Asset request; send in Authorization, never in a URL query."},
+                             "description": "Legacy device credential used only by /device compatibility validation. Direct local/LAN HTTP, WebSocket and Asset access does not require a device credential."},
             "OwnerCSRF": {"type": "apiKey", "in": "header", "name": "X-Owner-CSRF",
                           "description": "Current process owner token from local GET /pairing/owner. Accepted only on the actual configured local socket. A present browser Origin must match the configured local API/Web allowlist; headerless local CLI calls still require this token."},
         }
@@ -51,20 +51,22 @@ class MusicAPI(FastAPI):
                     operation["security"] = []
                     access = "Available without a device credential on the known local and LAN listeners; unknown socket bindings are rejected."
                     operation["x-listener-access"] = "anonymous"
+                elif path == "/device":
+                    operation["security"] = [{"DeviceBearer": []}]
+                    access = "Legacy compatibility only: validate a submitted Device Bearer credential on either known listener. Direct connection uses /connection and does not call this route."
+                    operation["x-listener-access"] = "legacy-device"
                 else:
-                    operation["security"] = [{"DeviceBearer": []}] if path == "/device" else [{"DeviceBearer": []}, {}]
-                    access = "Device Bearer authorization is required on the actual LAN listener. Existing local business consumers may omit it. Authentication runs before route/object lookup and every Asset GET/HEAD/Range request."
-                    if path == "/device":
-                        access = "Validate the submitted Device Bearer credential on either known listener. A revoked or unknown device is rejected."
-                    operation["x-listener-access"] = "lan-device"
+                    operation["security"] = []
+                    access = "Direct access on known local and explicitly enabled LAN listeners. No PIN or device credential is required, including Asset GET/HEAD/Range. Unknown accepting socket bindings are rejected."
+                    operation["x-listener-access"] = "direct-lan"
                 operation["description"] = (operation.get("description", "") + "\n\n" + access).strip()
                 if method == "post" and path in {"/projects", "/projects/{project_id}/jobs/generate", "/projects/{project_id}/jobs/{job_id}/retry"}:
                     operation["description"] += " Idempotency-Key must be a UUID for LAN writes and is optional for existing local callers. The same key and validated intent replay the original resource with status 200 before current Runtime readiness/retry checks. A different operation/target/input returns 409. Persist the key and frozen intent before sending; query GET /requests/{request_id} after an uncertain response."
                     operation["x-idempotency-required-on"] = "lan"
         document["x-websockets"] = {str(route): {
             "message": {"$ref": "#/components/schemas/JobEventRead"},
-            "security": [{"DeviceBearer": []}, {}],
-            "x-listener-access": "lan-device",
-            "description": "LAN requires Authorization: Bearer in the handshake headers. Local business consumers remain compatible. Revoking the device closes active sockets with code 4401 without cancelling the Job.",
+            "security": [],
+            "x-listener-access": "direct-lan",
+            "description": "Direct WebSocket access on known local and explicitly enabled LAN listeners without PIN or Authorization. Historical device revocation does not close direct sockets or cancel shared Jobs.",
         }}
         return document

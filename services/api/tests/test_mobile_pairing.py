@@ -30,7 +30,9 @@ def test_connection_identity_survives_api_restart(tmp_path: Path) -> None:
         UUID(connection["server_id"])
         assert connection["protocol_version"] == 1
         assert connection["pairing_available"] is False
-        assert set(connection) == {"server_id", "protocol_version", "pairing_available"}
+        assert connection["access_method"] == "direct"
+        assert connection["lan_address"] is None
+        assert set(connection) == {"server_id", "protocol_version", "access_method", "pairing_available", "lan_address"}
     with TestClient(create_app(settings)) as client:
         assert client.get("/connection").json() == connection
 
@@ -39,13 +41,13 @@ def test_phone_claims_once_and_authorization_cannot_manage_the_computer(tmp_path
     app = create_app(Settings(data_dir=tmp_path, lan_host="192.168.31.209"))
     with at_socket(app, ("127.0.0.1", 8000)) as local:
         phone = at_socket(app, ("192.168.31.209", 8001))
-        assert phone.get("/projects", headers={"Host": "127.0.0.1:8000", "Forwarded": "host=localhost;for=127.0.0.1"}).status_code == 401
+        assert phone.get("/projects", headers={"Host": "127.0.0.1:8000", "Forwarded": "host=localhost;for=127.0.0.1"}).status_code == 200
         owner = local.get("/pairing/owner").json()
         assert local.post("/pairing/challenges").status_code == 403
         headers = {"X-Owner-CSRF": owner["owner_csrf"], "Origin": "http://127.0.0.1:5173"}
         challenge = local.post("/pairing/challenges", headers=headers)
         assert challenge.status_code == 201
-        assert phone.get("/connection").json()["pairing_available"] is True
+        assert phone.get("/connection").json()["pairing_available"] is False
         claim = {"device_id": "73897c39-8d1b-43d4-bfc0-22f0c39b4165", "device_token": "ab" * 32,
                  "device_name": "Test phone", "code": challenge.json()["code"]}
         claimed = phone.post("/pairing/claim", json=claim)
@@ -98,7 +100,7 @@ def test_latest_pairing_window_is_ordered_by_creation_not_wall_clock_or_uuid(tmp
         second = local.post("/pairing/challenges", headers=headers).json()
         assert first["id"] != second["id"]
         assert local.get("/pairing/owner").json()["challenge"]["id"] == second["id"]
-        assert phone.get("/connection").json()["pairing_available"] is True
+        assert phone.get("/connection").json()["pairing_available"] is False
         claim = {"device_id": "d6bfedc9-40a9-40da-9727-81ddf39cc12f", "device_token": "23" * 32,
                  "device_name": "Latest window phone", "code": second["code"]}
         assert phone.post("/pairing/claim", json=claim).status_code == 201
@@ -118,7 +120,7 @@ def test_existing_token_cannot_authorize_another_device(tmp_path: Path) -> None:
         assert conflict.status_code == 409
         assert conflict.json()["error"]["code"] == "pairing_conflict"
         assert len(local.get("/pairing/devices").json()) == 1
-        assert phone.get("/connection").json()["pairing_available"] is True
+        assert phone.get("/connection").json()["pairing_available"] is False
 
 
 def test_non_ascii_owner_csrf_is_rejected_without_a_server_error(tmp_path: Path) -> None:

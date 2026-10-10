@@ -15,7 +15,7 @@ import httpx
 import psutil
 from test_projects_assets import reference_wav
 from websockets.sync.client import connect
-from websockets.exceptions import ConnectionClosedError, InvalidStatus
+from websockets.exceptions import InvalidStatus
 import pytest
 
 
@@ -79,15 +79,15 @@ def dual_server(data: Path, log_path: Path, address: str, ports: tuple[int, int]
                     raise AssertionError("Owned dual listener did not stop gracefully")
 
 
-def test_real_socket_pairing_cannot_spoof_local_privilege(tmp_path: Path) -> None:
+def test_real_direct_socket_cannot_spoof_local_admin_privilege(tmp_path: Path) -> None:
     address, log = local_ipv4(), tmp_path / "dual.log"
     with dual_server(tmp_path / "data", log, address) as (local, phone, process):
         assert local.get("/connection").json() == phone.get("/connection").json()
-        assert phone.get("/health").status_code == 401
+        assert phone.get("/health").status_code == 200
         headers = {"Host": str(local.base_url).removeprefix("http://").rstrip("/"),
                    "Forwarded": "for=127.0.0.1;host=localhost", "X-Forwarded-Host": "localhost", "X-Forwarded-For": "127.0.0.1"}
         assert phone.get("/pairing/owner", headers=headers).status_code == 403
-        assert phone.get("/projects", headers=headers).status_code == 401
+        assert phone.get("/projects", headers=headers).status_code == 200
         csrf = local.get("/pairing/owner").json()["owner_csrf"]
         challenge = local.post("/pairing/challenges", headers={"X-Owner-CSRF": csrf}).json()
         claim = {"device_id": "4d2e5f73-5dad-431d-815a-71c000bfbe36", "device_token": "cd" * 32,
@@ -152,7 +152,7 @@ def test_concurrent_claims_only_authorize_one_phone(tmp_path: Path) -> None:
         assert [result.status_code for result in results] == [200, 200]
 
 
-def test_original_audio_head_and_range_require_current_device_authorization(tmp_path: Path) -> None:
+def test_direct_original_audio_survives_legacy_device_revocation(tmp_path: Path) -> None:
     address = local_ipv4()
     with dual_server(tmp_path / "data", tmp_path / "audio.log", address) as (local, phone, _):
         csrf = local.get("/pairing/owner").json()["owner_csrf"]
@@ -176,17 +176,18 @@ def test_original_audio_head_and_range_require_current_device_authorization(tmp_
         assert partial.status_code == 206 and partial.content == original[4:12]
         assert partial.headers["content-range"] == f"bytes 4-11/{len(original)}"
         assert phone.get(content, headers={**auth, "Range": "bytes=999999999-"}).status_code == 416
-        for path in ["/health", "/diagnostics", "/openapi.json", "/docs", "/projects", base, content]:
-            assert phone.get(path).status_code == 401
-        assert phone.post("/projects", json={"name": "Unauthenticated write"}).status_code == 401
+        for path in ["/health", "/runtime/diagnostics", "/openapi.json", "/docs", "/projects", base, content]:
+            assert phone.get(path).status_code == 200
+        assert phone.post("/projects", json={"name": "Direct write without frozen key"}).status_code == 422
         assert local.delete("/pairing/devices/" + claim["device_id"], headers=headers).status_code == 200
         assert phone.get("/device", headers=auth).status_code == 401
-        assert phone.head(content, headers=auth).status_code == 401
-        assert phone.get(content, headers={**auth, "Range": "bytes=4-11"}).status_code == 401
+        assert phone.head(content).status_code == 200
+        assert phone.get(content, headers={"Range": "bytes=4-11"}).content == original[4:12]
+        assert phone.get(content, headers=auth).content == original
         assert local.get(content).content == original
 
 
-def test_revoke_closes_active_websocket_without_cancelling_shared_jobs(tmp_path: Path) -> None:
+def test_legacy_revoke_does_not_close_direct_websocket_or_cancel_shared_jobs(tmp_path: Path) -> None:
     import json
     address, release = local_ipv4(), tmp_path / "finish-runtime"
     with dual_server(tmp_path / "data", tmp_path / "websocket.log", address, finish_runtime=release) as (local, phone, _):
@@ -206,21 +207,19 @@ def test_revoke_closes_active_websocket_without_cancelling_shared_jobs(tmp_path:
         second = local.post(base + "/jobs/generate", json={**inputs, "seed": 43}).json()
         assert second["status"] == "queued"
         ws = str(phone.base_url).replace("http://", "ws://").rstrip("/") + base + "/jobs/" + first["id"] + "/events"
-        with pytest.raises(InvalidStatus) as rejected:
-            connect(ws, proxy=None, open_timeout=3)
-        assert rejected.value.response.status_code == 403
-        with connect(ws, additional_headers=auth, proxy=None, open_timeout=3) as observer:
+        with connect(ws, proxy=None, open_timeout=3) as observer:
             initial = json.loads(observer.recv(timeout=3))
             assert initial["job"]["id"] == first["id"] and initial["job"]["status"] == "running"
             assert local.delete("/pairing/devices/" + claim["device_id"], headers={"X-Owner-CSRF": csrf}).status_code == 200
-            deadline = time.monotonic() + 3
-            with pytest.raises(ConnectionClosedError) as closed:
-                while True:
-                    observer.recv(timeout=max(0.01, deadline - time.monotonic()))
-            assert closed.value.rcvd.code == 4401
-        assert local.get(base + "/jobs/" + first["id"]).json()["status"] == "running"
-        assert local.get(base + "/jobs/" + second["id"]).json()["status"] == "queued"
-        release.touch()
+            assert local.get(base + "/jobs/" + first["id"]).json()["status"] == "running"
+            assert local.get(base + "/jobs/" + second["id"]).json()["status"] == "queued"
+            release.touch()
+            deadline = time.monotonic() + 5
+            while True:
+                event = json.loads(observer.recv(timeout=max(0.01, deadline - time.monotonic())))
+                if event["job"]["status"] == "completed":
+                    break
+                assert time.monotonic() < deadline, event
         deadline = time.monotonic() + 5
         while True:
             jobs = local.get(base + "/jobs").json()
@@ -229,7 +228,8 @@ def test_revoke_closes_active_websocket_without_cancelling_shared_jobs(tmp_path:
             assert time.monotonic() < deadline, jobs
             time.sleep(0.03)
         assert len(jobs) == 2
-        assert phone.get(base + "/jobs", headers=auth).status_code == 401
+        assert phone.get(base + "/jobs").status_code == 200
+        assert phone.get("/device", headers=auth).status_code == 401
 
 
 def test_actual_unregistered_socket_is_denied_even_with_loopback_host(tmp_path: Path) -> None:
@@ -244,10 +244,10 @@ def test_actual_unregistered_socket_is_denied_even_with_loopback_host(tmp_path: 
                 assert response.json()["error"]["code"] == "listener_forbidden"
 
 
-def test_query_credentials_are_rejected_and_never_written_to_listener_logs(tmp_path: Path) -> None:
+def test_direct_access_ignores_legacy_query_credentials_and_does_not_log_them(tmp_path: Path) -> None:
     secret, pin, log = "fe" * 32, "765432", tmp_path / "safe-log.log"
     with dual_server(tmp_path / "data", log, local_ipv4()) as (_, phone, _):
-        assert phone.get("/projects", params={"token": secret, "code": pin}).status_code == 401
+        assert phone.get("/projects", params={"token": secret, "code": pin}).status_code == 200
         ws = str(phone.base_url).replace("http://", "ws://").rstrip("/") + f"/projects/{uuid4()}/jobs/{uuid4()}/events?token={secret}&code={pin}"
         with pytest.raises(InvalidStatus):
             connect(ws, proxy=None, open_timeout=3)

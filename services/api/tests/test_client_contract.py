@@ -30,9 +30,9 @@ def test_cpu_export_matches_http_and_registered_job_events(tmp_path: Path) -> No
     assert websocket_path not in document["paths"]
     assert document["x-websockets"] == {
         websocket_path: {"message": {"$ref": "#/components/schemas/JobEventRead"},
-                         "security": [{"DeviceBearer": []}, {}],
-                         "x-listener-access": "lan-device",
-                         "description": "LAN requires Authorization: Bearer in the handshake headers. Local business consumers remain compatible. Revoking the device closes active sockets with code 4401 without cancelling the Job."},
+                         "security": [],
+                         "x-listener-access": "direct-lan",
+                         "description": "Direct WebSocket access on known local and explicitly enabled LAN listeners without PIN or Authorization. Historical device revocation does not close direct sockets or cancel shared Jobs."},
     }
     event = document["components"]["schemas"]["JobEventRead"]
     assert event["properties"]["type"]["const"] == "job.updated"
@@ -59,7 +59,7 @@ def test_binary_download_and_bodyless_operations_are_described(tmp_path: Path) -
         "audio/wav", "audio/flac", "text/vnd.abc", "audio/midi", "multipart/byteranges",
     }
     assert download["responses"]["416"]["content"] == {"text/plain": {"schema": {"type": "string"}}}
-    assert download["security"] == [{"DeviceBearer": []}, {}]
+    assert download["security"] == []
     assert document["paths"]["/pairing/challenges"]["post"]["security"] == [{"OwnerCSRF": []}]
     assert document["paths"]["/connection"]["get"]["security"] == []
 

@@ -29,7 +29,7 @@ export interface paths {
         };
         /**
          * Current Device
-         * @description Validate the submitted Device Bearer credential on either known listener. A revoked or unknown device is rejected.
+         * @description Legacy compatibility only: validate a submitted Device Bearer credential on either known listener. Direct connection uses /connection and does not call this route.
          */
         get: operations["current_device_device_get"];
         put?: never;
@@ -171,7 +171,7 @@ export interface paths {
         };
         /**
          * Settings Metadata
-         * @description Device Bearer authorization is required on the actual LAN listener. Existing local business consumers may omit it. Authentication runs before route/object lookup and every Asset GET/HEAD/Range request.
+         * @description Direct access on known local and explicitly enabled LAN listeners. No PIN or device credential is required, including Asset GET/HEAD/Range. Unknown accepting socket bindings are rejected.
          */
         get: operations["settings_metadata_settings_metadata_get"];
         put?: never;
@@ -191,7 +191,7 @@ export interface paths {
         };
         /**
          * Diagnostics
-         * @description Device Bearer authorization is required on the actual LAN listener. Existing local business consumers may omit it. Authentication runs before route/object lookup and every Asset GET/HEAD/Range request.
+         * @description Direct access on known local and explicitly enabled LAN listeners. No PIN or device credential is required, including Asset GET/HEAD/Range. Unknown accepting socket bindings are rejected.
          */
         get: operations["diagnostics_runtime_diagnostics_get"];
         put?: never;
@@ -211,7 +211,7 @@ export interface paths {
         };
         /**
          * Health
-         * @description Device Bearer authorization is required on the actual LAN listener. Existing local business consumers may omit it. Authentication runs before route/object lookup and every Asset GET/HEAD/Range request.
+         * @description Direct access on known local and explicitly enabled LAN listeners. No PIN or device credential is required, including Asset GET/HEAD/Range. Unknown accepting socket bindings are rejected.
          */
         get: operations["health_health_get"];
         put?: never;
@@ -231,7 +231,7 @@ export interface paths {
         };
         /**
          * Capabilities
-         * @description Device Bearer authorization is required on the actual LAN listener. Existing local business consumers may omit it. Authentication runs before route/object lookup and every Asset GET/HEAD/Range request.
+         * @description Direct access on known local and explicitly enabled LAN listeners. No PIN or device credential is required, including Asset GET/HEAD/Range. Unknown accepting socket bindings are rejected.
          */
         get: operations["capabilities_runtime_capabilities_get"];
         put?: never;
@@ -251,7 +251,7 @@ export interface paths {
         };
         /**
          * Models
-         * @description Device Bearer authorization is required on the actual LAN listener. Existing local business consumers may omit it. Authentication runs before route/object lookup and every Asset GET/HEAD/Range request.
+         * @description Direct access on known local and explicitly enabled LAN listeners. No PIN or device credential is required, including Asset GET/HEAD/Range. Unknown accepting socket bindings are rejected.
          */
         get: operations["models_runtime_models_get"];
         put?: never;
@@ -271,7 +271,7 @@ export interface paths {
         };
         /**
          * Get Request
-         * @description Device Bearer authorization is required on the actual LAN listener. Existing local business consumers may omit it. Authentication runs before route/object lookup and every Asset GET/HEAD/Range request.
+         * @description Direct access on known local and explicitly enabled LAN listeners. No PIN or device credential is required, including Asset GET/HEAD/Range. Unknown accepting socket bindings are rejected.
          */
         get: operations["get_request_requests__request_id__get"];
         put?: never;
@@ -291,13 +291,13 @@ export interface paths {
         };
         /**
          * List Projects
-         * @description Device Bearer authorization is required on the actual LAN listener. Existing local business consumers may omit it. Authentication runs before route/object lookup and every Asset GET/HEAD/Range request.
+         * @description Direct access on known local and explicitly enabled LAN listeners. No PIN or device credential is required, including Asset GET/HEAD/Range. Unknown accepting socket bindings are rejected.
          */
         get: operations["list_projects_projects_get"];
         put?: never;
         /**
          * Create Project
-         * @description Device Bearer authorization is required on the actual LAN listener. Existing local business consumers may omit it. Authentication runs before route/object lookup and every Asset GET/HEAD/Range request. Idempotency-Key must be a UUID for LAN writes and is optional for existing local callers. The same key and validated intent replay the original resource with status 200 before current Runtime readiness/retry checks. A different operation/target/input returns 409. Persist the key and frozen intent before sending; query GET /requests/{request_id} after an uncertain response.
+         * @description Direct access on known local and explicitly enabled LAN listeners. No PIN or device credential is required, including Asset GET/HEAD/Range. Unknown accepting socket bindings are rejected. Idempotency-Key must be a UUID for LAN writes and is optional for existing local callers. The same key and validated intent replay the original resource with status 200 before current Runtime readiness/retry checks. A different operation/target/input returns 409. Persist the key and frozen intent before sending; query GET /requests/{request_id} after an uncertain response.
          */
         post: operations["create_project_projects_post"];
         delete?: never;
@@ -315,7 +315,7 @@ export interface paths {
         };
         /**
          * Get Project
-         * @description Device Bearer authorization is required on the actual LAN listener. Existing local business consumers may omit it. Authentication runs before route/object lookup and every Asset GET/HEAD/Range request.
+         * @description Direct access on known local and explicitly enabled LAN listeners. No PIN or device credential is required, including Asset GET/HEAD/Range. Unknown accepting socket bindings are rejected.
          */
         get: operations["get_project_projects__project_id__get"];
         put?: never;
@@ -335,13 +335,13 @@ export interface paths {
         };
         /**
          * List Assets
-         * @description Device Bearer authorization is required on the actual LAN listener. Existing local business consumers may omit it. Authentication runs before route/object lookup and every Asset GET/HEAD/Range request.
+         * @description Direct access on known local and explicitly enabled LAN listeners. No PIN or device credential is required, including Asset GET/HEAD/Range. Unknown accepting socket bindings are rejected.
          */
         get: operations["list_assets_projects__project_id__assets_get"];
         put?: never;
         /**
          * Upload Audio
-         * @description Device Bearer authorization is required on the actual LAN listener. Existing local business consumers may omit it. Authentication runs before route/object lookup and every Asset GET/HEAD/Range request.
+         * @description Direct access on known local and explicitly enabled LAN listeners. No PIN or device credential is required, including Asset GET/HEAD/Range. Unknown accepting socket bindings are rejected.
          */
         post: operations["upload_audio_projects__project_id__assets_post"];
         delete?: never;
@@ -359,7 +359,7 @@ export interface paths {
         };
         /**
          * Get Asset
-         * @description Device Bearer authorization is required on the actual LAN listener. Existing local business consumers may omit it. Authentication runs before route/object lookup and every Asset GET/HEAD/Range request.
+         * @description Direct access on known local and explicitly enabled LAN listeners. No PIN or device credential is required, including Asset GET/HEAD/Range. Unknown accepting socket bindings are rejected.
          */
         get: operations["get_asset_projects__project_id__assets__asset_id__get"];
         put?: never;
@@ -379,7 +379,7 @@ export interface paths {
         };
         /**
          * Download Asset
-         * @description Device Bearer authorization is required on the actual LAN listener. Existing local business consumers may omit it. Authentication runs before route/object lookup and every Asset GET/HEAD/Range request.
+         * @description Direct access on known local and explicitly enabled LAN listeners. No PIN or device credential is required, including Asset GET/HEAD/Range. Unknown accepting socket bindings are rejected.
          */
         get: operations["download_asset_projects__project_id__assets__asset_id__content_get"];
         put?: never;
@@ -388,7 +388,7 @@ export interface paths {
         options?: never;
         /**
          * Download Asset
-         * @description Device Bearer authorization is required on the actual LAN listener. Existing local business consumers may omit it. Authentication runs before route/object lookup and every Asset GET/HEAD/Range request.
+         * @description Direct access on known local and explicitly enabled LAN listeners. No PIN or device credential is required, including Asset GET/HEAD/Range. Unknown accepting socket bindings are rejected.
          */
         head: operations["download_asset_projects__project_id__assets__asset_id__content_head"];
         patch?: never;
@@ -405,7 +405,7 @@ export interface paths {
         put?: never;
         /**
          * Create Transcription
-         * @description Device Bearer authorization is required on the actual LAN listener. Existing local business consumers may omit it. Authentication runs before route/object lookup and every Asset GET/HEAD/Range request.
+         * @description Direct access on known local and explicitly enabled LAN listeners. No PIN or device credential is required, including Asset GET/HEAD/Range. Unknown accepting socket bindings are rejected.
          */
         post: operations["create_transcription_projects__project_id__transcriptions_post"];
         delete?: never;
@@ -423,7 +423,7 @@ export interface paths {
         };
         /**
          * List Jobs
-         * @description Device Bearer authorization is required on the actual LAN listener. Existing local business consumers may omit it. Authentication runs before route/object lookup and every Asset GET/HEAD/Range request.
+         * @description Direct access on known local and explicitly enabled LAN listeners. No PIN or device credential is required, including Asset GET/HEAD/Range. Unknown accepting socket bindings are rejected.
          */
         get: operations["list_jobs_projects__project_id__jobs_get"];
         put?: never;
@@ -443,7 +443,7 @@ export interface paths {
         };
         /**
          * Get Job
-         * @description Device Bearer authorization is required on the actual LAN listener. Existing local business consumers may omit it. Authentication runs before route/object lookup and every Asset GET/HEAD/Range request.
+         * @description Direct access on known local and explicitly enabled LAN listeners. No PIN or device credential is required, including Asset GET/HEAD/Range. Unknown accepting socket bindings are rejected.
          */
         get: operations["get_job_projects__project_id__jobs__job_id__get"];
         put?: never;
@@ -465,7 +465,7 @@ export interface paths {
         put?: never;
         /**
          * Cancel Job
-         * @description Device Bearer authorization is required on the actual LAN listener. Existing local business consumers may omit it. Authentication runs before route/object lookup and every Asset GET/HEAD/Range request.
+         * @description Direct access on known local and explicitly enabled LAN listeners. No PIN or device credential is required, including Asset GET/HEAD/Range. Unknown accepting socket bindings are rejected.
          */
         post: operations["cancel_job_projects__project_id__jobs__job_id__cancel_post"];
         delete?: never;
@@ -485,7 +485,7 @@ export interface paths {
         put?: never;
         /**
          * Retry Job
-         * @description Device Bearer authorization is required on the actual LAN listener. Existing local business consumers may omit it. Authentication runs before route/object lookup and every Asset GET/HEAD/Range request. Idempotency-Key must be a UUID for LAN writes and is optional for existing local callers. The same key and validated intent replay the original resource with status 200 before current Runtime readiness/retry checks. A different operation/target/input returns 409. Persist the key and frozen intent before sending; query GET /requests/{request_id} after an uncertain response.
+         * @description Direct access on known local and explicitly enabled LAN listeners. No PIN or device credential is required, including Asset GET/HEAD/Range. Unknown accepting socket bindings are rejected. Idempotency-Key must be a UUID for LAN writes and is optional for existing local callers. The same key and validated intent replay the original resource with status 200 before current Runtime readiness/retry checks. A different operation/target/input returns 409. Persist the key and frozen intent before sending; query GET /requests/{request_id} after an uncertain response.
          */
         post: operations["retry_job_projects__project_id__jobs__job_id__retry_post"];
         delete?: never;
@@ -505,7 +505,7 @@ export interface paths {
         put?: never;
         /**
          * Validate Edited Score
-         * @description Device Bearer authorization is required on the actual LAN listener. Existing local business consumers may omit it. Authentication runs before route/object lookup and every Asset GET/HEAD/Range request.
+         * @description Direct access on known local and explicitly enabled LAN listeners. No PIN or device credential is required, including Asset GET/HEAD/Range. Unknown accepting socket bindings are rejected.
          */
         post: operations["validate_edited_score_projects__project_id__scores_validate_post"];
         delete?: never;
@@ -523,13 +523,13 @@ export interface paths {
         };
         /**
          * List Scores
-         * @description Device Bearer authorization is required on the actual LAN listener. Existing local business consumers may omit it. Authentication runs before route/object lookup and every Asset GET/HEAD/Range request.
+         * @description Direct access on known local and explicitly enabled LAN listeners. No PIN or device credential is required, including Asset GET/HEAD/Range. Unknown accepting socket bindings are rejected.
          */
         get: operations["list_scores_projects__project_id__scores_get"];
         put?: never;
         /**
          * Create Edited Score
-         * @description Device Bearer authorization is required on the actual LAN listener. Existing local business consumers may omit it. Authentication runs before route/object lookup and every Asset GET/HEAD/Range request.
+         * @description Direct access on known local and explicitly enabled LAN listeners. No PIN or device credential is required, including Asset GET/HEAD/Range. Unknown accepting socket bindings are rejected.
          */
         post: operations["create_edited_score_projects__project_id__scores_post"];
         delete?: never;
@@ -547,7 +547,7 @@ export interface paths {
         };
         /**
          * Get Score
-         * @description Device Bearer authorization is required on the actual LAN listener. Existing local business consumers may omit it. Authentication runs before route/object lookup and every Asset GET/HEAD/Range request.
+         * @description Direct access on known local and explicitly enabled LAN listeners. No PIN or device credential is required, including Asset GET/HEAD/Range. Unknown accepting socket bindings are rejected.
          */
         get: operations["get_score_projects__project_id__scores__score_id__get"];
         put?: never;
@@ -569,7 +569,7 @@ export interface paths {
         put?: never;
         /**
          * Create Generate Job
-         * @description Device Bearer authorization is required on the actual LAN listener. Existing local business consumers may omit it. Authentication runs before route/object lookup and every Asset GET/HEAD/Range request. Idempotency-Key must be a UUID for LAN writes and is optional for existing local callers. The same key and validated intent replay the original resource with status 200 before current Runtime readiness/retry checks. A different operation/target/input returns 409. Persist the key and frozen intent before sending; query GET /requests/{request_id} after an uncertain response.
+         * @description Direct access on known local and explicitly enabled LAN listeners. No PIN or device credential is required, including Asset GET/HEAD/Range. Unknown accepting socket bindings are rejected. Idempotency-Key must be a UUID for LAN writes and is optional for existing local callers. The same key and validated intent replay the original resource with status 200 before current Runtime readiness/retry checks. A different operation/target/input returns 409. Persist the key and frozen intent before sending; query GET /requests/{request_id} after an uncertain response.
          */
         post: operations["create_generate_job_projects__project_id__jobs_generate_post"];
         delete?: never;
@@ -589,7 +589,7 @@ export interface paths {
         put?: never;
         /**
          * Create Generate From Score Job
-         * @description Device Bearer authorization is required on the actual LAN listener. Existing local business consumers may omit it. Authentication runs before route/object lookup and every Asset GET/HEAD/Range request.
+         * @description Direct access on known local and explicitly enabled LAN listeners. No PIN or device credential is required, including Asset GET/HEAD/Range. Unknown accepting socket bindings are rejected.
          */
         post: operations["create_generate_from_score_job_projects__project_id__jobs_generate_from_score_post"];
         delete?: never;
@@ -607,7 +607,7 @@ export interface paths {
         };
         /**
          * List Candidates
-         * @description Device Bearer authorization is required on the actual LAN listener. Existing local business consumers may omit it. Authentication runs before route/object lookup and every Asset GET/HEAD/Range request.
+         * @description Direct access on known local and explicitly enabled LAN listeners. No PIN or device credential is required, including Asset GET/HEAD/Range. Unknown accepting socket bindings are rejected.
          */
         get: operations["list_candidates_projects__project_id__candidates_get"];
         put?: never;
@@ -627,7 +627,7 @@ export interface paths {
         };
         /**
          * Get Candidate
-         * @description Device Bearer authorization is required on the actual LAN listener. Existing local business consumers may omit it. Authentication runs before route/object lookup and every Asset GET/HEAD/Range request.
+         * @description Direct access on known local and explicitly enabled LAN listeners. No PIN or device credential is required, including Asset GET/HEAD/Range. Unknown accepting socket bindings are rejected.
          */
         get: operations["get_candidate_projects__project_id__candidates__candidate_id__get"];
         put?: never;
@@ -647,13 +647,13 @@ export interface paths {
         };
         /**
          * List Versions
-         * @description Device Bearer authorization is required on the actual LAN listener. Existing local business consumers may omit it. Authentication runs before route/object lookup and every Asset GET/HEAD/Range request.
+         * @description Direct access on known local and explicitly enabled LAN listeners. No PIN or device credential is required, including Asset GET/HEAD/Range. Unknown accepting socket bindings are rejected.
          */
         get: operations["list_versions_projects__project_id__versions_get"];
         put?: never;
         /**
          * Create Version
-         * @description Device Bearer authorization is required on the actual LAN listener. Existing local business consumers may omit it. Authentication runs before route/object lookup and every Asset GET/HEAD/Range request.
+         * @description Direct access on known local and explicitly enabled LAN listeners. No PIN or device credential is required, including Asset GET/HEAD/Range. Unknown accepting socket bindings are rejected.
          */
         post: operations["create_version_projects__project_id__versions_post"];
         delete?: never;
@@ -671,7 +671,7 @@ export interface paths {
         };
         /**
          * Get Version
-         * @description Device Bearer authorization is required on the actual LAN listener. Existing local business consumers may omit it. Authentication runs before route/object lookup and every Asset GET/HEAD/Range request.
+         * @description Direct access on known local and explicitly enabled LAN listeners. No PIN or device credential is required, including Asset GET/HEAD/Range. Unknown accepting socket bindings are rejected.
          */
         get: operations["get_version_projects__project_id__versions__version_id__get"];
         put?: never;
@@ -693,7 +693,7 @@ export interface paths {
         put?: never;
         /**
          * Create Reference
-         * @description Device Bearer authorization is required on the actual LAN listener. Existing local business consumers may omit it. Authentication runs before route/object lookup and every Asset GET/HEAD/Range request.
+         * @description Direct access on known local and explicitly enabled LAN listeners. No PIN or device credential is required, including Asset GET/HEAD/Range. Unknown accepting socket bindings are rejected.
          */
         post: operations["create_reference_projects__project_id__reference_audio_from_version_post"];
         delete?: never;
@@ -711,7 +711,7 @@ export interface paths {
         };
         /**
          * Read Reference Origin
-         * @description Device Bearer authorization is required on the actual LAN listener. Existing local business consumers may omit it. Authentication runs before route/object lookup and every Asset GET/HEAD/Range request.
+         * @description Direct access on known local and explicitly enabled LAN listeners. No PIN or device credential is required, including Asset GET/HEAD/Range. Unknown accepting socket bindings are rejected.
          */
         get: operations["read_reference_origin_projects__project_id__assets__asset_id__reference_origin_get"];
         put?: never;
@@ -733,7 +733,7 @@ export interface paths {
         put?: never;
         /**
          * Validate Cover
-         * @description Device Bearer authorization is required on the actual LAN listener. Existing local business consumers may omit it. Authentication runs before route/object lookup and every Asset GET/HEAD/Range request.
+         * @description Direct access on known local and explicitly enabled LAN listeners. No PIN or device credential is required, including Asset GET/HEAD/Range. Unknown accepting socket bindings are rejected.
          */
         post: operations["validate_cover_projects__project_id__cover_inputs_validate_post"];
         delete?: never;
@@ -753,7 +753,7 @@ export interface paths {
         put?: never;
         /**
          * Create Cover
-         * @description Device Bearer authorization is required on the actual LAN listener. Existing local business consumers may omit it. Authentication runs before route/object lookup and every Asset GET/HEAD/Range request.
+         * @description Direct access on known local and explicitly enabled LAN listeners. No PIN or device credential is required, including Asset GET/HEAD/Range. Unknown accepting socket bindings are rejected.
          */
         post: operations["create_cover_projects__project_id__jobs_cover_post"];
         delete?: never;
@@ -1018,8 +1018,16 @@ export interface components {
              * @constant
              */
             protocol_version?: 1;
+            /**
+             * Access Method
+             * @default direct
+             * @constant
+             */
+            access_method?: "direct";
             /** Pairing Available */
             pairing_available: boolean;
+            /** Lan Address */
+            lan_address: string | null;
         };
         /** CoverCreate */
         CoverCreate: {
@@ -1159,8 +1167,11 @@ export interface components {
              * @enum {string}
              */
             freshness: "fresh" | "stale" | "unavailable";
-            /** Max Age Seconds */
-            max_age_seconds: number;
+            /**
+             * Max Age Seconds
+             * @description Age limit for live observations; null for immutable proof validated against the current process/source/model identity. observed_at retains its original verification time.
+             */
+            max_age_seconds: number | null;
         };
         /** DiagnosticValue[dict[str, list[str]]] */
         DiagnosticValue_dict_str__list_str___: {

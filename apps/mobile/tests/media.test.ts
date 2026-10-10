@@ -13,7 +13,7 @@ const assetId = '805cecaa-c24a-42bd-ab63-801c07a53f17';
 const originalSha256 = '2e36c3fd44bc2738d02a023c65461e58016b7dd33e1ed98b9fb15d350be27897';
 const selection = { projectId, assetId, recordId: '1dd5cfde-b06d-4b5f-9fac-3d650508b75d', label: 'Original Candidate' };
 
-async function fixture() {
+async function fixture(direct = false) {
   const original = new Uint8Array(await readFile(new URL('./fixtures/original-35s.flac', import.meta.url)));
   let local: unknown = null;
   const secrets = new Map<string, string>();
@@ -27,7 +27,8 @@ async function fixture() {
     random: { uuid: () => deviceId, token: async () => 'ab'.repeat(32) },
     fetch: async request => {
       const identity = new URL(request.url).origin === 'http://192.168.1.9:8002' ? '8c3c8c40-4b3b-47c0-b9c4-7f88b6f09f59' : serverId;
-      if (new URL(request.url).pathname === '/connection') return Response.json({ server_id: identity, protocol_version: 1, pairing_available: true });
+      if (new URL(request.url).pathname === '/connection') return Response.json({ server_id: identity, protocol_version: 1,
+        ...(direct ? { access_method: 'direct', pairing_available: false } : { pairing_available: true }) });
       if (new URL(request.url).pathname.endsWith('/assets/' + assetId)) return Response.json(asset);
       if (new URL(request.url).pathname === '/device') {
         stats.authorizations++;
@@ -37,7 +38,9 @@ async function fixture() {
       return Response.json({ server_id: identity, device: { id: deviceId, name: 'Phone', created_at: 1, revoked_at: null } });
     },
   });
-  await session.hydrate(); await session.pair('http://192.168.1.8:8001', '246810', 'Phone');
+  await session.hydrate();
+  if (direct) await session.connect('http://192.168.1.8:8001');
+  else await session.pair('http://192.168.1.8:8001', '246810', 'Phone');
   const files = new Map<string, Uint8Array>();
   let fileIds = 0;
   const playerSources: string[] = [];
@@ -49,7 +52,7 @@ async function fixture() {
     session,
     fetch: async (request, init) => {
       assert.equal(request.url, `http://192.168.1.8:8001/projects/${projectId}/assets/${assetId}/content`);
-      assert.equal(request.headers.has('authorization'), true);
+      assert.equal(request.headers.has('authorization'), !direct);
       assert.equal(init.redirect, 'error', 'the real fetch init must carry policy, independently of RN Request properties');
       return new Response(original, { headers: { 'Content-Type': 'audio/flac', 'Content-Length': '467960' } });
     },
@@ -98,6 +101,27 @@ test('selecting the protected original FLAC verifies bytes and loads only a paus
   await controller.release();
   assert.equal(f.files.size, 0);
   f.session.dispose();
+});
+
+test('direct LAN original FLAC retains byte verification, explicit playback, seek and foreground cleanup without credentials', async t => {
+  const f = await fixture(true);
+  const controller = owned(t, f);
+  await controller.select(selection);
+  assert.equal(controller.getSnapshot().playing, false);
+  assert.deepEqual(controller.getSnapshot().verified, { sizeBytes: 467960, sha256: originalSha256 });
+  await controller.play();
+  await controller.seekTo(12);
+  assert.equal(controller.getSnapshot().position, 12);
+  await f.session.setForeground(false);
+  await waitFor(() => f.files.size === 0);
+  assert.equal(controller.getSnapshot().playing, false);
+  await f.session.setForeground(true);
+  assert.equal(controller.getSnapshot().playing, false);
+  assert.equal(f.files.size, 0);
+  await controller.play();
+  assert.equal(controller.getSnapshot().playing, true);
+  assert.equal(controller.getSnapshot().position, 12);
+  assert.equal(f.stats.authorizations, 0, 'direct media never requests a device authorization');
 });
 
 async function waitFor(ready: () => boolean) {

@@ -22,14 +22,46 @@ def test_current_bound_source_preserves_verified_hash_without_loading_gpu(tmp_pa
         assert evidence.models[0].checked_at == receipt.models[0].checked_at
 
 
+def test_aged_unchanged_proof_remains_valid_without_rehash_or_timestamp_renewal(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    with bound_evidence(tmp_path) as (url, requirements, receipt, receipt_path, model, _):
+        import hashlib
+        import os
+        old = datetime.now(timezone.utc) - timedelta(days=30)
+        data = json.loads(receipt.model_dump_json())
+        data["checked_at"] = data["models"][0]["checked_at"] = old.isoformat()
+        receipt_path.write_text(json.dumps(data), encoding="utf-8")
+        original = receipt_path.read_bytes()
+
+        def forbidden_hash(*args, **kwargs):
+            raise AssertionError("Reading unchanged proof must not rehash weights")
+
+        monkeypatch.setattr(hashlib, "file_digest", forbidden_hash)
+        for _ in range(2):
+            evidence = read_runtime_evidence(receipt_path, runtime_url=url, now=datetime.now(timezone.utc),
+                                             max_age_seconds=1, requirements=requirements)
+            assert evidence.binding_verified and evidence.reasons == ()
+            assert evidence.models[0].state == "ready"
+            assert evidence.checked_at == evidence.models[0].checked_at == old
+            assert receipt_path.read_bytes() == original
+        # Same-size replacement still invalidates the original fingerprint.
+        model.write_bytes(b"abd")
+        stamp = receipt.models[0].fingerprint.mtime_ns + 2_000_000_000
+        os.utime(model, ns=(stamp, stamp))
+        changed = read_runtime_evidence(receipt_path, runtime_url=url, now=datetime.now(timezone.utc),
+                                       max_age_seconds=1, requirements=requirements)
+        assert changed.models[0].state == "unknown"
+        assert changed.models[0].reasons == ("model_fingerprint_changed",)
+        assert receipt_path.read_bytes() == original
+
+
 @pytest.mark.parametrize("scenario,code", [
     ("foreign_url", "runtime_evidence_identity_mismatch"),
     ("reused_pid", "runtime_process_identity_changed"),
     ("changed_fingerprint", "model_fingerprint_changed"),
     ("missing_file", "model_missing"),
     ("invalid_hash", "model_hash_invalid"),
-    ("resaved_stale", "runtime_evidence_stale"),
     ("foreign_revision", "runtime_evidence_revision_mismatch"),
+    ("dirty_runtime_source", "runtime_source_revision_changed"),
     ("foreign_mode", "runtime_evidence_invalid"),
     ("future_receipt", "runtime_evidence_future"),
     ("future_model", "model_evidence_future"),
@@ -47,12 +79,10 @@ def test_current_authorization_rejects_changed_or_foreign_source(tmp_path: Path,
             model.unlink()
         elif scenario == "invalid_hash":
             data["models"][0]["actual_sha256"] = "0" * 64
-        elif scenario == "resaved_stale":
-            old = (datetime.now(timezone.utc) - timedelta(seconds=600)).isoformat()
-            data["checked_at"] = old
-            data["models"][0]["checked_at"] = old
         elif scenario == "foreign_revision":
             data["runtime_revision"] = "0" * 40
+        elif scenario == "dirty_runtime_source":
+            receipt.process.entrypoint.write_text(receipt.process.entrypoint.read_text(encoding="utf-8") + "\n# changed source\n", encoding="utf-8")
         elif scenario == "foreign_mode":
             data["mode"] = "fake"
         elif scenario == "future_receipt":

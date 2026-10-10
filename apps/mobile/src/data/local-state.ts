@@ -1,6 +1,6 @@
 import type { components } from '@llm-music/api-client';
 
-export type ServerRecord = Readonly<{ serverId: string; baseUrl: string; deviceName: string; credentialExpected?: boolean }>;
+export type ServerRecord = Readonly<{ serverId: string; baseUrl: string; accessMethod?: 'direct'; deviceName?: string; credentialExpected?: boolean }>;
 export type CreationDraft = Readonly<{ style: string; lyrics: string; seed: string; maxSeconds: string }>;
 export type TitleTarget = Readonly<{ kind: 'project' } | { kind: 'version'; projectId: string; candidateId: string }>;
 export type IntentInput =
@@ -59,9 +59,13 @@ export function parseDocument(raw: unknown, normalizeUrl: (url: string) => strin
   for (const [key, value] of Object.entries(raw.servers)) {
     id(key);
     if (!record(value) || value.serverId !== key) throw new Error('invalid local server');
-    string(value.baseUrl); string(value.deviceName);
+    string(value.baseUrl);
+    if (value.deviceName !== undefined) string(value.deviceName);
+    if (value.accessMethod !== undefined && value.accessMethod !== 'direct') throw new Error('invalid local access method');
     if (normalizeUrl(value.baseUrl) !== value.baseUrl || value.credentialExpected !== undefined && typeof value.credentialExpected !== 'boolean') throw new Error('invalid local server');
-    servers[key] = freeze({ serverId: key, baseUrl: value.baseUrl, deviceName: value.deviceName,
+    servers[key] = freeze({ serverId: key, baseUrl: value.baseUrl,
+      ...(value.accessMethod === undefined ? {} : { accessMethod: value.accessMethod }),
+      ...(value.deviceName === undefined ? {} : { deviceName: value.deviceName }),
       ...(value.credentialExpected === undefined ? {} : { credentialExpected: value.credentialExpected }) });
   }
   if (raw.activeServerId !== null) { id(raw.activeServerId); if (!servers[raw.activeServerId]) throw new Error('invalid active server'); }

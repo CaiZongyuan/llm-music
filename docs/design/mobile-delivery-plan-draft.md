@@ -2,9 +2,11 @@
 
 日期：2026-10-10。用户已确认完整隔离交互预览并授权接入真实后端。正式规格 [SPEC-017 #99](https://github.com/CaiZongyuan/llm-music/issues/99) 和六张实施票据已发布；GitHub Issues 是范围、阻塞和完成状态的来源，本文件保留实施边界与安排。
 
+2026-10-11 修订：用户明确要求局域网自用输入地址直接连接，不使用 PIN；未变更的 Runtime/模型校验不能仅按五分钟失效。新[预览](../previews/mobile-lan-direct-v1/index.html)先交付，按已授权纠正继续实施，见 [ADR-007](../adr/0007-direct-lan-and-stable-runtime-evidence.md)、[UI 记录](../ui/mobile-lan-direct.md)和 [#113](https://github.com/CaiZongyuan/llm-music/issues/113)。以下 M1–M6 表保留原发布范围的历史；其中配对、设备凭据、撤销及音频 Authorization 要求由本次直连修订覆盖。请求幂等、草稿/服务器隔离、明确保存、前台播放与真实 GPU/物理 Android/APK 的独立验收继续有效。
+
 ## 交付行为
 
-保留 Web 与同一 FastAPI 数据拥有者。手机通过局域网手工配对连接保持运行的音乐电脑，创建/打开 Project，输入风格、歌词、Seed 与时长上限，发起和恢复 Job，取消并明确重试，试听 Candidate，再命名保存 Version 与查看历史。手机保留创作草稿和未确认请求，返回时先读原任务。使用 Expo SDK 57，日常优先 Expo Go，Android 模拟器、真机与独立 APK 作为正式验收目标。
+保留 Web 与同一 FastAPI 数据拥有者。手机通过局域网输入地址直接连接保持运行的音乐电脑，创建/打开 Project，输入风格、歌词、Seed 与时长上限，发起和恢复 Job，取消并明确重试，试听 Candidate，再命名保存 Version 与查看历史。手机保留创作草稿和未确认请求，返回时先读原任务。使用 Expo SDK 57，日常优先 Expo Go，Android 模拟器、真机与独立 APK 作为正式验收目标。
 
 最新已交付的时长契约来自 [#97](https://github.com/CaiZongyuan/llm-music/issues/97)：空/0 自动，UI 手工上限 5–360 秒；输出可早于上限。阶段来源沿用已存在的 API，真实进度未知时不显示百分比。iPhone 的初始化连接反馈不自动扩大正式首版验收范围。
 

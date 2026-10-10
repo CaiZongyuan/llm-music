@@ -54,7 +54,7 @@ Candidate 可从 `GET /projects/{project_id}/candidates` 列表，或 `/candidat
 
 随后按引用读取 `/projects/{project_id}` 或 `/projects/{project_id}/jobs/{resource_id}`。不要用相同歌词、最新时间或列表顺序猜原任务。`404 request_not_found` 只表示当前没有已提交引用，原 POST 仍可能在途；保留冻结意图，让创作者明确选择重发同一 key。读取、返回前台和网络恢复不会自动重发写入，也不能换一个新 key 代替未知请求。
 
-key 在同一服务器的数据目录内共享，不绑定某个设备 token。撤销后重新配对的设备仍可恢复原引用。同 key 改变操作、目标或标准化输入返回 `409 idempotency_conflict`，即使新目标不存在。重放原请求先读取已提交资源，之后资源或 Runtime 不就绪不会把它变成新任务。明确 retry 仍是无请求体的 `POST /projects/{project_id}/jobs/{job_id}/retry`：保留原 Job 和输入快照，返回的新 Job 在 `provenance.retry_of_job_id` 记录原 Job。
+key 在同一服务器的数据目录内共享，不绑定某个设备 token。重新连接原服务器后仍可恢复原引用，不需要配对。同 key 改变操作、目标或标准化输入返回 `409 idempotency_conflict`，即使新目标不存在。重放原请求先读取已提交资源，之后资源或 Runtime 不就绪不会把它变成新任务。明确 retry 仍是无请求体的 `POST /projects/{project_id}/jobs/{job_id}/retry`：保留原 Job 和输入快照，返回的新 Job 在 `provenance.retry_of_job_id` 记录原 Job。
 
 业务资源与引用在同一事务提交；只有新 Job 在提交后进入现有队列。API 重启沿用原 Job 恢复规则，不能保证尚未派发的 Job 自动继续推理；终态失败后，由创作者决定是否明确 retry。修改当前草稿不改变未知请求的冻结输入。取消仍沿原 job_id 查询确认；Version 保存仍按 Candidate、名称和 parent 核对，使用下文既有规则。
 

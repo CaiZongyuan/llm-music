@@ -1,9 +1,9 @@
-# Preparation only; full journey has not passed. Requires integrated M4/M5 and prior pairing.
+# Direct connection revision: this flow needs fresh native source/binary evidence.
 # Run via scripts/test-mobile-workflow.ps1: it checks the explicit Fake API/SID.
-# Public selectors come from M4 40fcf487; no preview or private test route is used.
+# The normal product connection and workbench are used, without preview/private routes.
 # This covers button seeks. Slider dragging/native bytes/GPU/APK config remain separate.
 appId: ${APP_ID}
-name: Paired isolated Fake API creation and explicit Version save
+name: Direct LAN isolated Fake API creation and explicit Version save
 ---
 - launchApp:
     clearState: false
@@ -24,18 +24,55 @@ name: Paired isolated Fake API creation and explicit Version save
     commands:
       - extendedWaitUntil:
           visible:
-            id: open-mobile-connection
+            text: '声间 / (我的电脑|我的项目)'
           timeout: 90000
-      - tapOn:
-          id: open-mobile-connection
+      - runFlow:
+          when:
+            visible:
+              id: open-mobile-connection
+          commands:
+            - tapOn:
+                id: open-mobile-connection
+- extendedWaitUntil:
+    visible:
+      id: connect-address
+    timeout: 90000
+- tapOn:
+    id: connect-address
+    point: "95%,50%"
+# The short LAN IPv4 address fits the field. Tap its right edge before backspacing
+# so a caret placed in the middle cannot leave an old port suffix behind.
+- eraseText: 100
+- inputText: ${API_URL}
+- assertVisible:
+    id: connect-address
+    text: '^${API_PATTERN}$'
+- scrollUntilVisible:
+    element:
+      id: connect-submit
+    direction: DOWN
+- tapOn:
+    id: connect-submit
+- scrollUntilVisible:
+    element:
+      id: connection-status
+    direction: UP
 - extendedWaitUntil:
     visible:
       id: connection-status
       text: 电脑已连接
     timeout: 90000
+- scrollUntilVisible:
+    element:
+      id: connected-address
+    direction: DOWN
 - assertVisible:
     id: connected-address
-    text: ${PAIRED_API_PATTERN}
+    text: ${API_PATTERN}
+- scrollUntilVisible:
+    element:
+      id: open-workbench
+    direction: DOWN
 - tapOn:
     id: open-workbench
 - extendedWaitUntil:

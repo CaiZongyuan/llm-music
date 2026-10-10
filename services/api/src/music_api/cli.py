@@ -30,7 +30,7 @@ def main() -> None:
     parser.add_argument("--data-dir", type=Path, help="Owned application data directory; defaults to MUSIC_API_DATA_DIR or repository data/")
     parser.add_argument("--host", choices=["127.0.0.1", "localhost", "::1"], default="127.0.0.1")
     parser.add_argument("--port", type=int, default=8000)
-    parser.add_argument("--lan-host", help="Explicit IPv4 of an active local interface; enables the additional authenticated LAN listener")
+    parser.add_argument("--lan-host", help="Explicit IPv4 of an active local interface; enables the additional direct LAN listener")
     parser.add_argument("--lan-port", type=int, default=8001)
     parser.add_argument("--owner-origin", action="append", help="Allowed local browser Origin; repeat for additional workbench Origins")
     parser.add_argument("--output", type=Path, help="OpenAPI output file; absent writes stdout")

@@ -4,6 +4,8 @@
 
 独立 APK 已在 Windows Android Emulator 中完成配对、真实 GPU 生成、原始 FLAC 试听、明确命名保存和版本历史。最终云 APK 已恢复同一个 GPU Project 的冷启动入口，实际校验后发布到 [Android Preview 1](https://github.com/CaiZongyuan/llm-music/releases/tag/mobile-v1.0.0-preview.1)。**物理 Android 仍待验收；#105 尚未完成，PR #112 保持 Draft。** 本次实际设备只有 `emulator-5562`，没有 WSL 或 Android 物理真机执行证据。
 
+2026-10-11 最新范围改为局域网地址直连和未变更模型校验不按五分钟失效，见 [ADR-007](../adr/0007-direct-lan-and-stable-runtime-evidence.md) 与 [#113](https://github.com/CaiZongyuan/llm-music/issues/113)。本页 APK、配对与 GPU 收据继续表示原版本实测，不能作为直连新版本验收。下方复用命令已同步直连 runner；新源码/设备/二进制与实际执行结果由本次修订另行记录，不把物理 Android 标为完成。
+
 最终交付 APK 来自 [Actions run 38072022820](https://github.com/CaiZongyuan/llm-music/actions/runs/38072022820)，源码/tag 为 `ef727d5aeaae2ec3f115f1d84007ed2229078ea2`。官方 CLI 以 numeric build ID `38072022820` 下载 `3063bd76-b4cf-4423-bfb4-a8cb9efe6acc.zip`；APK **73,877,767 bytes**，SHA-256 **`c286cd1c2f153a337d6db65378311d97e2b655868c31994fb31d85889e534b4f`**，与归档 checksum、实际安装文件及 Release asset digest 一致。Signer 与 E2 同为 `fac61745dc0903786fb9ede62a962b399f7348f0bb6f899b8332667591033b9c`；Manifest 实测 LAN cleartext=true、无录音/后台音频权限与服务。源、校验、Manifest、签名及最终文件留在 Root `rnd-ef-final/`。
 
 关闭 Metro 后，最终云 APK 用同一 GPU Project/Version 完成 `m6-final-cloud-gpu-cold-restore.log` / JUnit：**1 flow、22 秒、terminal exit 0**，恢复完整中文草稿、原版本历史，确认没有自动播放，再明确点击播放原始 39 秒音频。没有重复推理或再次保存。发布于 `2026-10-10T17:49:41Z`，tag 的 GitHub readback 指向上述源码 SHA，三个附件均已 uploaded；M6 物理设备验收不由此次预发布替代。
@@ -108,15 +110,15 @@ pnpm --filter @llm-music/api-client build
 pnpm mobile:dev --lan --port 18081
 ```
 
-Go 扫描 Metro 二维码或加载 `exp://<电脑 Wi-Fi IPv4>:18081`；App 的 `/connect` 另填 FastAPI LAN HTTP 地址及电脑 UI 显示的配对码。两者是不同服务。仅模拟器 loopback 开发可用 `pnpm mobile:android --localhost --port 18081`。本次实际运行使用 Windows Android Emulator；不把这些结果写为 WSL 已验证。
+Go 扫描 Metro 二维码或加载 `exp://<电脑 Wi-Fi IPv4>:18081`；App 的 `/connect` 另填 FastAPI LAN HTTP 地址，点击“连接电脑”，不输入配对码。两者是不同服务。仅模拟器 loopback 开发可用 `pnpm mobile:android --localhost --port 18081`。本页历史实测使用 Windows Android Emulator；不把这些结果写为 WSL 已验证。
 
-已在目标 App 中配对到隔离 Fake Runtime 后，从根目录执行；替换地址和隔离数据库 `server_id`：
+准备隔离 Fake Runtime 的 loopback 与 LAN 入口后，从根目录执行；替换地址和隔离数据库 `server_id`。runner 会在 UI 填写地址并连接，不要求事先配对：
 
 ```powershell
 ./scripts/test-mobile-workflow.ps1 -Device emulator-5562 -AppId host.exp.exponent `
   -ExpoUrl 'exp://<电脑IPv4>:18081' -FakeApiUrl 'http://127.0.0.1:18700' `
-  -PairedApiUrl 'http://<电脑IPv4>:18701' -ExpectedServerId '<server_id>' `
-  -Paired -Isolated -CheckBackground
+  -ApiUrl 'http://<电脑IPv4>:18701' -ExpectedServerId '<server_id>' `
+  -Isolated -CheckBackground
 ```
 
 独立 APK 改用 `-AppMode Apk -AppId com.shengjian.mobile` 并省略 `-ExpoUrl`。该入口不读取 PIN 或 token，不为调用者启动 API，不可指向真实 GPU。实际 GPU 本次由 Root 单独控制，避免公共 Fake 流程重复提交昂贵推理。

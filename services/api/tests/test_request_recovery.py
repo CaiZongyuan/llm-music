@@ -229,7 +229,7 @@ def test_lan_keys_and_rotated_credentials_recover_the_same_server_resource(tmp_p
         assert phone.post(route, json=inputs).status_code == 422
         assert phone.post("/projects/" + identifier + "/jobs/" + str(uuid4()) + "/retry").status_code == 422
         assert local.delete("/pairing/devices/" + first_device, headers=csrf).status_code == 200
-        assert phone.get("/requests/" + key).status_code == 401
+        assert phone.get("/requests/" + key).json() == source.json()
         second_device = pair("cd" * 32)
         assert second_device != first_device
         assert phone.get("/requests/" + key).json() == source.json()
