@@ -102,7 +102,6 @@ test('saved inputs, outputs and named parent survive cold reload; bilingual narr
   });
   await page.goto(`/projects/${project.id}/versions/${cover.id}`);
   await page.locator('.preferences select').selectOption('en');
-  if (await page.locator('html').getAttribute('data-theme') !== 'light') await page.locator('.preferences button').click();
   await page.setViewportSize({ width: 1440, height: 960 });
   await page.getByText('Submitted inputs', { exact: true }).click();
   await expect(page.locator('[data-submitted-abc]')).toHaveText(FULL_ABC);
@@ -126,7 +125,6 @@ test('saved inputs, outputs and named parent survive cold reload; bilingual narr
   await expect(page.locator('.branch-origin')).toHaveAttribute('data-branch-version-id', cover.id);
   await expect.poll(async () => (await mediaState(page)).time).toBeGreaterThan(time);
   await page.locator('.preferences select').selectOption('zh-CN');
-  await page.locator('.preferences button').click();
   await page.setViewportSize({ width: 390, height: 844 });
   await expect(page.locator('html')).toHaveAttribute('lang', 'zh-CN');
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
@@ -202,7 +200,9 @@ test('failed and cancelled branch Jobs keep history; save failures and lost ackn
   expect(await savedVersions(api, project.id)).toEqual(immutable.versions);
   await page.getByRole('textbox', { name: labels.en.name, exact: true }).fill('Later draft name must not replace first intent');
   await writeFile(resolve(runDir!, 'lose-version-ack'), 'owned branch acknowledgement fault');
+  const repeatedSave = page.waitForResponse(response => response.request().method() === 'POST' && response.url().endsWith(`/projects/${project.id}/versions`));
   await page.getByRole('button', { name: 'Save the same version again', exact: true }).click();
+  await repeatedSave;
   await expect(page.locator('.save-candidate [role="alert"]')).toContainText('version_commit_unconfirmed');
   const committed = await savedVersions(api, project.id);
   expect(committed).toHaveLength(4);

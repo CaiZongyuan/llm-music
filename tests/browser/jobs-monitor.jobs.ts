@@ -12,12 +12,13 @@ async function control(request: APIRequestContext, seed: number, value: { state:
   expect((await request.post(`/api/__fixtures/observations/${seed}`, { data: value })).ok()).toBe(true);
 }
 const labels = {
-  'zh-CN': { queued: '等待创作资源', running: '正在创作', completed: '已完成', cancelled: '已取消', failed: '未完成', cancel: '请求取消', pending: '已提出取消，等待最终确认。', retry: '创建新的重试任务', unknown: '进度未知，当前只显示阶段', preparing: '准备创作', measured: '已测量进度', refresh: '重新读取任务', theme: '暗色模式' },
-  en: { queued: 'Waiting for creative resources', running: 'Creating', completed: 'Completed', cancelled: 'Cancelled', failed: 'Failed', cancel: 'Request cancellation', pending: 'Cancellation requested; waiting for final confirmation.', retry: 'Create a new retry job', unknown: 'Progress is unknown; showing the current phase', preparing: 'Preparing', measured: 'Measured progress', refresh: 'Read jobs again', theme: 'Dark mode' },
+  'zh-CN': { queued: '等待创作资源', running: '正在创作', completed: '已完成', cancelled: '已取消', failed: '未完成', cancel: '请求取消', pending: '已提出取消，等待最终确认。', retry: '创建新的重试任务', unknown: '进度未知，当前只显示阶段', preparing: '准备创作', measured: '已测量进度', refresh: '重新读取任务' },
+  en: { queued: 'Waiting for creative resources', running: 'Creating', completed: 'Completed', cancelled: 'Cancelled', failed: 'Failed', cancel: 'Request cancellation', pending: 'Cancellation requested; waiting for final confirmation.', retry: 'Create a new retry job', unknown: 'Progress is unknown; showing the current phase', preparing: 'Preparing', measured: 'Measured progress', refresh: 'Read jobs again' },
 };
 
-for (const locale of ['zh-CN', 'en'] as const) for (const theme of ['light', 'dark'] as const) {
-  test(`${locale}/${theme}: real persisted lifecycle, pending cancel, new retry identity and reload`, async ({ page, request, baseURL }, info) => {
+for (const locale of ['zh-CN', 'en'] as const) for (const savedTheme of ['light', 'dark'] as const) {
+  test(`${locale}/legacy-${savedTheme}: real persisted lifecycle, pending cancel, new retry identity and reload`, async ({ page, request, baseURL }, info) => {
+    await page.addInitScript(value => localStorage.setItem('music.theme.v1', value), savedTheme);
     if (!baseURL) throw new Error('Missing owned Web URL');
     const api = createMusicClient({ baseUrl: `${baseURL}/api` });
     const seed = Math.floor(Math.random() * 1_000_000);
@@ -27,7 +28,6 @@ for (const locale of ['zh-CN', 'en'] as const) for (const theme of ['light', 'da
     await page.goto(`/projects/${project.id}/jobs`);
     await page.getByRole('combobox').selectOption(locale);
     const t = labels[locale];
-    if (theme === 'dark') await page.getByRole('button', { name: t.theme, exact: true }).click();
     const card = page.locator(`[data-job-id="${original.id}"]`);
     await expect(card.locator('.tag')).toHaveText(t.running);
     await expect(card.getByText(t.preparing, { exact: true })).toBeVisible();
@@ -58,12 +58,12 @@ for (const locale of ['zh-CN', 'en'] as const) for (const theme of ['light', 'da
     await page.reload();
     await expect(card.locator('.tag')).toHaveText(t.cancelled);
     await expect(retryCard.locator('.tag')).toHaveText(t.failed);
-    await expect(page.locator('html')).toHaveAttribute('data-theme', theme);
+    await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
     await expect(page.locator('html')).toHaveAttribute('lang', locale);
     expect(received(await api.GET('/projects/{project_id}/jobs', { params: { path: { project_id: project.id } } }))).toHaveLength(2);
     await page.setViewportSize({ width: 390, height: 844 });
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
-    await page.screenshot({ path: info.outputPath(`${locale}-${theme}-retry.png`), fullPage: true });
+    await page.screenshot({ path: info.outputPath(`${locale}-${savedTheme}-retry.png`), fullPage: true });
     await info.attach('persisted-jobs', { body: JSON.stringify({ original: cancelled, retry: next, scope: 'production FastAPI/SQLite with controlled CPU Runtime, no GPU inference' }, null, 2), contentType: 'application/json' });
   });
 }

@@ -1,0 +1,6 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<testsuites>
+  <testsuite name="Test Suite" device="Shengjian_Expo57" tests="1" failures="0" time="103.024" timestamp="2026-10-10T03:42:43">
+    <testcase id="workbench" name="workbench" classname="workbench" file="docs\previews\mobile-workbench-v1\maestro\workbench.yaml" time="103.005" timestamp="2026-10-10T03:42:43" status="SUCCESS"/>
+  </testsuite>
+</testsuites>

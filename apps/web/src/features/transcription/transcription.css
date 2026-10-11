@@ -3,5 +3,5 @@
 .transcription-job { margin-top:24px }
 .transcription-attempts { display:flex; flex-wrap:wrap; gap:8px }
 .transcription-attempts button { display:block; text-align:left; min-width:0; font-size:.74rem }
-.transcription-attempts button[aria-pressed=true] { background:var(--soft); border-color:var(--accent) }
+.transcription-attempts button[aria-pressed=true] { background:var(--acc); color:var(--acc-ink); border-color:var(--acc) }
 .transcription-attempts code { display:block; margin-top:6px; font-size:.65rem }

@@ -28,11 +28,11 @@ The command submits no inference, calls no CUDA and changes no weights. It rehas
 | `models[]` | Registered id, `missing/downloading/ready/invalid`, revision, time, actual hash/size and file fingerprint |
 | `models[].fingerprint` | `resolved_path`, `size_bytes`, `mtime_ns` |
 
-## Current authorization and historical facts
+## Current matching verification and historical facts
 
-Freshness is an explicit configuration policy with a default 300-second window. Receipt read time differs from source time. A newly saved file with an old source time remains stale. Future time, a foreign URL, a different Runtime mode/revision, a reused PID, inaccessible identity or a changed model fingerprint cannot prove current readiness.
+Receipt read time differs from the original verification time. Verification remains valid while the actual Runtime process, listener, source, configuration and model fingerprints match; passing five minutes does not expire it. Stable API source facts use `max_age_seconds: null` to express this rule while retaining actual source time and age. Future time, a foreign URL, a different Runtime mode/revision, a reused PID, inaccessible identity or a changed model fingerprint still cannot prove current readiness.
 
-Current health, nodes and actual model layout can veto old ready. `/models/{folder}` lists generic ComfyUI filenames only; it does not prove loaded state or valid SHA256. The pinned YuE2 plugin uses a separate `YUE2_MODELS_ROOT`, so an empty generic list does not prove these models are missing. Inventory absence may apply only where the registry explicitly maps a model to that inventory. Current YuE2/SheetSage2 readiness uses local binding, actual layout and source verification within the configured window. Unchanged stat fingerprints never become permanent cryptographic proof. Keep the last verified hash and source time as historical diagnostics when current authorization is refused.
+Current health, nodes and actual model layout can veto old ready. `/models/{folder}` lists generic ComfyUI filenames only; it does not prove loaded state or valid SHA256. The pinned YuE2 plugin uses a separate `YUE2_MODELS_ROOT`, so an empty generic list does not prove these models are missing. Inventory absence may apply only where the registry explicitly maps a model to that inventory. YuE2/SheetSage2 readiness uses matching local binding, actual layout and original SHA256 verification in the same submission predicate, without scheduled model hashing. Keep the last verified hash and source time as historical diagnostics when current conditions differ. Dynamic health and GPU/memory observations keep finite windows; stable model evidence cannot promote old dynamic readings to current facts.
 
 ## Read metrics
 

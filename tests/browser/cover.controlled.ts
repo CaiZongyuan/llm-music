@@ -613,19 +613,19 @@ test('uploading another Reference preserves the selected derived Reference and i
   }
 });
 
-// C14: two bounded cold entries cover both languages/themes, not a four-way
+// C14: two bounded cold entries cover both languages with legacy preferences, not a four-way
 // cross product of an unchanged preferences subsystem.
-for (const [locale, theme] of [['zh-CN', 'light'], ['en', 'dark']] as const) {
-  test(`${locale}/${theme} cold390 Cover has usable controls and the sole Player survives workspace navigation`, async ({ page, baseURL }, info) => {
+for (const [locale, savedTheme] of [['zh-CN', 'light'], ['en', 'dark']] as const) {
+  test(`${locale}/legacy-${savedTheme} cold390 Cover has usable controls and the sole Player survives workspace navigation`, async ({ page, baseURL }, info) => {
+    await page.addInitScript(value => localStorage.setItem('music.theme.v1', value), savedTheme);
     const { api, project, reference, score, original } = await derivedSeed(baseURL);
     const errors: string[] = [], requests: string[] = [];
     page.on('pageerror', error => errors.push(error.message));
     page.on('request', request => requests.push(request.url()));
     await page.setViewportSize({ width: 390, height: 960 });
     const selected = await selectMelody(page, project.id, reference.id, score, locale);
-    if (await page.locator('html').getAttribute('data-theme') !== theme) await page.locator('.preferences button').click();
     await expect(page.locator('html')).toHaveAttribute('lang', locale);
-    await expect(page.locator('html')).toHaveAttribute('data-theme', theme);
+    await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
     await expect(page.locator('.cover-selection')).toHaveAttribute('data-selected-score-id', selected);
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(390);
     expect(await page.locator('#persistent-player').evaluate(element => element.getBoundingClientRect().width)).toBe(390);
@@ -661,12 +661,12 @@ for (const [locale, theme] of [['zh-CN', 'light'], ['en', 'dark']] as const) {
     expect((await mediaState(page)).paused).toBe(true);
     await page.reload();
     await expect(page.locator('html')).toHaveAttribute('lang', locale);
-    await expect(page.locator('html')).toHaveAttribute('data-theme', theme);
+    await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(390);
     expect(errors).toEqual([]);
     expect(requests.every(url => url.startsWith(baseURL!) || url.startsWith('blob:'))).toBe(true);
     expect(received(await api.GET('/projects/{project_id}/versions/{version_id}', { params: { path: { project_id: project.id, version_id: original.id } } }))).toEqual(original);
-    await info.attach('cold390-cover-player-preferences', { body: JSON.stringify({ locale, theme, selected, generated, requests, errors, original }, null, 2), contentType: 'application/json' });
+    await info.attach('cold390-cover-player-preferences', { body: JSON.stringify({ locale, savedTheme, selected, generated, requests, errors, original }, null, 2), contentType: 'application/json' });
   });
 }
 
@@ -717,7 +717,6 @@ test('full Cover retains literal written chords and both voices, plays and expli
   const native = await page.locator('#persistent-player audio').elementHandle();
   if (!native) throw new Error('No sole native full MIDI Player');
   await page.setViewportSize({ width: 390, height: 960 });
-  if (await page.locator('html').getAttribute('data-theme') !== 'dark') await page.locator('.preferences button').click();
   await page.locator('.preferences select').selectOption('zh-CN');
   await expect(page.getByRole('button', { name: modeLabels('zh-CN', 'full').generate, exact: true })).toBeEnabled();
   await control({ scenario: 'source_metadata' });

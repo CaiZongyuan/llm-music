@@ -6,8 +6,9 @@ import { hash, labels, inputs, ceiling, completedCandidate, mediaState, control,
 
 test.beforeEach(async () => { await control({}); });
 
-for (const locale of ['zh-CN', 'en'] as const) for (const theme of ['light', 'dark'] as const) {
-  test(`${locale}/${theme}: public generation, actual player clock, region, explicit saved version and refresh`, async ({ page, baseURL }, info) => {
+for (const locale of ['zh-CN', 'en'] as const) for (const savedTheme of ['light', 'dark'] as const) {
+  test(`${locale}/legacy-${savedTheme}: public generation, actual player clock, region, explicit saved version and refresh`, async ({ page, baseURL }, info) => {
+    await page.addInitScript(value => localStorage.setItem('music.theme.v1', value), savedTheme);
     if (!baseURL) throw new Error('No owned Web URL');
     const api = createMusicClient({ baseUrl: `${baseURL}/api` });
     const t = labels[locale];
@@ -18,7 +19,6 @@ for (const locale of ['zh-CN', 'en'] as const) for (const theme of ['light', 'da
     const path = { project_id: project.id };
     await page.goto(`/projects/${project.id}`);
     await page.getByRole('combobox').selectOption(locale);
-    if (theme === 'dark') await page.locator('.preferences button').click();
     await expect(page.getByRole('heading', { name: locale === 'en' ? 'No reference audio yet' : '还没有参考音频' })).toBeVisible();
     await page.locator('.tabs').getByRole('link', { name: locale === 'en' ? 'Scores' : '乐谱', exact: true }).click();
     await expect(page.getByRole('heading', { name: locale === 'en' ? 'No score to inspect yet' : '还没有可以查看的乐谱' })).toBeVisible();
@@ -27,9 +27,7 @@ for (const locale of ['zh-CN', 'en'] as const) for (const theme of ['light', 'da
     await inputs(page, locale);
     // Preferences preserve live text and the form identity.
     await page.getByRole('combobox').selectOption(locale === 'en' ? 'zh-CN' : 'en');
-    await page.locator('.preferences button').click();
     await page.getByRole('combobox').selectOption(locale);
-    await page.locator('.preferences button').click();
     await expect(page.getByRole('textbox', { name: t.seed, exact: true })).toHaveValue('2026192201');
     await page.getByRole('textbox', { name: t.seed, exact: true }).fill('9007199254740992');
     await page.getByRole('button', { name: t.submit }).click();
@@ -52,9 +50,7 @@ for (const locale of ['zh-CN', 'en'] as const) for (const theme of ['light', 'da
     await expect.poll(async () => (await mediaState(page)).time).toBeGreaterThan(0.15);
     const before = (await mediaState(page)).time;
     await page.getByRole('combobox').selectOption(locale === 'en' ? 'zh-CN' : 'en');
-    await page.locator('.preferences button').click();
     await page.getByRole('combobox').selectOption(locale);
-    await page.locator('.preferences button').click();
     expect((await mediaState(page)).paused).toBe(false);
     await page.getByRole('link', { name: t.lyricsTab, exact: true }).click();
     await expect.poll(async () => (await mediaState(page)).time).toBeGreaterThan(before);
@@ -143,7 +139,7 @@ for (const locale of ['zh-CN', 'en'] as const) for (const theme of ['light', 'da
     expect(errors).toEqual([]);
     expect(requests.every(url => url.startsWith(baseURL) || url.startsWith('blob:'))).toBe(true);
     await info.attach('public-identities-and-bytes', { body: JSON.stringify({ scope: 'real Chromium + production FastAPI + controlled CPU FakeRuntime test tone; no GPU music-quality claim', candidate, original, audio_sha256: asset.sha256, duration: asset.duration_seconds }, null, 2), contentType: 'application/json' });
-    await page.screenshot({ path: info.outputPath(`${locale}-${theme}.png`), fullPage: true });
+    await page.screenshot({ path: info.outputPath(`${locale}-${savedTheme}.png`), fullPage: true });
   });
 }
 

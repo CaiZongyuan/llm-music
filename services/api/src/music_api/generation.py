@@ -1,10 +1,10 @@
 """Generate consumes one shared Job/import boundary and registers an unsaved Candidate."""
 
 from copy import deepcopy
-from typing import Mapping
+from typing import Mapping, cast
 from uuid import UUID, uuid4
 
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, Header, Request, Response
 from sqlalchemy.orm import Session
 
 from music_api.database import Asset
@@ -19,6 +19,7 @@ from music_api.runtime_types import RuntimeResult
 from music_api.schemas import ErrorResponse, JobRead
 from music_api.version_models import Candidate, Version
 from music_api.score_input import selected_score_validation
+from music_api.requests import RequestIntent, require_request_key
 
 
 def validate_generation(result: RuntimeResult, inputs: Mapping[str, object]) -> tuple[ImportMaterial, ...]:
@@ -31,7 +32,7 @@ def validate_generation(result: RuntimeResult, inputs: Mapping[str, object]) -> 
     if audio.format != "flac":
         raise DomainError(503, "generation_failed", "Audio format differs from the pinned FLAC generation output.",
                           "Verify the selected generation workflow and keep its original output.")
-    facts = validate_flac(audio.data, int(inputs.get("max_seconds", 0)))
+    facts = validate_flac(audio.data, int(cast(int, inputs.get("max_seconds", 0))))
     return (ImportMaterial("abc", abc.data, "abc", "text/vnd.abc", "score.abc"),
             ImportMaterial("audio", audio.data, "flac", "audio/flac", "generated.flac", facts))
 
@@ -76,12 +77,19 @@ def configure_generation(jobs: JobService) -> None:
 router = APIRouter(responses={404: {"model": ErrorResponse}, 422: {"model": ErrorResponse}, 503: {"model": ErrorResponse}})
 
 
-@router.post("/projects/{project_id}/jobs/generate", response_model=JobRead, status_code=202)
-def create_generate_job(project_id: UUID, value: GenerateCreate, request: Request,
-                        session: Session = Depends(session_for)) -> JobRead:
-    project_in(session, project_id)
+@router.post("/projects/{project_id}/jobs/generate", response_model=JobRead, status_code=202,
+             responses={200: {"model": JobRead}, 409: {"model": ErrorResponse}})
+def create_generate_job(project_id: UUID, value: GenerateCreate, request: Request, response: Response,
+                        session: Session = Depends(session_for),
+                        idempotency_key: UUID | None = Header(default=None, alias="Idempotency-Key")) -> JobRead:
+    key = require_request_key(request, idempotency_key)
+    if key is None:
+        project_in(session, project_id)
+    intent = RequestIntent(key, "generate", value.model_dump(), project_id) if key else None
     jobs: JobService = request.app.state.jobs
-    return job_read(jobs.submit(project_id, "Generate", value.model_dump()))
+    job, created = jobs.submit_once(project_id, "Generate", value.model_dump(), intent=intent)
+    response.status_code = 202 if created else 200
+    return job_read(job)
 
 
 @router.post("/projects/{project_id}/jobs/generate-from-score", response_model=JobRead, status_code=202,

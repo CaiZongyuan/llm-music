@@ -8,6 +8,7 @@ import { capabilityMessages } from './messages';
 type CapabilitiesRead = components['schemas']['CapabilitiesRead'];
 type Operation = components['schemas']['CapabilityRead']['operation'];
 function expiresAt(observation: components['schemas']['DiagnosticSource']) {
+  if (observation.max_age_seconds === null) return observation.observed_at ? Infinity : NaN;
   return observation.observed_at ? Date.parse(observation.observed_at) + observation.max_age_seconds * 1000 : NaN;
 }
 export function operationReady(data: CapabilitiesRead | undefined, operation: Operation, mode?: 'melody' | 'full'): boolean {
@@ -36,7 +37,7 @@ export function CapabilityReadiness({ operation, mode }: { operation: Operation;
   const message = codes.some(code => code.includes('unavailable')) ? t.unavailable
     : codes.some(code => code.includes('stale')) || capability?.observation.freshness === 'stale' ? t.stale
     : codes.length || modeUnavailable ? t.missing : t.unknown;
-  return <section aria-label={t[operation]}><div className="section-heading"><h3>{ready ? t.ready : t.notReady}</h3><button type="button" disabled={query.isFetching} onClick={() => void query.refetch()}>{t.recheck}</button></div>
+  return <section className="capability-readiness" data-ready={ready} aria-label={t[operation]}><div className="section-heading"><h3>{ready ? t.ready : t.notReady}</h3><button type="button" disabled={query.isFetching} onClick={() => void query.refetch()}>{t.recheck}</button></div>
     {query.isPending ? <Loading /> : query.isError ? <ErrorNotice error={query.error} onRetry={() => void query.refetch()} /> : !ready ? <p>{message}</p> : null}
     {query.data?.mode === 'fake' ? <small>{t.fake}</small> : null}{codes.length ? <small>{t.code}: {codes.join(', ')}</small> : null}
   </section>;

@@ -1,4 +1,4 @@
-"""Public local HTTP application; no GPU/Runtime imports or startup dependency."""
+"""Local and explicit direct LAN HTTP application with one business lifecycle."""
 
 from collections.abc import AsyncIterator, Iterator
 from typing import Callable
@@ -8,7 +8,7 @@ from pathlib import Path
 import hashlib
 from uuid import UUID, uuid4
 
-from fastapi import Depends, FastAPI, Request, Response, UploadFile
+from fastapi import Depends, FastAPI, Header, Request, Response, UploadFile
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import FileResponse
 from sqlalchemy import select, update
@@ -37,6 +37,11 @@ from music_api.storage import Storage
 from music_api.upload_limit import UploadBodyLimit
 from music_api.runtime_types import InferenceRuntime
 from music_api.workflow_registry import WorkflowRegistry
+from music_api.pairing import PairingService, router as pairing_router
+from music_api.access import AccessPolicy, Bindings, DeviceAccess
+from music_api.requests import RequestIntent, matching_request, record_request, request_read, require_request_key, reserve_request_writer
+from music_api.request_models import ClientRequest
+from music_api.request_schemas import RequestRead
 
 
 log = logging.getLogger("music_api")
@@ -72,7 +77,8 @@ def asset_file(storage: Storage, asset: Asset) -> Path:
 
 
 def create_app(settings: Settings | None = None, runtime: InferenceRuntime | None = None,
-               configure_jobs: Callable[[JobService], None] | None = None, registry: WorkflowRegistry | None = None) -> FastAPI:
+               configure_jobs: Callable[[JobService], None] | None = None, registry: WorkflowRegistry | None = None,
+               listener_bindings: Bindings | None = None) -> FastAPI:
     from music_api.fake_generation import generation_fixture
     from music_api.generation import configure_generation, router as generation_router
     from music_api.version_routes import router as version_router
@@ -95,6 +101,7 @@ def create_app(settings: Settings | None = None, runtime: InferenceRuntime | Non
         try:
             database.migrate()
             app.state.database = database
+            app.state.pairing = PairingService(database)
             app.state.storage = Storage(configured)
             jobs = JobService(database, app.state.storage, selected_runtime, registry, configured)
             app.state.jobs = jobs
@@ -112,25 +119,54 @@ def create_app(settings: Settings | None = None, runtime: InferenceRuntime | Non
             database.close()
 
     app = MusicAPI(title="Music Application API", version="0.1.0", lifespan=lifespan,
-                  responses={404: {"model": ErrorResponse}, 422: {"model": ErrorResponse}, 503: {"model": ErrorResponse}})
+                  responses={status: {"model": ErrorResponse} for status in (401, 403, 404, 422, 503)})
     app.state.settings, app.state.runtime, app.state.registry = configured, selected_runtime, registry
     app.state.job_events = event_broker
+    app.state.access = AccessPolicy(configured, listener_bindings)
     app.include_router(event_router)
+    app.include_router(pairing_router)
     app.add_exception_handler(DomainError, domain_error_response)
     app.add_exception_handler(RequestValidationError, validation_error_response)
     app.add_exception_handler(HTTPException, http_error_response)
     app.add_exception_handler(SQLAlchemyError, dependency_error_response)
     app.add_exception_handler(OSError, dependency_error_response)
     app.add_middleware(UploadBodyLimit, max_upload_bytes=configured.max_upload_bytes)
+    app.add_middleware(DeviceAccess, policy=app.state.access)
     app.include_router(diagnostics_router)
 
-    @app.post("/projects", response_model=ProjectRead, status_code=201)
-    def create_project(value: ProjectCreate, session: Session = Depends(session_for)) -> ProjectRead:
+    @app.get("/requests/{request_id}", response_model=RequestRead)
+    def get_request(request_id: UUID, session: Session = Depends(session_for)) -> RequestRead:
+        receipt = session.get(ClientRequest, str(request_id))
+        if receipt is None:
+            raise DomainError(404, "request_not_found", "No committed request is visible for this key.",
+                              "The original request may still be in flight; explicitly retry only the same key and frozen intent.", request_id)
+        return request_read(receipt)
+
+    @app.post("/projects", response_model=ProjectRead, status_code=201,
+              responses={200: {"model": ProjectRead}, 409: {"model": ErrorResponse}})
+    def create_project(value: ProjectCreate, request: Request, response: Response, session: Session = Depends(session_for),
+                       idempotency_key: UUID | None = Header(default=None, alias="Idempotency-Key")) -> ProjectRead:
+        key = require_request_key(request, idempotency_key)
+        intent = RequestIntent(key, "create_project", value.model_dump()) if key else None
+        if intent is not None:
+            reserve_request_writer(session)
+            existing = matching_request(session, intent)
+            if existing is not None:
+                response.status_code = 200
+                return ProjectRead.model_validate(project_in(session, UUID(existing.project_id)))
         project = Project(id=str(uuid4()), name=value.name, description=value.description)
         try:
             session.add(project)
+            if intent is not None:
+                session.flush()
+                record_request(session, intent, project.id)
             session.commit()
-        except SQLAlchemyError as error:
+        except Exception as error:
+            if intent is not None:
+                raise DomainError(503, "request_commit_unconfirmed", "Project request creation could not be confirmed.",
+                                  "Query this exact request key before explicitly replaying its frozen intent.", intent.request_id) from error
+            if not isinstance(error, SQLAlchemyError):
+                raise
             log.exception("Project persistence failed", extra={"event": "project_commit_failed", "project_id": project.id})
             raise DomainError(503, "project_persistence_failed", "Project could not be saved.", "Read Projects before retrying.") from error
         return ProjectRead.model_validate(project)
@@ -169,9 +205,19 @@ def create_app(settings: Settings | None = None, runtime: InferenceRuntime | Non
         asset_file(storage, asset)
         return AssetRead.model_validate(asset)
 
+    @app.head("/projects/{project_id}/assets/{asset_id}/content", response_class=FileResponse,
+              responses={200: {"description": "Original Asset headers without a response body."},
+                         206: {"description": "Original Asset range headers without a response body."},
+                         416: {"description": "Unsatisfiable byte range; FileResponse returns no bytes for HEAD."},
+                         409: {"model": ErrorResponse}})
     @app.get("/projects/{project_id}/assets/{asset_id}/content", response_class=FileResponse,
              responses={200: {"content": {media: {"schema": {"type": "string", "format": "binary"}}
                                          for media in ("audio/wav", "audio/flac", "text/vnd.abc", "audio/midi")}},
+                        206: {"description": "Requested original bytes (including multipart ranges).",
+                              "content": {media: {"schema": {"type": "string", "format": "binary"}}
+                                          for media in ("audio/wav", "audio/flac", "text/vnd.abc", "audio/midi", "multipart/byteranges")}},
+                        416: {"description": "Unsatisfiable byte range from FileResponse.",
+                              "content": {"text/plain": {"schema": {"type": "string"}}}},
                         409: {"model": ErrorResponse}})
     def download_asset(project_id: UUID, asset_id: UUID, request: Request,
                        session: Session = Depends(session_for)) -> FileResponse:
@@ -223,10 +269,15 @@ def create_app(settings: Settings | None = None, runtime: InferenceRuntime | Non
         return job_read(job)
 
     @app.post("/projects/{project_id}/jobs/{job_id}/retry", response_model=JobRead, status_code=202,
-              responses={409: {"model": ErrorResponse}})
-    def retry_job(project_id: UUID, job_id: UUID, request: Request) -> JobRead:
+              responses={200: {"model": JobRead}, 409: {"model": ErrorResponse}})
+    def retry_job(project_id: UUID, job_id: UUID, request: Request, response: Response,
+                  idempotency_key: UUID | None = Header(default=None, alias="Idempotency-Key")) -> JobRead:
+        key = require_request_key(request, idempotency_key)
+        intent = RequestIntent(key, "retry", {}, project_id, job_id) if key else None
         jobs: JobService = request.app.state.jobs
-        return job_read(jobs.retry(project_id, job_id))
+        job, created = jobs.retry_once(project_id, job_id, intent)
+        response.status_code = 202 if created else 200
+        return job_read(job)
 
     @app.post("/projects/{project_id}/scores/validate", response_model=ScoreValidationRead)
     def validate_edited_score(project_id: UUID, value: ScoreValidate, session: Session = Depends(session_for)) -> ScoreValidationRead:

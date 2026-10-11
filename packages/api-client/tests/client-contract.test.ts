@@ -309,6 +309,7 @@ test('diagnostics, multipart validation and binary failures remain typed JSON', 
       params: { path: { ...projectPath, asset_id: '00000000-0000-4000-8000-000000000001' } }, parseAs: 'arrayBuffer',
     });
     assert.equal(contentFailure.response.status, 404);
+    assert.ok(contentFailure.error && typeof contentFailure.error === 'object', 'Missing Asset errors retain the JSON error envelope');
     assert.equal(contentFailure.error?.error.code, 'asset_not_found');
     assert.ok(contentFailure.error?.error.recovery);
     assert.equal(contentFailure.data, undefined);

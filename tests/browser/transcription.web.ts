@@ -69,25 +69,23 @@ function midiNotes(bytes: Buffer) {
   return notes;
 }
 
-for (const locale of ['zh-CN', 'en'] as const) for (const theme of ['light', 'dark'] as const) {
-  test(`transcription ${locale}/${theme}: real upload, notation, native downloads and refreshed identities`, async ({ page, baseURL }, info) => {
+for (const locale of ['zh-CN', 'en'] as const) for (const savedTheme of ['light', 'dark'] as const) {
+  test(`transcription ${locale}/legacy-${savedTheme}: real upload, notation, native downloads and refreshed identities`, async ({ page, baseURL }, info) => {
+    await page.addInitScript(value => localStorage.setItem('music.theme.v1', value), savedTheme);
     if (!baseURL) throw new Error('No owned Web URL');
     const api = createMusicClient({ baseUrl: `${baseURL}/api` });
-    const project = received(await api.POST('/projects', { body: { name: `转谱 · ${locale}/${theme} · ${randomUUID().slice(0, 8)}`, description: 'Keep the original melody. 保留旋律。' } }));
+    const project = received(await api.POST('/projects', { body: { name: `转谱 · ${locale}/legacy-${savedTheme} · ${randomUUID().slice(0, 8)}`, description: 'Keep the original melody. 保留旋律。' } }));
     const errors: string[] = [];
     const requests: string[] = [];
     page.on('pageerror', error => errors.push(error.message));
     page.on('request', request => requests.push(request.url()));
     await page.goto(`/projects/${project.id}/transcribe`);
     await page.getByRole('combobox', { name: '语言', exact: true }).selectOption(locale);
-    if (theme === 'dark') await page.locator('.preferences button').click();
     const t = labels[locale];
     await page.getByLabel(t.file).setInputFiles(referencePath);
-    // Both mounted native file selection and Project identity survive preference changes.
+    // Mounted native file selection and Project identity survive preference changes.
     await page.locator('.preferences select').selectOption(locale === 'en' ? 'zh-CN' : 'en');
-    await page.locator('.preferences button').click();
     await page.locator('.preferences select').selectOption(locale);
-    await page.locator('.preferences button').click();
     await expect(page.getByLabel(t.file)).toHaveValue(/reference-16s\.wav$/);
     await page.getByRole('button', { name: t.upload }).click();
     await expect(page.getByRole('combobox', { name: t.reference, exact: true }).locator('option')).toContainText('reference-16s.wav');
@@ -134,10 +132,10 @@ for (const locale of ['zh-CN', 'en'] as const) for (const theme of ['light', 'da
         downloaded[kind] = hash(bytes);
       }
       await expect(page.locator('html')).toHaveAttribute('lang', locale);
-      await expect(page.locator('html')).toHaveAttribute('data-theme', theme);
+      await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
       await expect(page.getByRole('heading', { name: project.name, exact: true })).toBeVisible();
     }
-    await page.screenshot({ path: info.outputPath(`score-${locale}-${theme}.png`), fullPage: true });
+    await page.screenshot({ path: info.outputPath(`score-${locale}-${savedTheme}.png`), fullPage: true });
     await page.goto(`/projects/${project.id}/transcribe?jobId=${jobId}&referenceAssetId=${reference.id}`);
     await expect(page.getByRole('combobox', { name: t.reference, exact: true })).toHaveValue(reference.id);
     await expect(page.getByRole('link', { name: t.inspect, exact: false })).toBeVisible();
@@ -145,7 +143,7 @@ for (const locale of ['zh-CN', 'en'] as const) for (const theme of ['light', 'da
     expect(received(await api.GET('/projects/{project_id}/scores/{score_id}', { params: { path: { project_id: project.id, score_id: scoreId } } }))).toEqual(score);
     expect(errors).toEqual([]);
     expect(requests.every(url => url.startsWith(baseURL) || url.startsWith('blob:'))).toBe(true);
-    await page.screenshot({ path: info.outputPath(`transcription-${locale}-${theme}.png`), fullPage: true });
+    await page.screenshot({ path: info.outputPath(`transcription-${locale}-${savedTheme}.png`), fullPage: true });
     await info.attach('transcription-public-results', { body: JSON.stringify({ scope: 'real Chromium + generated client + production FastAPI + valid CPU Fake Runtime output; no GPU/music accuracy claim', project, reference, job, score, downloaded }, null, 2), contentType: 'application/json' });
   });
 }

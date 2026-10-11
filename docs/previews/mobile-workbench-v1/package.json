@@ -1,0 +1,19 @@
+{
+  "name": "@llm-music/mobile-preview",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Memory-only mobile workflow preview, hosted by apps/mobile",
+  "dependencies": {
+    "@expo/ui": "~57.0.22",
+    "@react-native-community/slider": "5.2.0",
+    "expo": "~57.0.27",
+    "expo-audio": "~57.0.5",
+    "expo-router": "~57.0.25",
+    "react": "19.2.3",
+    "react-native": "0.86.3",
+    "react-native-safe-area-context": "~5.7.0"
+  },
+  "devDependencies": {
+    "@types/react": "~19.2.2"
+  }
+}

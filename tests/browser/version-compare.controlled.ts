@@ -126,13 +126,11 @@ for (const locale of ['en', 'zh-CN'] as const) test(`${locale}: comparison survi
   await expect(page.getByText(locale === 'en' ? 'Notation and MIDI match the current draft.' : '谱面和 MIDI 对应当前草稿。', { exact: true })).toBeVisible();
   await expect(page.locator('.score-notation .highlight')).toHaveCount(0);
   await page.locator('.preferences select').selectOption(opposite);
-  await page.locator('.preferences button').click();
   await expect(page.locator('html')).toHaveAttribute('lang', opposite);
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
   await expect(player.getByRole('button', { name: playerLabels[opposite].pause, exact: true })).toBeVisible();
   await page.locator('.preferences select').selectOption(locale);
-  await page.locator('.preferences button').click();
-  await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
   await page.locator('.tabs').getByRole('link', { name: t.lyricsTab, exact: true }).click();
   await expect(page.getByRole('heading', { name: locale === 'en' ? 'Lyrics for this attempt' : '这一次创作的歌词', exact: true })).toBeVisible();
   await page.locator('.sidebar').getByRole('link', { name: locale === 'en' ? 'Settings' : '使用设置', exact: true }).click();

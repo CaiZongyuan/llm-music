@@ -19,7 +19,7 @@ export function EffectiveScore({ projectId, abc, hash, mode, revision, current, 
     void loadABCJS().then(library => {
       if (!active) return;
       const host = document.createElement('div');
-      const [tune] = library.renderAbc(host, abc, { responsive: 'resize', add_classes: true, staffwidth: 470, wrap: { minSpacing: 1.5, maxSpacing: 2.7, preferredMeasuresPerLine: 4 } });
+      const [tune] = library.renderAbc(host, abc, { foregroundColor: 'var(--text)', selectionColor: 'var(--acc)', responsive: 'resize', add_classes: true, staffwidth: 470, wrap: { minSpacing: 1.5, maxSpacing: 2.7, preferredMeasuresPerLine: 4 } });
       if (!tune || tune.warnings?.length || !host.querySelector('svg')) throw new Error('No effective notation');
       const midi: unknown = library.synth.getMidiFile(tune, { midiOutputType: 'binary' });
       if (!(midi instanceof Uint8Array)) throw new Error('No effective MIDI');

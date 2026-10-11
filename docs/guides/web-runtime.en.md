@@ -6,7 +6,7 @@ You have created a [music Project](web-workspace.en.md) for “A walk after the 
 
 1. Read “Services and creation readiness.” The application and inference services have separate states. Generation and transcription also have separate readiness results.
 2. Read “Music models.” Missing, downloading, ready and verification failed describe distinct file verification facts. “Current state unavailable” does not establish readiness.
-3. Expand “Observed at” to inspect the original observation time and fact source. Observations past their freshness window show “Observation expired.” Old model, device or version values appear only as previous records.
+3. Expand “Observed at” to inspect the original observation time and fact source. Stable model and source verification remains available while actual binding and files match, without a five-minute expiry; original source time stays unchanged. Dynamic observations beyond their finite window show “Observation expired,” retaining values as previous records.
 4. Choose “Check again.” This rereads status. It does not create Jobs, download models or change the environment.
 
 The CPU fixture environment is explicitly identified. An available fixture pipeline does not establish real GPU readiness or prove music quality or inference performance.
@@ -23,7 +23,7 @@ The current API does not expose loaded model identities, so “Loaded models” 
 
 ## Recover and continue creating {#recover}
 
-For missing or incomplete models, ask the environment owner to prepare the registered weights and verify the complete files. Preserve invalid files, then check the correct revision and hash. Restore a disconnected inference service first. Expired evidence needs a new observation; saving or rereading an old record does not renew its original time.
+For missing or incomplete models, ask the environment owner to prepare the registered weights and verify the complete files. Preserve invalid files, then check the correct revision and hash. Restore a disconnected inference service first. Retain original verification while the process/listener, source and model files remain unchanged. After a change, restore actual conditions and obtain matching evidence. Saving or rereading a record does not renew its original verification time.
 
 A failed application read shows an error and “Read state again.” It does not become an empty queue or retain an old green readiness state. Restore the connection and check again, then return to “A walk after the rain” with the same Assets and creative goal. Do not submit duplicate Jobs while diagnosing readiness.
 

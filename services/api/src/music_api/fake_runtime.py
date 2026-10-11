@@ -61,7 +61,7 @@ class FakeInferenceRuntime:
             return SubmissionReceipt("rejected", code="capability_missing", message="Selected fake Cover mode is unavailable.")
         handle = str(uuid4())
         if request.operation in self.result_factories:
-            self.results[request.operation] = self.result_factories[request.operation](request.inputs)
+            self.results[request.operation] = self.result_factories[request.operation](dict(request.inputs))
         result = self.results[request.operation]
         if request.operation == "GenerateFromScore":
             from music_api.score_input import effective_score_abc, selected_score_validation

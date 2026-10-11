@@ -1,5 +1,167 @@
 // Generated from music-api openapi. Run pnpm client:generate; do not edit.
 export interface paths {
+    "/connection": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Connection
+         * @description Available without a device credential on the known local and LAN listeners; unknown socket bindings are rejected.
+         */
+        get: operations["connection_connection_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/device": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Current Device
+         * @description Legacy compatibility only: validate a submitted Device Bearer credential on either known listener. Direct connection uses /connection and does not call this route.
+         */
+        get: operations["current_device_device_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/pairing/owner": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Pairing Owner
+         * @description Only the actual local listener can administer pairing. Device Bearer authorization never grants owner rights.
+         */
+        get: operations["pairing_owner_pairing_owner_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/pairing/challenges": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create Challenge
+         * @description Only the actual local listener can administer pairing. Device Bearer authorization never grants owner rights. X-Owner-CSRF is required. If Origin is present it must be an allowed local browser Origin; local CLI calls without Origin are supported.
+         */
+        post: operations["create_challenge_pairing_challenges_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/pairing/challenges/current": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Close Challenge
+         * @description Only the actual local listener can administer pairing. Device Bearer authorization never grants owner rights. X-Owner-CSRF is required. If Origin is present it must be an allowed local browser Origin; local CLI calls without Origin are supported.
+         */
+        delete: operations["close_challenge_pairing_challenges_current_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/pairing/claim": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Claim Device
+         * @description device_id identifies an authorization record. After revocation, explicitly pair with a fresh UUID and token. To recover an uncertain initial claim, replay the exact frozen UUID/token/name/code; a consumed or expired window does not renew credentials.
+         *
+         *     Available without a device credential on the known local and LAN listeners; unknown socket bindings are rejected.
+         */
+        post: operations["claim_device_pairing_claim_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/pairing/devices": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Paired Devices
+         * @description Only the actual local listener can administer pairing. Device Bearer authorization never grants owner rights.
+         */
+        get: operations["paired_devices_pairing_devices_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/pairing/devices/{device_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Revoke Device
+         * @description Only the actual local listener can administer pairing. Device Bearer authorization never grants owner rights. X-Owner-CSRF is required. If Origin is present it must be an allowed local browser Origin; local CLI calls without Origin are supported.
+         */
+        delete: operations["revoke_device_pairing_devices__device_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/settings/metadata": {
         parameters: {
             query?: never;
@@ -7,7 +169,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Settings Metadata */
+        /**
+         * Settings Metadata
+         * @description Direct access on known local and explicitly enabled LAN listeners. No PIN or device credential is required, including Asset GET/HEAD/Range. Unknown accepting socket bindings are rejected.
+         */
         get: operations["settings_metadata_settings_metadata_get"];
         put?: never;
         post?: never;
@@ -24,7 +189,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Diagnostics */
+        /**
+         * Diagnostics
+         * @description Direct access on known local and explicitly enabled LAN listeners. No PIN or device credential is required, including Asset GET/HEAD/Range. Unknown accepting socket bindings are rejected.
+         */
         get: operations["diagnostics_runtime_diagnostics_get"];
         put?: never;
         post?: never;
@@ -41,7 +209,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Health */
+        /**
+         * Health
+         * @description Direct access on known local and explicitly enabled LAN listeners. No PIN or device credential is required, including Asset GET/HEAD/Range. Unknown accepting socket bindings are rejected.
+         */
         get: operations["health_health_get"];
         put?: never;
         post?: never;
@@ -58,7 +229,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Capabilities */
+        /**
+         * Capabilities
+         * @description Direct access on known local and explicitly enabled LAN listeners. No PIN or device credential is required, including Asset GET/HEAD/Range. Unknown accepting socket bindings are rejected.
+         */
         get: operations["capabilities_runtime_capabilities_get"];
         put?: never;
         post?: never;
@@ -75,8 +249,31 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Models */
+        /**
+         * Models
+         * @description Direct access on known local and explicitly enabled LAN listeners. No PIN or device credential is required, including Asset GET/HEAD/Range. Unknown accepting socket bindings are rejected.
+         */
         get: operations["models_runtime_models_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/requests/{request_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Request
+         * @description Direct access on known local and explicitly enabled LAN listeners. No PIN or device credential is required, including Asset GET/HEAD/Range. Unknown accepting socket bindings are rejected.
+         */
+        get: operations["get_request_requests__request_id__get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -92,10 +289,16 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** List Projects */
+        /**
+         * List Projects
+         * @description Direct access on known local and explicitly enabled LAN listeners. No PIN or device credential is required, including Asset GET/HEAD/Range. Unknown accepting socket bindings are rejected.
+         */
         get: operations["list_projects_projects_get"];
         put?: never;
-        /** Create Project */
+        /**
+         * Create Project
+         * @description Direct access on known local and explicitly enabled LAN listeners. No PIN or device credential is required, including Asset GET/HEAD/Range. Unknown accepting socket bindings are rejected. Idempotency-Key must be a UUID for LAN writes and is optional for existing local callers. The same key and validated intent replay the original resource with status 200 before current Runtime readiness/retry checks. A different operation/target/input returns 409. Persist the key and frozen intent before sending; query GET /requests/{request_id} after an uncertain response.
+         */
         post: operations["create_project_projects_post"];
         delete?: never;
         options?: never;
@@ -110,7 +313,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Get Project */
+        /**
+         * Get Project
+         * @description Direct access on known local and explicitly enabled LAN listeners. No PIN or device credential is required, including Asset GET/HEAD/Range. Unknown accepting socket bindings are rejected.
+         */
         get: operations["get_project_projects__project_id__get"];
         put?: never;
         post?: never;
@@ -127,10 +333,16 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** List Assets */
+        /**
+         * List Assets
+         * @description Direct access on known local and explicitly enabled LAN listeners. No PIN or device credential is required, including Asset GET/HEAD/Range. Unknown accepting socket bindings are rejected.
+         */
         get: operations["list_assets_projects__project_id__assets_get"];
         put?: never;
-        /** Upload Audio */
+        /**
+         * Upload Audio
+         * @description Direct access on known local and explicitly enabled LAN listeners. No PIN or device credential is required, including Asset GET/HEAD/Range. Unknown accepting socket bindings are rejected.
+         */
         post: operations["upload_audio_projects__project_id__assets_post"];
         delete?: never;
         options?: never;
@@ -145,7 +357,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Get Asset */
+        /**
+         * Get Asset
+         * @description Direct access on known local and explicitly enabled LAN listeners. No PIN or device credential is required, including Asset GET/HEAD/Range. Unknown accepting socket bindings are rejected.
+         */
         get: operations["get_asset_projects__project_id__assets__asset_id__get"];
         put?: never;
         post?: never;
@@ -162,13 +377,20 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Download Asset */
+        /**
+         * Download Asset
+         * @description Direct access on known local and explicitly enabled LAN listeners. No PIN or device credential is required, including Asset GET/HEAD/Range. Unknown accepting socket bindings are rejected.
+         */
         get: operations["download_asset_projects__project_id__assets__asset_id__content_get"];
         put?: never;
         post?: never;
         delete?: never;
         options?: never;
-        head?: never;
+        /**
+         * Download Asset
+         * @description Direct access on known local and explicitly enabled LAN listeners. No PIN or device credential is required, including Asset GET/HEAD/Range. Unknown accepting socket bindings are rejected.
+         */
+        head: operations["download_asset_projects__project_id__assets__asset_id__content_head"];
         patch?: never;
         trace?: never;
     };
@@ -181,7 +403,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Create Transcription */
+        /**
+         * Create Transcription
+         * @description Direct access on known local and explicitly enabled LAN listeners. No PIN or device credential is required, including Asset GET/HEAD/Range. Unknown accepting socket bindings are rejected.
+         */
         post: operations["create_transcription_projects__project_id__transcriptions_post"];
         delete?: never;
         options?: never;
@@ -196,7 +421,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** List Jobs */
+        /**
+         * List Jobs
+         * @description Direct access on known local and explicitly enabled LAN listeners. No PIN or device credential is required, including Asset GET/HEAD/Range. Unknown accepting socket bindings are rejected.
+         */
         get: operations["list_jobs_projects__project_id__jobs_get"];
         put?: never;
         post?: never;
@@ -213,7 +441,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Get Job */
+        /**
+         * Get Job
+         * @description Direct access on known local and explicitly enabled LAN listeners. No PIN or device credential is required, including Asset GET/HEAD/Range. Unknown accepting socket bindings are rejected.
+         */
         get: operations["get_job_projects__project_id__jobs__job_id__get"];
         put?: never;
         post?: never;
@@ -232,7 +463,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Cancel Job */
+        /**
+         * Cancel Job
+         * @description Direct access on known local and explicitly enabled LAN listeners. No PIN or device credential is required, including Asset GET/HEAD/Range. Unknown accepting socket bindings are rejected.
+         */
         post: operations["cancel_job_projects__project_id__jobs__job_id__cancel_post"];
         delete?: never;
         options?: never;
@@ -249,7 +483,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Retry Job */
+        /**
+         * Retry Job
+         * @description Direct access on known local and explicitly enabled LAN listeners. No PIN or device credential is required, including Asset GET/HEAD/Range. Unknown accepting socket bindings are rejected. Idempotency-Key must be a UUID for LAN writes and is optional for existing local callers. The same key and validated intent replay the original resource with status 200 before current Runtime readiness/retry checks. A different operation/target/input returns 409. Persist the key and frozen intent before sending; query GET /requests/{request_id} after an uncertain response.
+         */
         post: operations["retry_job_projects__project_id__jobs__job_id__retry_post"];
         delete?: never;
         options?: never;
@@ -266,7 +503,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Validate Edited Score */
+        /**
+         * Validate Edited Score
+         * @description Direct access on known local and explicitly enabled LAN listeners. No PIN or device credential is required, including Asset GET/HEAD/Range. Unknown accepting socket bindings are rejected.
+         */
         post: operations["validate_edited_score_projects__project_id__scores_validate_post"];
         delete?: never;
         options?: never;
@@ -281,10 +521,16 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** List Scores */
+        /**
+         * List Scores
+         * @description Direct access on known local and explicitly enabled LAN listeners. No PIN or device credential is required, including Asset GET/HEAD/Range. Unknown accepting socket bindings are rejected.
+         */
         get: operations["list_scores_projects__project_id__scores_get"];
         put?: never;
-        /** Create Edited Score */
+        /**
+         * Create Edited Score
+         * @description Direct access on known local and explicitly enabled LAN listeners. No PIN or device credential is required, including Asset GET/HEAD/Range. Unknown accepting socket bindings are rejected.
+         */
         post: operations["create_edited_score_projects__project_id__scores_post"];
         delete?: never;
         options?: never;
@@ -299,7 +545,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Get Score */
+        /**
+         * Get Score
+         * @description Direct access on known local and explicitly enabled LAN listeners. No PIN or device credential is required, including Asset GET/HEAD/Range. Unknown accepting socket bindings are rejected.
+         */
         get: operations["get_score_projects__project_id__scores__score_id__get"];
         put?: never;
         post?: never;
@@ -318,7 +567,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Create Generate Job */
+        /**
+         * Create Generate Job
+         * @description Direct access on known local and explicitly enabled LAN listeners. No PIN or device credential is required, including Asset GET/HEAD/Range. Unknown accepting socket bindings are rejected. Idempotency-Key must be a UUID for LAN writes and is optional for existing local callers. The same key and validated intent replay the original resource with status 200 before current Runtime readiness/retry checks. A different operation/target/input returns 409. Persist the key and frozen intent before sending; query GET /requests/{request_id} after an uncertain response.
+         */
         post: operations["create_generate_job_projects__project_id__jobs_generate_post"];
         delete?: never;
         options?: never;
@@ -335,7 +587,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Create Generate From Score Job */
+        /**
+         * Create Generate From Score Job
+         * @description Direct access on known local and explicitly enabled LAN listeners. No PIN or device credential is required, including Asset GET/HEAD/Range. Unknown accepting socket bindings are rejected.
+         */
         post: operations["create_generate_from_score_job_projects__project_id__jobs_generate_from_score_post"];
         delete?: never;
         options?: never;
@@ -350,7 +605,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** List Candidates */
+        /**
+         * List Candidates
+         * @description Direct access on known local and explicitly enabled LAN listeners. No PIN or device credential is required, including Asset GET/HEAD/Range. Unknown accepting socket bindings are rejected.
+         */
         get: operations["list_candidates_projects__project_id__candidates_get"];
         put?: never;
         post?: never;
@@ -367,7 +625,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Get Candidate */
+        /**
+         * Get Candidate
+         * @description Direct access on known local and explicitly enabled LAN listeners. No PIN or device credential is required, including Asset GET/HEAD/Range. Unknown accepting socket bindings are rejected.
+         */
         get: operations["get_candidate_projects__project_id__candidates__candidate_id__get"];
         put?: never;
         post?: never;
@@ -384,10 +645,16 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** List Versions */
+        /**
+         * List Versions
+         * @description Direct access on known local and explicitly enabled LAN listeners. No PIN or device credential is required, including Asset GET/HEAD/Range. Unknown accepting socket bindings are rejected.
+         */
         get: operations["list_versions_projects__project_id__versions_get"];
         put?: never;
-        /** Create Version */
+        /**
+         * Create Version
+         * @description Direct access on known local and explicitly enabled LAN listeners. No PIN or device credential is required, including Asset GET/HEAD/Range. Unknown accepting socket bindings are rejected.
+         */
         post: operations["create_version_projects__project_id__versions_post"];
         delete?: never;
         options?: never;
@@ -402,7 +669,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Get Version */
+        /**
+         * Get Version
+         * @description Direct access on known local and explicitly enabled LAN listeners. No PIN or device credential is required, including Asset GET/HEAD/Range. Unknown accepting socket bindings are rejected.
+         */
         get: operations["get_version_projects__project_id__versions__version_id__get"];
         put?: never;
         post?: never;
@@ -421,7 +691,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Create Reference */
+        /**
+         * Create Reference
+         * @description Direct access on known local and explicitly enabled LAN listeners. No PIN or device credential is required, including Asset GET/HEAD/Range. Unknown accepting socket bindings are rejected.
+         */
         post: operations["create_reference_projects__project_id__reference_audio_from_version_post"];
         delete?: never;
         options?: never;
@@ -436,7 +709,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Read Reference Origin */
+        /**
+         * Read Reference Origin
+         * @description Direct access on known local and explicitly enabled LAN listeners. No PIN or device credential is required, including Asset GET/HEAD/Range. Unknown accepting socket bindings are rejected.
+         */
         get: operations["read_reference_origin_projects__project_id__assets__asset_id__reference_origin_get"];
         put?: never;
         post?: never;
@@ -455,7 +731,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Validate Cover */
+        /**
+         * Validate Cover
+         * @description Direct access on known local and explicitly enabled LAN listeners. No PIN or device credential is required, including Asset GET/HEAD/Range. Unknown accepting socket bindings are rejected.
+         */
         post: operations["validate_cover_projects__project_id__cover_inputs_validate_post"];
         delete?: never;
         options?: never;
@@ -472,7 +751,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Create Cover */
+        /**
+         * Create Cover
+         * @description Direct access on known local and explicitly enabled LAN listeners. No PIN or device credential is required, including Asset GET/HEAD/Range. Unknown accepting socket bindings are rejected.
+         */
         post: operations["create_cover_projects__project_id__jobs_cover_post"];
         delete?: never;
         options?: never;
@@ -671,6 +953,42 @@ export interface components {
              */
             supported_modes?: ("melody" | "full")[];
         };
+        /** ChallengeCreated */
+        ChallengeCreated: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Expires At */
+            expires_at: number;
+            /** Attempts Remaining */
+            attempts_remaining: number;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "active" | "closed" | "consumed" | "locked";
+            /** Code */
+            code: string;
+        };
+        /** ChallengeRead */
+        ChallengeRead: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Expires At */
+            expires_at: number;
+            /** Attempts Remaining */
+            attempts_remaining: number;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "active" | "closed" | "consumed" | "locked";
+        };
         /** CodeRegistryRead */
         CodeRegistryRead: {
             /**
@@ -686,6 +1004,30 @@ export interface components {
             license_source: string | null;
             /** Registry Source */
             registry_source: string;
+        };
+        /** ConnectionRead */
+        ConnectionRead: {
+            /**
+             * Server Id
+             * Format: uuid
+             */
+            server_id: string;
+            /**
+             * Protocol Version
+             * @default 1
+             * @constant
+             */
+            protocol_version?: 1;
+            /**
+             * Access Method
+             * @default direct
+             * @constant
+             */
+            access_method?: "direct";
+            /** Pairing Available */
+            pairing_available: boolean;
+            /** Lan Address */
+            lan_address: string | null;
         };
         /** CoverCreate */
         CoverCreate: {
@@ -780,6 +1122,29 @@ export interface components {
              */
             warnings?: string[];
         };
+        /** DeviceConnectionRead */
+        DeviceConnectionRead: {
+            /**
+             * Server Id
+             * Format: uuid
+             */
+            server_id: string;
+            device: components["schemas"]["DeviceRead"];
+        };
+        /** DeviceRead */
+        DeviceRead: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Name */
+            name: string;
+            /** Created At */
+            created_at: number;
+            /** Revoked At */
+            revoked_at: number | null;
+        };
         /** DiagnosticReason */
         DiagnosticReason: {
             /** Code */
@@ -802,8 +1167,11 @@ export interface components {
              * @enum {string}
              */
             freshness: "fresh" | "stale" | "unavailable";
-            /** Max Age Seconds */
-            max_age_seconds: number;
+            /**
+             * Max Age Seconds
+             * @description Age limit for live observations; null for immutable proof validated against the current process/source/model identity. observed_at retains its original verification time.
+             */
+            max_age_seconds: number | null;
         };
         /** DiagnosticValue[dict[str, list[str]]] */
         DiagnosticValue_dict_str__list_str___: {
@@ -1101,6 +1469,36 @@ export interface components {
             /** Models */
             models: components["schemas"]["ModelRead"][];
         };
+        /** OwnerRead */
+        OwnerRead: {
+            /**
+             * Server Id
+             * Format: uuid
+             */
+            server_id: string;
+            /** Owner Csrf */
+            owner_csrf: string;
+            /** Lan Address */
+            lan_address: string | null;
+            challenge: components["schemas"]["ChallengeRead"] | null;
+        };
+        /** PairingClaim */
+        PairingClaim: {
+            /**
+             * Device Id
+             * Format: uuid
+             */
+            device_id: string;
+            /**
+             * Device Token
+             * @description 32 securely generated random bytes encoded as exactly 64 lowercase hex characters.
+             */
+            device_token: string;
+            /** Device Name */
+            device_name: string;
+            /** Code */
+            code: string;
+        };
         /** ProjectCreate */
         ProjectCreate: {
             /** Name */
@@ -1158,6 +1556,41 @@ export interface components {
             sample_rate: number;
             /** Derivation Version */
             derivation_version: string;
+        };
+        /** RequestRead */
+        RequestRead: {
+            /**
+             * Request Id
+             * Format: uuid
+             */
+            request_id: string;
+            /**
+             * Operation
+             * @enum {string}
+             */
+            operation: "create_project" | "generate" | "retry";
+            /**
+             * Project Id
+             * Format: uuid
+             */
+            project_id: string;
+            /**
+             * Resource Type
+             * @enum {string}
+             */
+            resource_type: "project" | "job";
+            /**
+             * Resource Id
+             * Format: uuid
+             */
+            resource_id: string;
+            /** Source Job Id */
+            source_job_id: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
         };
         /** RuntimeHealthRead */
         RuntimeHealthRead: {
@@ -1381,6 +1814,575 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    connection_connection_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConnectionRead"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    current_device_device_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeviceConnectionRead"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    pairing_owner_pairing_owner_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OwnerRead"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    create_challenge_pairing_challenges_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChallengeCreated"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    close_challenge_pairing_challenges_current_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    claim_device_pairing_claim_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PairingClaim"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeviceConnectionRead"];
+                };
+            };
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeviceConnectionRead"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Gone */
+            410: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Too Many Requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    paired_devices_pairing_devices_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeviceRead"][];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    revoke_device_pairing_devices__device_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                device_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeviceRead"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
     settings_metadata_settings_metadata_get: {
         parameters: {
             query?: never;
@@ -1397,6 +2399,24 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SettingsMetadataRead"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
             /** @description Not Found */
@@ -1446,6 +2466,24 @@ export interface operations {
                     "application/json": components["schemas"]["DiagnosticsRead"];
                 };
             };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
             /** @description Not Found */
             404: {
                 headers: {
@@ -1491,6 +2529,24 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HealthRead"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
             /** @description Not Found */
@@ -1540,6 +2596,24 @@ export interface operations {
                     "application/json": components["schemas"]["CapabilitiesRead"];
                 };
             };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
             /** @description Not Found */
             404: {
                 headers: {
@@ -1585,6 +2659,91 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ModelsRead"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    get_request_requests__request_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                request_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RequestRead"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
             /** @description Not Found */
@@ -1634,6 +2793,24 @@ export interface operations {
                     "application/json": components["schemas"]["ProjectRead"][];
                 };
             };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
             /** @description Not Found */
             404: {
                 headers: {
@@ -1666,7 +2843,9 @@ export interface operations {
     create_project_projects_post: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                "Idempotency-Key"?: string | null;
+            };
             path?: never;
             cookie?: never;
         };
@@ -1676,6 +2855,15 @@ export interface operations {
             };
         };
         responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProjectRead"];
+                };
+            };
             /** @description Successful Response */
             201: {
                 headers: {
@@ -1685,8 +2873,35 @@ export interface operations {
                     "application/json": components["schemas"]["ProjectRead"];
                 };
             };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
             /** @description Not Found */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -1732,6 +2947,24 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ProjectRead"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
             /** @description Not Found */
@@ -1781,6 +3014,24 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AssetRead"][];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
             /** @description Not Found */
@@ -1845,6 +3096,24 @@ export interface operations {
                     "application/json": components["schemas"]["AssetRead"];
                 };
             };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
             /** @description Not Found */
             404: {
                 headers: {
@@ -1902,6 +3171,24 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AssetRead"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
             /** @description Not Found */
@@ -1966,6 +3253,37 @@ export interface operations {
                     "audio/midi": string;
                 };
             };
+            /** @description Requested original bytes (including multipart ranges). */
+            206: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "audio/wav": string;
+                    "audio/flac": string;
+                    "text/vnd.abc": string;
+                    "audio/midi": string;
+                    "multipart/byteranges": string;
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
             /** @description Not Found */
             404: {
                 headers: {
@@ -1983,6 +3301,104 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
+            };
+            /** @description Unsatisfiable byte range from FileResponse. */
+            416: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/plain": string;
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    download_asset_projects__project_id__assets__asset_id__content_head: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+                asset_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Original Asset headers without a response body. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Original Asset range headers without a response body. */
+            206: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unsatisfiable byte range; FileResponse returns no bytes for HEAD. */
+            416: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Unprocessable Entity */
             422: {
@@ -2026,6 +3442,24 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["JobRead"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
             /** @description Not Found */
@@ -2077,6 +3511,24 @@ export interface operations {
                     "application/json": components["schemas"]["JobRead"][];
                 };
             };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
             /** @description Not Found */
             404: {
                 headers: {
@@ -2125,6 +3577,24 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["JobRead"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
             /** @description Not Found */
@@ -2186,6 +3656,24 @@ export interface operations {
                     "application/json": components["schemas"]["JobRead"];
                 };
             };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
             /** @description Not Found */
             404: {
                 headers: {
@@ -2227,7 +3715,9 @@ export interface operations {
     retry_job_projects__project_id__jobs__job_id__retry_post: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                "Idempotency-Key"?: string | null;
+            };
             path: {
                 project_id: string;
                 job_id: string;
@@ -2236,6 +3726,15 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JobRead"];
+                };
+            };
             /** @description Successful Response */
             202: {
                 headers: {
@@ -2243,6 +3742,24 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["JobRead"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
             /** @description Not Found */
@@ -2307,6 +3824,24 @@ export interface operations {
                     "application/json": components["schemas"]["ScoreValidationRead"];
                 };
             };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
             /** @description Not Found */
             404: {
                 headers: {
@@ -2354,6 +3889,24 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ScoreRead"][];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
             /** @description Not Found */
@@ -2418,6 +3971,24 @@ export interface operations {
                     "application/json": components["schemas"]["ScoreRead"];
                 };
             };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
             /** @description Not Found */
             404: {
                 headers: {
@@ -2477,6 +4048,24 @@ export interface operations {
                     "application/json": components["schemas"]["ScoreRead"];
                 };
             };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
             /** @description Not Found */
             404: {
                 headers: {
@@ -2509,7 +4098,9 @@ export interface operations {
     create_generate_job_projects__project_id__jobs_generate_post: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                "Idempotency-Key"?: string | null;
+            };
             path: {
                 project_id: string;
             };
@@ -2521,6 +4112,15 @@ export interface operations {
             };
         };
         responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JobRead"];
+                };
+            };
             /** @description Successful Response */
             202: {
                 headers: {
@@ -2530,8 +4130,35 @@ export interface operations {
                     "application/json": components["schemas"]["JobRead"];
                 };
             };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
             /** @description Not Found */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -2581,6 +4208,24 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["JobRead"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
             /** @description Not Found */
@@ -2639,6 +4284,24 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CandidateRead"][];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
             /** @description Not Found */
@@ -2700,6 +4363,24 @@ export interface operations {
                     "application/json": components["schemas"]["CandidateRead"];
                 };
             };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
             /** @description Not Found */
             404: {
                 headers: {
@@ -2756,6 +4437,24 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["VersionRead"][];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
             /** @description Not Found */
@@ -2829,6 +4528,24 @@ export interface operations {
                     "application/json": components["schemas"]["VersionRead"];
                 };
             };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
             /** @description Not Found */
             404: {
                 headers: {
@@ -2886,6 +4603,24 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["VersionRead"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
             /** @description Not Found */
@@ -2959,6 +4694,24 @@ export interface operations {
                     "application/json": components["schemas"]["AssetRead"];
                 };
             };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
             /** @description Not Found */
             404: {
                 headers: {
@@ -3016,6 +4769,24 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ReferenceOriginRead"] | null;
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
             /** @description Not Found */
@@ -3080,6 +4851,24 @@ export interface operations {
                     "application/json": components["schemas"]["CoverValidationRead"];
                 };
             };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
             /** @description Not Found */
             404: {
                 headers: {
@@ -3140,6 +4929,24 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["JobRead"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
             /** @description Not Found */

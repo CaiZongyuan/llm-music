@@ -8,6 +8,30 @@ async function scenario(request: APIRequestContext, value: string) {
   expect(response.ok()).toBe(true);
 }
 
+test('verified model evidence retains its original time and remains usable beyond five minutes', async ({ page, request }) => {
+  await scenario(request, 'stable-evidence');
+  const response = await request.get('/api/runtime/models');
+  expect(response.ok()).toBe(true);
+  const models = (await response.json()).models;
+  expect(models.length).toBeGreaterThan(0);
+  for (const model of models) {
+    expect(model.state).toBe('ready');
+    expect(model.observation.age_seconds).toBeGreaterThanOrEqual(600);
+    expect(model.observation.max_age_seconds).toBeNull();
+    expect(model.observation.freshness).toBe('fresh');
+  }
+  await page.goto('/runtime');
+  await page.getByRole('combobox').selectOption('en');
+  for (const model of models) {
+    await expect(page.getByRole('article', { name: model.name, exact: true }).locator('strong').first()).toHaveText('Ready');
+  }
+  const reread = await request.get('/api/runtime/models');
+  expect(reread.ok()).toBe(true);
+  expect((await reread.json()).models.map((model: { observation: { observed_at: string } }) => model.observation.observed_at))
+    .toEqual(models.map((model: { observation: { observed_at: string } }) => model.observation.observed_at));
+  await scenario(request, 'ready');
+});
+
 test('model files expose missing/downloading/ready/invalid with actual registration and source facts', async ({ page, request, baseURL }, info) => {
   if (!baseURL) throw new Error('Missing owned Web URL');
   const api = createMusicClient({ baseUrl: `${baseURL}/api` });
@@ -66,7 +90,8 @@ test('empty/loading/API outage recover through HTTP; language/theme and narrow l
   await expect(page.getByRole('alert').first()).toBeVisible();
   await expect(page.getByRole('region', { name: '服务与创作准备', exact: true })).not.toContainText('已就绪');
   await page.getByRole('combobox').selectOption('en');
-  await page.getByRole('button', { name: 'Dark mode', exact: true }).click();
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+  await expect(page.getByRole('button', { name: 'Dark mode', exact: true })).toHaveCount(0);
   await expect(page.getByRole('alert').first()).toContainText('Current state could not be read');
   await scenario(request, 'ready'); await page.getByRole('button', { name: 'Check again', exact: true }).click();
   await expect(page.getByRole('alert')).toHaveCount(0);

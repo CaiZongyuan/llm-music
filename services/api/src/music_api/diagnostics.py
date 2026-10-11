@@ -52,18 +52,18 @@ def reason(code: str) -> DiagnosticReason:
     return DiagnosticReason(code=code, message=message, recovery=recovery)
 
 
-def source(source_name: str, observed_at: datetime | None, now: datetime, max_age: float) -> DiagnosticSource:
+def source(source_name: str, observed_at: datetime | None, now: datetime, max_age: float | None) -> DiagnosticSource:
     if observed_at is not None and observed_at.tzinfo is None:
         observed_at = None
     age = None if observed_at is None else (now - observed_at).total_seconds()
-    freshness: Literal["fresh", "stale", "unavailable"] = "unavailable" if age is None or age < 0 else "stale" if age > max_age else "fresh"
+    freshness: Literal["fresh", "stale", "unavailable"] = "unavailable" if age is None or age < 0 else "stale" if max_age is not None and age > max_age else "fresh"
     return DiagnosticSource(source=source_name, observed_at=observed_at,
                             age_seconds=None if age is None or age < 0 else age,
                             freshness=freshness, max_age_seconds=max_age)
 
 
 def observed_value[T](value: T | None, source_name: str, observed_at: datetime | None,
-                      now: datetime, max_age: float, cause: str | None = None) -> DiagnosticValue[T]:
+                      now: datetime, max_age: float | None, cause: str | None = None) -> DiagnosticValue[T]:
     metadata = source(source_name, observed_at, now, max_age)
     available = value is not None and metadata.freshness == "fresh" and cause is None
     codes = [] if available else [cause or ("runtime_metric_stale" if metadata.freshness == "stale" else "runtime_metric_unavailable")]
@@ -97,7 +97,8 @@ def build_diagnostics(observation: RuntimeObservation, now: datetime, max_age: f
     for name in ("runtime_revision", "plugin_revision"):
         raw = None if attestation is None else getattr(attestation, name)
         versions[name] = observed_value(raw, "owner receipt unavailable" if attestation is None else attestation.source,
-                                       None if attestation is None else attestation.checked_at, now, max_age,
+                                       None if attestation is None else attestation.checked_at, now,
+                                       None if attestation is not None and attestation.binding_verified else max_age,
                                        None if attestation is not None and attestation.binding_verified else "runtime_binding_unavailable")
     total, proxy = number(device.get("vram_total")), number(device.get("vram_free"))
     reserved, reusable = number(device.get("torch_vram_total")), number(device.get("torch_vram_free"))
@@ -132,7 +133,8 @@ def build_diagnostics(observation: RuntimeObservation, now: datetime, max_age: f
         "registered_nodes": source(observation.source + "/object_info", observation.registered_nodes_observed_at, now, max_age),
         "generic_model_inventory": source(observation.source + "/models/{folder}", observation.model_inventory_observed_at, now, max_age),
         "owner_receipt": source("owner receipt unavailable" if attestation is None else attestation.source,
-                                None if attestation is None else attestation.checked_at, now, max_age),
+                                None if attestation is None else attestation.checked_at, now,
+                                None if attestation is not None and attestation.binding_verified else max_age),
     }
     return DiagnosticsRead(mode=observation.mode, checked_at=now, source_observations=sources,
                            gpu_name=observed_value(text(device.get("name")), native_source, native_time, now, max_age, native_cause),

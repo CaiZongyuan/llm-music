@@ -1,0 +1,6 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<testsuites>
+  <testsuite name="Test Suite" device="Shengjian_Expo57" tests="1" failures="0" time="102.643" timestamp="2026-10-10T03:11:20">
+    <testcase id="native-recovery" name="native-recovery" classname="native-recovery" file=".scratch\mobile-development\native-recovery.yaml" time="102.621" timestamp="2026-10-10T03:11:20" status="SUCCESS"/>
+  </testsuite>
+</testsuites>

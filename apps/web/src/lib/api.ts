@@ -10,7 +10,8 @@ export class ApiFailure extends Error {
   }
 }
 
-export function dataOf<T>(result: { data?: T; error?: ErrorResponse; response: Response }): T {
-  if (!result.response.ok || result.data === undefined) throw new ApiFailure(result.response.status, result.error?.error);
+export function dataOf<T>(result: { data?: T; error?: ErrorResponse | string; response: Response }): T {
+  const detail = typeof result.error === 'object' ? result.error.error : undefined;
+  if (!result.response.ok || result.data === undefined) throw new ApiFailure(result.response.status, detail);
   return result.data;
 }

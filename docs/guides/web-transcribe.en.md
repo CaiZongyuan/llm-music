@@ -8,7 +8,7 @@ Keep original reference audio in one Project, transcribe it into a score, then d
 2. Choose a local WAV, then choose “Add to project assets”. Selecting alone does not upload it. The application rejects invalid WAV files.
 3. Choose a saved original under “Choose reference audio”. The current transcription profile is **16 seconds of PCM16, mono24 kHz or stereo48 kHz**. Other valid WAV files can remain project assets, but cannot start transcription within the current verified scope.
 
-The upload budget is64 MiB/600 seconds; it does not establish inference support for longer audio. Start with a clear melody that is easy to listen to repeatedly. Switching language and light/dark mode preserves the current file selection and Project identity.
+The upload budget is64 MiB/600 seconds; it does not establish inference support for longer audio. Start with a clear melody that is easy to listen to repeatedly. Switching language preserves the current file selection and Project identity.
 
 ## Start transcription and inspect its job {#transcribe}
 
@@ -43,4 +43,4 @@ pnpm test:web -- transcription.web.ts
 pnpm --filter @llm-music/browser-tests exec playwright test --config transcription.playwright.config.ts
 ```
 
-Tests cover both languages and themes, upload and source relations, read-only notation, native download bytes and MIDI note events, reload recovery, invalid input and recovery after a real file becomes unavailable. The extra configuration reuses an isolated controlled CPU Fake Runtime to check missing models, an unavailable service, stale observations, cancellation confirmation and explicit retry after failure, using ports18039/18040. Fake and real GPU results are recorded separately; see the [transcription Web verification record](../verification/web-transcription.md).
+Tests cover both languages and legacy theme preferences, upload and source relations, read-only notation, native download bytes and MIDI note events, reload recovery, invalid input and recovery after a real file becomes unavailable. The extra configuration reuses an isolated controlled CPU Fake Runtime to check missing models, an unavailable service, stale observations, cancellation confirmation and explicit retry after failure, using ports18039/18040. Fake and real GPU results are recorded separately; see the [transcription Web verification record](../verification/web-transcription.md).

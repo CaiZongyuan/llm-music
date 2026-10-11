@@ -1,0 +1,287 @@
+# Direct connection revision: this flow needs fresh native source/binary evidence.
+# Run via scripts/test-mobile-workflow.ps1: it checks the explicit Fake API/SID.
+# The normal product connection and workbench are used, without preview/private routes.
+# This covers button seeks. Slider dragging/native bytes/GPU/APK config remain separate.
+appId: ${APP_ID}
+name: Direct LAN isolated Fake API creation and explicit Version save
+---
+- launchApp:
+    clearState: false
+- runFlow:
+    when:
+      true: ${APP_MODE == 'Go'}
+    commands:
+      - openLink: ${CONNECT_URL}
+      - tapOn:
+          text: Continue
+          optional: true
+      - tapOn:
+          text: Close
+          optional: true
+- runFlow:
+    when:
+      true: ${APP_MODE == 'Apk'}
+    commands:
+      - extendedWaitUntil:
+          visible:
+            text: '声间 / (我的电脑|我的项目)'
+          timeout: 90000
+      - runFlow:
+          when:
+            visible:
+              id: open-mobile-connection
+          commands:
+            - tapOn:
+                id: open-mobile-connection
+- extendedWaitUntil:
+    visible:
+      id: connect-address
+    timeout: 90000
+- tapOn:
+    id: connect-address
+    point: "95%,50%"
+# The short LAN IPv4 address fits the field. Tap its right edge before backspacing
+# so a caret placed in the middle cannot leave an old port suffix behind.
+- eraseText: 100
+- inputText: ${API_URL}
+- assertVisible:
+    id: connect-address
+    text: '^${API_PATTERN}$'
+- scrollUntilVisible:
+    element:
+      id: connect-submit
+    direction: DOWN
+- tapOn:
+    id: connect-submit
+- scrollUntilVisible:
+    element:
+      id: connection-status
+    direction: UP
+- extendedWaitUntil:
+    visible:
+      id: connection-status
+      text: 电脑已连接
+    timeout: 90000
+- scrollUntilVisible:
+    element:
+      id: connected-address
+    direction: DOWN
+- assertVisible:
+    id: connected-address
+    text: ${API_PATTERN}
+- scrollUntilVisible:
+    element:
+      id: open-workbench
+    direction: DOWN
+- tapOn:
+    id: open-workbench
+- extendedWaitUntil:
+    visible:
+      id: new-project-name
+    timeout: 30000
+- tapOn:
+    id: new-project-name
+- eraseText: 200
+- inputText: ${PROJECT_NAME}
+- hideKeyboard
+- tapOn:
+    id: create-project
+- extendedWaitUntil:
+    visible:
+      id: draft-style
+    timeout: 30000
+- tapOn:
+    id: draft-style
+# A newly created Project starts with empty style/lyrics (M3 blankDraft).
+# Max-length backspacing wastes RPC time even on empty Android fields.
+- inputText: 独立流行，温暖女声，轻快鼓点
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: draft-lyrics
+    direction: DOWN
+- tapOn:
+    id: draft-lyrics
+- inputText: |-
+    [Verse]
+    末班车穿过雨后的街
+    霓虹在车窗慢慢重叠
+    [Chorus]
+    把没说的话唱成明天
+- hideKeyboard
+- assertVisible: |-
+    \[Verse\]
+    末班车穿过雨后的街
+    霓虹在车窗慢慢重叠
+    \[Chorus\]
+    把没说的话唱成明天
+- takeScreenshot: workflow-chinese-multiline
+- scrollUntilVisible:
+    element:
+      id: draft-duration
+    direction: DOWN
+- tapOn:
+    id: draft-duration
+- eraseText: 20
+- inputText: '35'
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: generate-submit
+    direction: DOWN
+- tapOn:
+    id: generate-submit
+- scrollUntilVisible:
+    element:
+      id: job-.*-state
+    direction: DOWN
+- extendedWaitUntil:
+    visible:
+      id: job-.*-state
+      text: 已完成
+    timeout: 30000
+- takeScreenshot: workflow-real-job-completed
+- scrollUntilVisible:
+    element:
+      id: play-.*
+    direction: DOWN
+- tapOn:
+    id: play-.*
+    waitToSettleTimeoutMs: 300
+- extendedWaitUntil:
+    visible:
+      id: playback-.*
+      text: '播放中.*'
+    timeout: 30000
+- takeScreenshot: workflow-candidate-playing
+# Optional UI recovery subflow; position/cache/source recovery has separate M5 evidence.
+- runFlow:
+    when:
+      true: ${CHECK_BACKGROUND == 'true'}
+    commands:
+      - pressKey: HOME
+      # Expo Go launchApp may foreground its HomeActivity rather than the experience.
+      - runFlow:
+          when:
+            true: ${APP_MODE == 'Go'}
+          commands:
+            - openLink: ${WORKBENCH_URL}
+            - extendedWaitUntil:
+                visible:
+                  id: new-project-name
+                timeout: 90000
+            - scrollUntilVisible:
+                element:
+                  text: ${PROJECT_NAME}
+                direction: DOWN
+            - tapOn:
+                id: open-project-.*
+                below: ${PROJECT_NAME}
+                index: 0
+            - extendedWaitUntil:
+                visible:
+                  id: draft-style
+                timeout: 30000
+            - scrollUntilVisible:
+                element:
+                  id: playback-.*
+                direction: DOWN
+      - runFlow:
+          when:
+            true: ${APP_MODE == 'Apk'}
+          commands:
+            - launchApp:
+                stopApp: false
+                clearState: false
+      - extendedWaitUntil:
+          visible:
+            id: playback-.*
+            text: '(等待试听|已暂停|试听结束).*'
+          timeout: 30000
+      - assertNotVisible:
+          id: playback-.*
+          text: '播放中.*'
+      - takeScreenshot: workflow-foreground-no-autoplay
+      - scrollUntilVisible:
+          element:
+            id: play-.*
+          direction: DOWN
+      - tapOn:
+          id: play-.*
+          waitToSettleTimeoutMs: 300
+      - extendedWaitUntil:
+          visible:
+            id: playback-.*
+            text: '播放中.*'
+          timeout: 30000
+- tapOn:
+    id: play-.*
+- extendedWaitUntil:
+    visible:
+      id: playback-.*
+      text: '已暂停.*'
+    timeout: 30000
+- scrollUntilVisible:
+    element:
+      id: seek-start-.*
+    direction: DOWN
+- tapOn:
+    id: seek-start-.*
+- extendedWaitUntil:
+    visible:
+      id: playback-.*
+      text: '已暂停 · 0:00 / .*'
+    timeout: 30000
+- tapOn:
+    id: seek-forward-.*
+- extendedWaitUntil:
+    visible:
+      id: playback-.*
+      text: '已暂停 · 0:10 / .*'
+    timeout: 30000
+- takeScreenshot: workflow-candidate-paused-seek
+- scrollUntilVisible:
+    element:
+      id: version-name-.*
+    direction: DOWN
+- tapOn:
+    id: version-name-.*
+- eraseText: 200
+- inputText: ${VERSION_NAME}
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: save-.*
+    direction: DOWN
+- tapOn:
+    id: save-.*
+- extendedWaitUntil:
+    visible:
+      id: saved-.*
+      text: '已明确保存为「${VERSION_NAME}」'
+    timeout: 30000
+- takeScreenshot: workflow-explicit-version-save
+- scrollUntilVisible:
+    element:
+      id: tab-versions
+    direction: UP
+- tapOn:
+    id: tab-versions
+- assertVisible: ${VERSION_NAME}
+- takeScreenshot: workflow-version-history
+- scrollUntilVisible:
+    element:
+      id: open-version-.*
+    direction: DOWN
+- tapOn:
+    id: open-version-.*
+- extendedWaitUntil:
+    visible:
+      id: saved-version-name
+      text: ${VERSION_NAME}
+    timeout: 30000
+- assertVisible: 独立流行，温暖女声，轻快鼓点
+- takeScreenshot: workflow-version-details
+# Background the selected app so its session releases temporary playback resources.
+# The runner retains the Fake data and shared Metro/API services for their owner.
+- pressKey: HOME

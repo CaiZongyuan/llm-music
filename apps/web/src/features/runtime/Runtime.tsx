@@ -63,11 +63,11 @@ export function Runtime() {
         {health.isPending ? <Loading /> : health.isError ? <RuntimeReadFailure error={health.error} onRetry={refresh} /> : <>
           <dl className="facts"><dt>{t.backend}</dt><dd><strong>{freshness(health.data.backend.observation, now) === 'fresh' ? t.reachable : t[freshness(health.data.backend.observation, now)]}</strong><Observation source={health.data.backend.observation} now={now} /></dd>
             <dt>{t.backendVersion}</dt><dd>{health.data.backend.version}</dd><dt>{t.python}</dt><dd>{health.data.backend.python_version}</dd>
-            <dt>{t.runtime}</dt><dd><strong>{!health.data.runtime.reachable ? t.notReachable : freshness(health.data.runtime.observation, now) !== 'fresh' ? t[freshness(health.data.runtime.observation, now)] : t[health.data.runtime.status]}</strong><Observation source={health.data.runtime.observation} now={now} /></dd>
+            <dt>{t.runtime}</dt><dd><strong className="runtime-signal" data-ready={health.data.runtime.reachable && freshness(health.data.runtime.observation, now) === 'fresh' && health.data.runtime.status === 'ready'}>{!health.data.runtime.reachable ? t.notReachable : freshness(health.data.runtime.observation, now) !== 'fresh' ? t[freshness(health.data.runtime.observation, now)] : t[health.data.runtime.status]}</strong><Observation source={health.data.runtime.observation} now={now} /></dd>
           </dl><Reasons reasons={health.data.runtime.reasons} />
         </>}
         {capabilities.isPending ? <Loading /> : capabilities.isError ? <RuntimeReadFailure error={capabilities.error} onRetry={refresh} /> : capabilities.data.capabilities.map(capability => <div className="runtime-metric" key={capability.operation}>
-          <h3>{t[capability.operation]}</h3><strong>{operationReady(capabilities.data, capability.operation) ? t.ready : t.not_ready}</strong>
+          <h3>{t[capability.operation]}</h3><strong className="runtime-signal" data-ready={operationReady(capabilities.data, capability.operation)}>{operationReady(capabilities.data, capability.operation) ? t.ready : t.not_ready}</strong>
           <Observation source={capability.observation} now={now} /><Reasons reasons={capability.reasons} />
         </div>)}
       </section>

@@ -36,13 +36,13 @@ uv run --project services/api --no-sync python services/api/examples/runtime_dia
 
 backend `ready` 表示此应用 HTTP process 正在响应。Runtime `ready` 表示至少一项 operation 满足当前条件；提交仍检查所选 operation、输入和同一 predicate。它不会替代 Job 的实际完成、输出导入与读取验证。
 
-每个 `observation` 保留来源的 `observed_at`、`age_seconds`、`freshness` 和当前 `max_age_seconds`。顶层 `checked_at` 是此次诊断时间，不会更新旧 hash、节点或指标的来源时间。过期值可保留历史数值，但 `availability=unavailable`。缺数据保留 `null`；实际观测到的零值仍可用。
+每个 `observation` 保留来源的 `observed_at`、`age_seconds`、`freshness` 和当前 `max_age_seconds`。顶层 `checked_at` 是此次诊断时间，不会更新旧 hash、节点或指标的来源时间。已验证且实际绑定/文件仍匹配的模型与源码事实使用 `max_age_seconds: null`，经过时间本身不使其失效。动态观测超过有限时间窗口时保留历史数值，但 `availability=unavailable`。缺数据保留 `null`；实际观测到的零值仍可用。
 
-默认新鲜度策略为 300 秒，环境变量 `MUSIC_API_DIAGNOSTICS_MAX_AGE_SECONDS` 可以配置正数。这是证据窗口。当前 HTTP 失败、缺 GPU/节点、模型缺失、无效 hash、变化的指纹、失配/无法读取的进程绑定和过期来源都使能力未就绪。新保存的旧收据仍为 stale。
+动态健康、节点、GPU 与内存观测的默认时间窗口为 300 秒，可用正数环境变量 `MUSIC_API_DIAGNOSTICS_MAX_AGE_SECONDS` 调整。该窗口不使仍匹配当前进程、监听、源码和模型指纹的 owner 校验收据过期，也不因模型校验超过五分钟拒绝创作。当前 HTTP 失败、缺 GPU/节点、模型缺失、无效 hash、变化的指纹以及失配/无法读取的实际进程绑定仍使能力未就绪。
 
 ## 校验模型与指标
 
-Runtime owner 用 [CPU 收据收集命令](../reference/runtime-evidence.md) 校验实际 listener PID/create time、选定入口、model root、clean source pins 与完整权重 SHA256。API 请求只读收据并检查当前身份和轻量文件指纹。窗口过期时 owner 重做实际验证；不可只修改时间。
+Runtime owner 用 [CPU 收据收集命令](../reference/runtime-evidence.md) 校验实际 listener PID/create time、选定入口、model root、clean source pins 与完整权重 SHA256。API 请求只读收据并检查当前身份和轻量文件指纹。条件未改变时继续使用原校验，不定时重算权重；条件改变后恢复实际文件/绑定并取得匹配证据。原校验时间照实保留。
 
 通用 `/models` 只给 ComfyUI 文件名。锁定 YuE2 插件使用独立 `YUE2_MODELS_ROOT`；空通用清单可以与 ready 权重并存。清单不证明 hash 或 loaded 状态。Model Registry 复用 [models.json](../../runtime/comfyui/models.json) 和 [runtime.json](../../runtime/comfyui/runtime.json) 的已固定事实：YuE2 checkpoint 内含标准 VAE 和 tokenizer；权重 CC-BY-NC-4.0 与 Runtime/plugin code licenses 分开记录，独立 tokenizer 许可保持 unspecified。
 

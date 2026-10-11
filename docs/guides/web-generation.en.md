@@ -9,7 +9,7 @@ Continue with “A walk after rain”. Try a warm piano song, inspect the voice,
 3. Confirm “Ready to create”, then choose “Generate a music clip”. Clip length defaults to auto (follows the lyrics); you can also enter a ceiling of 5–360 seconds. The result stays within the ceiling and may end earlier when the lyrics finish. The seed must be an integer from 0 to 9007199254740991.
 4. Follow phases under “Creative job”. Unknown progress shows the phase without an estimated percentage. A completed job produces a playable Candidate. It does not save a Version.
 
-Missing models or unavailable creative resources disable submission. Restore resources, then choose “Check readiness again”. Changing language or theme preserves current input.
+Missing models or unavailable creative resources disable submission. Restore resources, then choose “Check readiness again”. Changing language preserves current input; the workbench always uses a dark theme.
 
 ## Listen, inspect the score and adjust {#listen}
 

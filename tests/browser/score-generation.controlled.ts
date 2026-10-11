@@ -42,8 +42,9 @@ test('a lost Version acknowledgement retains the first name, Candidate and paren
   await info.attach('captured-version-save', { body: JSON.stringify({ writes, original, derived }, null, 2), contentType: 'application/json' });
 });
 
-for (const locale of ['en', 'zh-CN'] as const) for (const theme of ['light', 'dark'] as const) {
-  test(`${locale}/${theme}: edited selection generates its exact snapshot, plays in the sole Player and explicitly saves a child Version`, async ({ page, baseURL }, info) => {
+for (const locale of ['en', 'zh-CN'] as const) for (const savedTheme of ['light', 'dark'] as const) {
+  test(`${locale}/legacy-${savedTheme}: edited selection generates its exact snapshot, plays in the sole Player and explicitly saves a child Version`, async ({ page, baseURL }, info) => {
+    await page.addInitScript(value => localStorage.setItem('music.theme.v1', value), savedTheme);
     const { api, project, score, original } = await withParent(baseURL);
     const path = { project_id: project.id }, t = translations[locale];
     const errors: string[] = [], requests: string[] = [];
@@ -51,10 +52,9 @@ for (const locale of ['en', 'zh-CN'] as const) for (const theme of ['light', 'da
     page.on('request', request => requests.push(request.url()));
     const originalAudio = received(await api.GET('/projects/{project_id}/assets/{asset_id}/content', { params: { path: { ...path, asset_id: original.audio_asset_id } }, parseAs: 'arrayBuffer' }));
     const selected = await selectEdited(page, project.id, score.id, locale);
-    if (await page.locator('html').getAttribute('data-theme') !== theme) await page.locator('.preferences button').click();
     await expect(page.locator('html')).toHaveAttribute('lang', locale);
-    await expect(page.locator('html')).toHaveAttribute('data-theme', theme);
-    await page.setViewportSize({ width: theme === 'dark' ? 390 : 1440, height: 960 });
+    await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+    await page.setViewportSize({ width: savedTheme === 'dark' ? 390 : 1440, height: 960 });
     const midi = await downloadMidi(page, locale === 'en' ? 'Export draft MIDI' : '导出草稿 MIDI');
     expectMusic(midi, true);
     const posted = page.waitForRequest(request => request.method() === 'POST' && request.url().endsWith('/jobs/generate-from-score'));
@@ -90,7 +90,7 @@ for (const locale of ['en', 'zh-CN'] as const) for (const theme of ['light', 'da
     await page.getByRole('link', { name: t.scores, exact: true }).click();
     await page.locator(`a[href="/projects/${project.id}/scores/${score.id}"]`).click();
     await expect(page.locator('.candidate-detail')).toHaveAttribute('data-candidate-id', candidateId);
-    const name = `New melody · ${locale}/${theme}`;
+    const name = `New melody · ${locale}/legacy-${savedTheme}`;
     await page.getByRole('textbox', { name: t.name, exact: true }).fill(name);
     await page.getByRole('button', { name: t.save, exact: true }).click();
     await page.getByRole('link', { name: t.saved, exact: true }).click();
@@ -107,7 +107,7 @@ for (const locale of ['en', 'zh-CN'] as const) for (const theme of ['light', 'da
     expect(received(await api.GET('/projects/{project_id}/versions/{version_id}', { params: { path: { ...path, version_id: original.id } } }))).toEqual(original);
     expect(received(await api.GET('/projects/{project_id}/assets/{asset_id}/content', { params: { path: { ...path, asset_id: score.abc_asset_id } }, parseAs: 'text' }))).toBe(ABC);
     expect(hash(new Uint8Array(received(await api.GET('/projects/{project_id}/assets/{asset_id}/content', { params: { path: { ...path, asset_id: original.audio_asset_id } }, parseAs: 'arrayBuffer' }))))).toBe(hash(new Uint8Array(originalAudio)));
-    expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(theme === 'dark' ? 390 : 1440);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(savedTheme === 'dark' ? 390 : 1440);
     expect(errors).toEqual([]);
     expect(requests.every(url => url.startsWith(baseURL!) || url.startsWith('blob:'))).toBe(true);
     await info.attach('selected-score-version-loop', { body: JSON.stringify({ scope: 'Production browser/FastAPI, controlled CPU test tone; no model quality claim', selected, body, job, candidate, original, child, audio }, null, 2), contentType: 'application/json' });

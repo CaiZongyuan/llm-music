@@ -1,0 +1,33 @@
+appId: host.exp.exponent
+---
+# Caller owns a paired Go session and an isolated Project with no pending/active
+# generation. This checks the visible Compose input boundary before any POST.
+- launchApp
+- openLink: ${PROJECT_URL}
+- tapOn:
+    text: Continue
+    optional: true
+- extendedWaitUntil:
+    visible:
+      id: draft-style
+    timeout: 45000
+- tapOn:
+    id: draft-style
+- eraseText
+- inputText: 这是一段随后会被示例替换的风格
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: fill-example
+    direction: DOWN
+- tapOn:
+    id: fill-example
+- scrollUntilVisible:
+    element:
+      id: draft-style
+    direction: UP
+- assertVisible: 独立流行，温暖女声，慢速鼓点，夜晚的城市感
+- assertNotVisible: Console Error
+- assertNotVisible: Cannot use shared object that was already released
+# Generate/Cancel/Retry is exercised by the owner's actual Slow Fake flow;
+# it must inspect the original full style/lyrics/seed/max_seconds API snapshot.

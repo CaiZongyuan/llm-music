@@ -1,0 +1,108 @@
+appId: host.exp.exponent
+env:
+  EXPO_URL: exp://127.0.0.1:18081/--/preview
+---
+- launchApp
+- openLink: ${EXPO_URL}
+- tapOn:
+    text: Continue
+    optional: true
+- tapOn:
+    text: Close
+    optional: true
+- extendedWaitUntil:
+    visible: 还未连接电脑
+    timeout: 45000
+- tapOn:
+    id: connect-computer
+- tapOn:
+    id: pair-code
+- inputText: '111111'
+- hideKeyboard
+- tapOn:
+    id: pair-submit
+- assertVisible:
+    id: pair-error
+- tapOn:
+    id: pair-code
+- eraseText
+- inputText: '246810'
+- hideKeyboard
+- tapOn:
+    id: pair-submit
+- extendedWaitUntil:
+    visible: 夜行电台
+    timeout: 10000
+- tapOn:
+    id: project-night-radio
+- scrollUntilVisible:
+    element:
+      id: generate-submit
+    direction: DOWN
+- tapOn:
+    id: draft-duration
+- eraseText
+- inputText: '2'
+- hideKeyboard
+- tapOn:
+    id: generate-submit
+- assertVisible:
+    id: draft-error
+- tapOn:
+    id: draft-duration
+- eraseText
+- inputText: '60'
+- hideKeyboard
+- tapOn:
+    id: generate-submit
+- scrollUntilVisible:
+    element:
+      id: job-job-1-state
+    direction: DOWN
+- extendedWaitUntil:
+    visible: 可以试听了
+    timeout: 15000
+- scrollUntilVisible:
+    element:
+      id: play-job-1
+    direction: DOWN
+- tapOn:
+    id: play-job-1
+    waitToSettleTimeoutMs: 300
+- extendedWaitUntil:
+    visible:
+      text: '播放中.*'
+    timeout: 10000
+- tapOn:
+    id: seek-forward-job-1
+    waitToSettleTimeoutMs: 300
+- extendedWaitUntil:
+    visible:
+      text: '播放中.*0:1[0-9].*'
+    timeout: 10000
+- tapOn:
+    id: play-job-1
+    waitToSettleTimeoutMs: 300
+- assertVisible:
+    text: '已暂停.*'
+- scrollUntilVisible:
+    element:
+      id: version-name-job-1
+    direction: DOWN
+- tapOn:
+    id: version-name-job-1
+- inputText: 首个移动版本
+- hideKeyboard
+- tapOn:
+    id: save-job-1
+- extendedWaitUntil:
+    visible: 已明确保存为「首个移动版本」
+    timeout: 10000
+- scrollUntilVisible:
+    element:
+      id: tab-versions
+    direction: UP
+- tapOn:
+    id: tab-versions
+- assertVisible: 首个移动版本
+- takeScreenshot: mobile-version-history

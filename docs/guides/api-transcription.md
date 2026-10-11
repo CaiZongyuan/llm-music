@@ -37,7 +37,7 @@ $env:MUSIC_API_RUNTIME_EVIDENCE_PATH = "<FRESH_OWNER_RECEIPT_JSON>"
 uv run --project services/api --no-sync music-api serve --data-dir data/application-real --port 8000
 ```
 
-owner receipt 与 [CPU 来源核验](../reference/runtime-evidence.md) 使用同一合同。默认 freshness policy 为 300 秒，可用 `MUSIC_API_DIAGNOSTICS_MAX_AGE_SECONDS` 调整；读文件不更新原 checked_at。当前 native 事实失联、过期、缺节点、GPU/版本不符或模型 hash/binding 未核实都会拒绝提交。锁定插件的 YUE2_MODELS_ROOT 与通用 Comfy `/models` inventory 不同；合法空 inventory 不等于模型缺失。
+owner receipt 与 [CPU 来源核验](../reference/runtime-evidence.md) 使用同一合同。当前进程、监听、源码和模型指纹仍匹配时，原 SHA256 校验继续有效，不因超过五分钟拒绝提交；读文件不更新原 checked_at。动态 native 观测默认时间窗口为 300 秒，可用 `MUSIC_API_DIAGNOSTICS_MAX_AGE_SECONDS` 调整。当前 Runtime 失联、缺节点、GPU/版本不符、模型文件变化/缺失或 hash/binding 未核实仍拒绝提交。锁定插件的 YUE2_MODELS_ROOT 与通用 Comfy `/models` inventory 不同；合法空 inventory 不等于模型缺失。
 
 当前实际输入范围是 16 秒 PCM16 stereo48k 或 mono24k。上传的 64 MiB/600 秒预算是存储政策，不能推断所有上传长度、位宽与采样率都支持推理。其他形状返回 `422 reference_profile_unsupported`；源字节与保存 hash 不符时拒绝。Native 转谱复用已验证的 SheetSage2 manifest，ASR/downloads 关闭，业务接口不接收 node/prompt。
 

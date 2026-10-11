@@ -105,8 +105,9 @@ def models(request: Request) -> ModelsRead:
         else:
             codes.extend(checked.reasons)
         metadata = source("owner receipt unavailable" if checked is None else checked.source,
-                          None if checked is None else checked.checked_at, now, settings.diagnostics_max_age_seconds)
-        state: Literal["missing", "downloading", "ready", "invalid", "unavailable"] = "unavailable" if checked is None or checked.state == "unknown" or not observation.reachable or metadata.freshness != "fresh" else checked.state
+                          None if checked is None else checked.checked_at, now,
+                          None if checked is not None and checked.state == "ready" and attestation is not None and attestation.binding_verified else settings.diagnostics_max_age_seconds)
+        state: Literal["missing", "downloading", "ready", "invalid", "unavailable"] = "unavailable" if checked is None or checked.state == "unknown" or not observation.reachable else checked.state
         result.append(ModelRead(id=model.id, name=model.name, provider=model.provider, repository=model.repository,
                                 revision=model.revision, filename=model.filename, local_path=model.local_path,
                                 registry_source=requirements.source, hash_source=model.hash_source,

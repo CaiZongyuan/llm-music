@@ -38,6 +38,26 @@ HTTP 请求为 `POST /projects/{project_id}/jobs/generate`。style 与 lyrics �
 
 Candidate 可从 `GET /projects/{project_id}/candidates` 列表，或 `/candidates/{candidate_id}` 读取。它保留输入、运行参数、Workflow/Runtime provenance 和输出事实。生成输出当前要求 FLAC PCM16、48 kHz、双声道；实际时长须在 1 秒到上限 +2 秒之间（自动档按模型上限 360 秒计），并且全解码帧数与 STREAMINFO 声明一致。声明样本数为零的合法流式 FLAC 暂不能在这个已验证配置中完成确认。
 
+## 找回响应未知的请求 {#request-recovery}
+
+通过[局域网入口](dev-launcher.md#mobile-lan)新建 Project、提交 Generate 或明确 retry 时，先在客户端持久保存一个 UUID 请求键、操作、目标和冻结输入，再在请求头发送 `Idempotency-Key`。局域网这三种写入缺少 key 返回 `422 idempotency_key_required`；非法 UUID 返回 `422 invalid_request`。本机旧消费者仍可省略这个头。初次新建 Project 返回 `201`，新建 Job 返回 `202`；同 key、同标准化意图重放返回 `200` 与原资源的当前状态。相同输入使用不同 key 可以创建独立资源。
+
+超时、断网或关闭 App 后，读取带鉴权的 `GET /requests/{request_id}`，其中 request_id 是原 UUID key。成功响应只保存精确引用：
+
+| 字段 | 含义 |
+| --- | --- |
+| `request_id` / `operation` | 原请求键；`create_project`、`generate` 或 `retry` |
+| `project_id` | 资源所属 Project |
+| `resource_type` / `resource_id` | `project` 或 `job` 及其精确 id |
+| `source_job_id` | retry 的原 Job id；其他操作为 null |
+| `created_at` | 请求引用的创建时间 |
+
+随后按引用读取 `/projects/{project_id}` 或 `/projects/{project_id}/jobs/{resource_id}`。不要用相同歌词、最新时间或列表顺序猜原任务。`404 request_not_found` 只表示当前没有已提交引用，原 POST 仍可能在途；保留冻结意图，让创作者明确选择重发同一 key。读取、返回前台和网络恢复不会自动重发写入，也不能换一个新 key 代替未知请求。
+
+key 在同一服务器的数据目录内共享，不绑定某个设备 token。重新连接原服务器后仍可恢复原引用，不需要配对。同 key 改变操作、目标或标准化输入返回 `409 idempotency_conflict`，即使新目标不存在。重放原请求先读取已提交资源，之后资源或 Runtime 不就绪不会把它变成新任务。明确 retry 仍是无请求体的 `POST /projects/{project_id}/jobs/{job_id}/retry`：保留原 Job 和输入快照，返回的新 Job 在 `provenance.retry_of_job_id` 记录原 Job。
+
+业务资源与引用在同一事务提交；只有新 Job 在提交后进入现有队列。API 重启沿用原 Job 恢复规则，不能保证尚未派发的 Job 自动继续推理；终态失败后，由创作者决定是否明确 retry。修改当前草稿不改变未知请求的冻结输入。取消仍沿原 job_id 查询确认；Version 保存仍按 Candidate、名称和 parent 核对，使用下文既有规则。
+
 ## 从选定乐谱生成 {#selected-score}
 
 创作者可以直接按[编辑与重新生成教程](../learn/edit-score.md#regenerate)在正式 Web 完成相同操作。乐谱页明确选定已保存的有效 Score，任务与结果显示实际提交 ABC 和来源 parent。下面的 API 与 CLI 补充用于脚本创作。

@@ -19,7 +19,7 @@ export function JobStatus({ job }: { job: JobRead }) {
   const t = useMessages(jobMessages);
   const active = isActiveJob(job);
   const phase = job.phase && Object.hasOwn(t, job.phase) ? t[job.phase as keyof typeof t] : t[job.status];
-  return <article className="job-card" aria-label={`${t[job.operation]} ${job.id}`}><div className="section-heading"><strong>{t[job.operation]}</strong><span className={`tag ${job.status}`}>{t[job.status]}</span></div>
+  return <article className="job-card" aria-label={`${t[job.operation]} ${job.id}`}><div className="section-heading"><strong>{t[job.operation]}</strong><span className={`tag ${job.status}${active && job.cancel_requested ? ' cancelling' : ''}`}>{t[job.status]}</span></div>
     {active ? <><p>{phase}</p>{job.progress === null || job.progress === undefined ? <div className="loading"><span className="pulse" /><small>{t.unknown}</small></div> : <><progress max={1} value={job.progress} aria-label={t.measured} /><small>{Math.round(job.progress * 100)}%</small></>}</> : null}
     {job.cancel_requested ? <p>{t.cancel}</p> : null}{job.recovery_required ? <p>{t.recovery}</p> : null}
     {job.error ? <div className="job-problem" role={job.status === 'cancelled' ? undefined : 'alert'}><strong>{t.problem}</strong><p>{problemMessage(job.error.code, t)}</p>{typeof job.error.code === 'string' ? <small>{t.code}: <code>{job.error.code}</code></small> : null}</div> : null}

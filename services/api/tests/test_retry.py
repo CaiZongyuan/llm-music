@@ -1,7 +1,6 @@
 """Explicit retries preserve history and require proof that native work is safe to repeat."""
 
 from pathlib import Path
-from datetime import datetime, timedelta, timezone
 import json
 import time
 
@@ -192,12 +191,12 @@ def test_known_rejection_retries_only_after_current_readiness_with_original_hist
             assert "INTERNAL" not in json.dumps(rejected)
             assert peer.get("/accepted").json()["count"] == 0
             current_receipt = receipt_path.read_bytes()
-            stale = json.loads(current_receipt)
-            stale["checked_at"] = (datetime.now(timezone.utc) - timedelta(seconds=600)).isoformat()
-            receipt_path.write_text(json.dumps(stale), encoding="utf-8")
+            foreign = json.loads(current_receipt)
+            foreign["process"]["create_time"] -= 1
+            receipt_path.write_text(json.dumps(foreign), encoding="utf-8")
             blocked = client.post(address + "/retry")
             assert blocked.status_code == 503, blocked.text
-            assert blocked.json()["error"]["code"] == "runtime_evidence_stale"
+            assert blocked.json()["error"]["code"] == "runtime_process_identity_changed"
             assert client.get(address).json() == rejected
             assert peer.get("/accepted").json()["count"] == 0
             receipt_path.write_bytes(current_receipt)

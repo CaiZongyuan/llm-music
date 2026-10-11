@@ -10,8 +10,8 @@ const referencePath = resolve(root, 'docs/previews/web-mvp-v1/reference-16s.wav'
 const referenceBytes = await readFile(referencePath);
 const hash = (bytes: Uint8Array) => createHash('sha256').update(bytes).digest('hex');
 const labels = {
-  'zh-CN': { name: '项目名称', note: '创作笔记', create: '创建并开始创作', file: '选择 WAV 音频', upload: '加入项目素材', details: '素材详情', download: '下载原文件', home: '我的项目', theme: '暗色模式', empty: '还没有参考音频' },
-  en: { name: 'Project name', note: 'Creative notes', create: 'Create and start', file: 'Choose WAV audio', upload: 'Add to project assets', details: 'Asset details', download: 'Download original file', home: 'My projects', theme: 'Dark mode', empty: 'No reference audio yet' },
+  'zh-CN': { name: '项目名称', note: '创作笔记', create: '创建并开始创作', file: '选择 WAV 音频', upload: '加入项目素材', details: '素材详情', download: '下载原文件', home: '我的项目', empty: '还没有参考音频' },
+  en: { name: 'Project name', note: 'Creative notes', create: 'Create and start', file: 'Choose WAV audio', upload: 'Add to project assets', details: 'Asset details', download: 'Download original file', home: 'My projects', empty: 'No reference audio yet' },
 };
 function received<T>(result: { data?: T; response: Response }): T {
   expect(result.response.ok).toBe(true);
@@ -19,25 +19,27 @@ function received<T>(result: { data?: T; response: Response }): T {
   return result.data;
 }
 
-for (const locale of ['zh-CN', 'en'] as const) for (const theme of ['light', 'dark'] as const) {
-  test(`${locale}/${theme}: creator project, original bytes and preferences survive navigation and reload`, async ({ page, baseURL }, info) => {
+for (const locale of ['zh-CN', 'en'] as const) for (const savedTheme of ['light', 'dark'] as const) {
+  test(`${locale}/legacy-${savedTheme}: creator project, original bytes and preferences survive navigation and reload`, async ({ page, baseURL }, info) => {
+    await page.addInitScript(value => localStorage.setItem('music.theme.v1', value), savedTheme);
     if (!baseURL) throw new Error('Missing owned Web URL');
     const api = createMusicClient({ baseUrl: `${baseURL}/api` });
     const errors: string[] = [];
     const requests: string[] = [];
     page.on('pageerror', error => errors.push(error.message));
     page.on('request', request => requests.push(request.url()));
-    const name = `雨后的散步 · ${locale}/${theme} · ${randomUUID().slice(0, 8)}`;
+    const name = `雨后的散步 · ${locale}/legacy-${savedTheme} · ${randomUUID().slice(0, 8)}`;
     const note = '保留这段参考旋律。Keep this melody.';
     const t = labels[locale];
     await page.goto('/');
     await page.getByRole('textbox', { name: labels['zh-CN'].name, exact: true }).fill(name);
     await page.getByRole('textbox', { name: labels['zh-CN'].note, exact: true }).fill(note);
     await page.getByRole('combobox').selectOption(locale);
-    if (theme === 'dark') await page.getByRole('button', { name: t.theme, exact: true }).click();
     await expect(page.getByRole('textbox', { name: t.name, exact: true })).toHaveValue(name);
     await expect(page.getByRole('textbox', { name: t.note, exact: true })).toHaveValue(note);
-    await expect(page.locator('html')).toHaveAttribute('data-theme', theme);
+    await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+    await expect(page.locator('.preferences button')).toHaveCount(0);
+    expect(await page.evaluate(() => localStorage.getItem('music.theme.v1'))).toBe(savedTheme);
     await expect(page.locator('html')).toHaveAttribute('lang', locale);
     await page.getByRole('button', { name: t.create }).click();
     await expect(page).toHaveURL(/\/projects\/[0-9a-f-]+\/?$/);
@@ -48,11 +50,9 @@ for (const locale of ['zh-CN', 'en'] as const) for (const theme of ['light', 'da
     const project = received(await api.GET('/projects/{project_id}', { params: { path: { project_id: projectId } } }));
     expect(project).toMatchObject({ id: projectId, name, description: note });
     await page.getByLabel(t.file).setInputFiles(referencePath);
-    // Switching both preferences keeps the selected native file and route identity.
+    // Switching language keeps the selected native file and route identity.
     await page.getByRole('combobox').selectOption(locale === 'en' ? 'zh-CN' : 'en');
-    await page.locator('.preferences button').click();
     await page.getByRole('combobox').selectOption(locale);
-    await page.locator('.preferences button').click();
     await expect(page.getByLabel(t.file)).toHaveValue(/reference-16s\.wav$/);
     await expect(page).toHaveURL(new RegExp(projectId));
     await page.getByRole('button', { name: t.upload }).click();
@@ -75,7 +75,7 @@ for (const locale of ['zh-CN', 'en'] as const) for (const theme of ['light', 'da
       if (!downloaded) throw new Error('Original file download did not finish');
       expect(hash(await readFile(downloaded))).toBe(asset.sha256);
       await expect(page.locator('html')).toHaveAttribute('lang', locale);
-      await expect(page.locator('html')).toHaveAttribute('data-theme', theme);
+      await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
     }
     await page.locator('.breadcrumb').click();
     await page.getByRole('link').filter({ has: page.getByRole('heading', { name, exact: true }) }).click();
@@ -86,8 +86,8 @@ for (const locale of ['zh-CN', 'en'] as const) for (const theme of ['light', 'da
     expect(errors).toEqual([]);
     expect(requests.every(url => url.startsWith(baseURL) || url.startsWith('blob:'))).toBe(true);
     expect(requests.some(url => new URL(url).port === '8188' || new URL(url).pathname === '/prompt')).toBe(false);
-    await page.screenshot({ path: info.outputPath(`${locale}-${theme}.png`), fullPage: true });
-    await info.attach('restored-identities', { body: JSON.stringify({ scope: 'real Chromium + generated client + production FastAPI + CPU Fake Runtime', project, asset, original_sha256: hash(referenceBytes), locale, theme }, null, 2), contentType: 'application/json' });
+    await page.screenshot({ path: info.outputPath(`${locale}-${savedTheme}.png`), fullPage: true });
+    await info.attach('restored-identities', { body: JSON.stringify({ scope: 'real Chromium + generated client + production FastAPI + CPU Fake Runtime', project, asset, original_sha256: hash(referenceBytes), locale, savedTheme }, null, 2), contentType: 'application/json' });
   });
 }
 

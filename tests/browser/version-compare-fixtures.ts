@@ -113,7 +113,9 @@ export async function setSeekInput(page: Page, seconds: number, locale: Locale =
   if (![min, max, step, seconds].every(Number.isFinite) || step <= 0 || seconds < min || seconds > max
     || Math.abs(min + Math.round((seconds - min) / step) * step - seconds) > .000001) throw new Error('Seek must fit the public slider range and step');
   await slider.focus();
-  await slider.press(max - seconds < seconds - min ? 'End' : 'Home');
+  // An interior seek must not first visit the FLAC tail. Those native seek
+  // errors have separate recovery scenarios that explicitly use End.
+  await slider.press(seconds >= max - step ? 'End' : 'Home');
   const endpoint = Number(await slider.inputValue());
   const count = Math.round(Math.abs(seconds - endpoint) / step);
   const direction = seconds < endpoint ? 'ArrowLeft' : 'ArrowRight';

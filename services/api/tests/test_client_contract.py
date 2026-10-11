@@ -29,7 +29,10 @@ def test_cpu_export_matches_http_and_registered_job_events(tmp_path: Path) -> No
     websocket_path = "/projects/{project_id}/jobs/{job_id}/events"
     assert websocket_path not in document["paths"]
     assert document["x-websockets"] == {
-        websocket_path: {"message": {"$ref": "#/components/schemas/JobEventRead"}},
+        websocket_path: {"message": {"$ref": "#/components/schemas/JobEventRead"},
+                         "security": [],
+                         "x-listener-access": "direct-lan",
+                         "description": "Direct WebSocket access on known local and explicitly enabled LAN listeners without PIN or Authorization. Historical device revocation does not close direct sockets or cancel shared Jobs."},
     }
     event = document["components"]["schemas"]["JobEventRead"]
     assert event["properties"]["type"]["const"] == "job.updated"
@@ -52,6 +55,13 @@ def test_binary_download_and_bodyless_operations_are_described(tmp_path: Path) -
         assert "requestBody" not in route
     saves = document["paths"]["/projects/{project_id}/versions"]["post"]["responses"]
     assert {"200", "201"}.issubset(saves)
+    assert set(download["responses"]["206"]["content"]) == {
+        "audio/wav", "audio/flac", "text/vnd.abc", "audio/midi", "multipart/byteranges",
+    }
+    assert download["responses"]["416"]["content"] == {"text/plain": {"schema": {"type": "string"}}}
+    assert download["security"] == []
+    assert document["paths"]["/pairing/challenges"]["post"]["security"] == [{"OwnerCSRF": []}]
+    assert document["paths"]["/connection"]["get"]["security"] == []
 
 
 def test_export_refuses_a_conflicting_registered_event_schema(tmp_path: Path) -> None:

@@ -19,10 +19,10 @@ from dev import Launcher, LaunchError, read_json, write_json, identity, signatur
 from test_dev_launcher import ports, stop_fixture, assert_no_listeners
 
 
-def test_native_auto_then_fresh_path_reuses_services_without_renewing_old_proof(tmp_path):
+def test_native_auto_then_aged_path_reuses_services_without_renewing_old_proof(tmp_path):
     chosen = ports()
     source = tmp_path / "peer.py"
-    source.write_text('''import json,os,pathlib,sys,time
+    source.write_text('''import json,os,pathlib,sys,time,psutil
 from datetime import datetime,timezone
 from http.server import BaseHTTPRequestHandler,HTTPServer
 from urllib.request import urlopen
@@ -36,7 +36,10 @@ class Handler(BaseHTTPRequestHandler):
    with urlopen(config['api_url']+'/health') as response: value=json.load(response)
   else:
    proof=json.loads(pathlib.Path(config['runtime_evidence']).read_text())
-   ready=(datetime.now(timezone.utc)-datetime.fromisoformat(proof['checked_at'])).total_seconds()<300
+   try:
+    process=psutil.Process(proof['process']['pid'])
+    ready=process.is_running() and process.create_time()==proof['process']['create_time']
+   except psutil.Error: ready=False
    value={'backend':{'status':'ready'},'runtime':{'mode':'comfyui','ready':ready,'reasons':[]},'proof_time':proof['checked_at']}
   self.send_response(200);self.end_headers();self.wfile.write(json.dumps(value).encode())
 HTTPServer(('127.0.0.1',config['port']),Handler).serve_forever()
@@ -44,7 +47,7 @@ HTTPServer(('127.0.0.1',config['port']),Handler).serve_forever()
     peers = {}
     originals = []
     api_project = Path(__file__).resolve().parents[2] / "services/api"
-    old_time = (datetime.now(timezone.utc) - timedelta(seconds=5)).isoformat()
+    old_time = (datetime.now(timezone.utc) - timedelta(days=30)).isoformat()
 
     class CpuOrchestration(Launcher):
         def start(self, expected, deadline):
@@ -79,8 +82,8 @@ HTTPServer(('127.0.0.1',config['port']),Handler).serve_forever()
                 write_json(self.args.runtime_evidence, dict(process=peers["runtime"]["process"], checked_at=old_time))
             path = self.args.runtime_evidence or self.evidence_slot
             value = read_json(path)
-            if value["process"] != peers["runtime"]["process"] or (datetime.now(timezone.utc) - datetime.fromisoformat(value["checked_at"])).total_seconds() > 300:
-                raise LaunchError("CPU evidence boundary refused wrong native/stale source")
+            if value["process"] != peers["runtime"]["process"]:
+                raise LaunchError("CPU evidence boundary refused wrong native process identity")
             self.native_receipt = value
             self.native_binding = dict(process=value["process"], runtime_project=str(api_project),
                                        lock_sha256=hashlib.sha256((api_project / "uv.lock").read_bytes()).hexdigest())
@@ -102,30 +105,28 @@ HTTPServer(('127.0.0.1',config['port']),Handler).serve_forever()
         first_pids = {key: value["process"]["pid"] for key, value in peers.items()}
         original = read_json(first.args.runtime_evidence)
         assert original["checked_at"] == old_time
-        # Expire the active proof, then supply a genuinely fresh source at a new
-        # GUID-style path. The original immutable source must stay unchanged.
-        expired = dict(original, checked_at=(datetime.now(timezone.utc) - timedelta(seconds=600)).isoformat())
-        write_json(first.evidence_slot, expired)
-        fresh = dict(original, checked_at=datetime.now(timezone.utc).isoformat())
-        new_path = tmp_path / "fresh-different-guid.json"
-        write_json(new_path, fresh)
+        # An old proof from a different path still names the same current process.
+        # Reusing it must preserve the source timestamp and all service PIDs.
+        new_path = tmp_path / "aged-different-guid.json"
+        write_json(new_path, original)
         second = instance(new_path)
         assert second.run() == 0
         assert all(not value["owned"] for value in second.receipt["services"])
         assert {key: value["process"]["pid"] for key, value in peers.items()} == first_pids
-        assert read_json(second.evidence_slot) == fresh
+        assert read_json(second.evidence_slot) == original
         assert read_json(first.args.runtime_evidence) == original
         # An identical no-path invocation consumes only the still-current slot.
         assert instance().run() == 0
-        for invalid in [expired, dict(fresh, process=dict(fresh["process"], pid=999999))]:
+        for invalid in [dict(original, process=dict(original["process"], pid=999999)),
+                        dict(original, process=dict(original["process"], create_time=1))]:
             invalid_path = tmp_path / "bad-receipt.json"
             write_json(invalid_path, invalid)
             assert instance(invalid_path).run() == 1
-            assert read_json(first.evidence_slot) == fresh
+            assert read_json(first.evidence_slot) == original
         assert instance(new_path, tmp_path / "different-data").run() == 1
-        assert read_json(first.evidence_slot) == fresh
+        assert read_json(first.evidence_slot) == original
         with urlopen(f"http://127.0.0.1:{chosen[0]}/health") as response:
-            assert json.load(response)["proof_time"] == fresh["checked_at"]
+            assert json.load(response)["proof_time"] == original["checked_at"]
         assert all(process.poll() is None for process in originals)
     finally:
         for process in reversed(originals):

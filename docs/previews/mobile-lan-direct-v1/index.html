@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; connect-src 'none'; form-action 'none'; base-uri 'none'">
+  <title>声间 · 输入地址连接电脑</title>
+  <style>
+    /* Frozen from apps/mobile/src/constants/theme.ts: confirmed Acid Hardware. */
+    :root { color-scheme: dark; --bg:#050505; --panel:#101010; --line:#232923; --text:#eefff0; --muted:#7d8a7d; --accent:#e1f607; --error:#ff4d3d; --small:8px; --medium:16px; --large:24px; }
+    * { box-sizing:border-box; }
+    body { margin:0; background:var(--bg); color:var(--text); font:16px/1.6 system-ui,"Microsoft YaHei",sans-serif; }
+    .layout { display:grid; grid-template-columns:minmax(0,560px) minmax(260px,340px); align-items:start; gap:48px; max-width:980px; margin:32px auto; padding:var(--large); }
+    .phone { border:1px solid var(--line); min-height:720px; background:var(--bg); }
+    header { padding:var(--medium); border-bottom:1px solid var(--line); }
+    .brand { font-size:22px; font-weight:800; letter-spacing:2px; }
+    .phone main { padding:var(--medium); }
+    .label { color:var(--accent); font:12px/1.6 monospace; letter-spacing:1px; }
+    h1 { font-size:22px; line-height:1.5; margin:var(--large) 0 var(--small); }
+    h2 { font-size:18px; margin:0 0 var(--small); }
+    p { color:var(--muted); margin:var(--small) 0; }
+    .section { border-top:1px solid var(--line); padding-top:var(--large); margin-top:var(--large); }
+    label { display:block; margin-bottom:var(--small); }
+    input, select, button { font:inherit; min-height:48px; border:1px solid var(--line); border-radius:0; }
+    input, select { display:block; width:100%; background:var(--panel); color:var(--text); padding:12px var(--medium); }
+    input::placeholder { color:var(--muted); }
+    input:focus, select:focus, button:focus-visible { outline:2px solid var(--accent); outline-offset:3px; }
+    button { cursor:pointer; padding:12px var(--medium); background:var(--panel); color:var(--text); }
+    button:active { opacity:.7; }
+    button:disabled { opacity:.4; cursor:default; }
+    .primary { background:var(--accent); border-color:var(--accent); color:var(--bg); font-weight:700; }
+    .wide { display:block; width:100%; margin-top:var(--medium); }
+    .secondary { border:none; padding:var(--small) 0; text-align:left; min-height:44px; background:none; color:var(--muted); }
+    .status { min-height:76px; padding:var(--medium) 0; }
+    .status strong { display:block; font-weight:600; }
+    .status.loading strong, .status.ready strong { color:var(--accent); }
+    .status.failure strong { color:var(--error); }
+    .address { font-family:monospace; overflow-wrap:anywhere; }
+    .row { border-top:1px solid var(--line); padding:var(--medium) 0; }
+    .row strong { display:block; }
+    .row p { margin:4px 0 var(--small); font-size:14px; }
+    aside { padding-top:var(--medium); }
+    aside h2 { font-size:20px; }
+    aside label { margin-top:var(--large); color:var(--muted); font-size:14px; }
+    aside .note { border-left:2px solid var(--accent); padding-left:var(--medium); }
+    .receipt { color:var(--muted); font:12px/1.8 monospace; white-space:pre-wrap; overflow-wrap:anywhere; }
+    [hidden] { display:none!important; }
+    @media(max-width:760px) { .layout { display:block; margin:0; padding:0; } .phone { border:none; max-width:560px; margin:auto; min-height:650px; } aside { padding:var(--large) var(--medium); border-top:1px solid var(--line); max-width:560px; margin:auto; } }
+  </style>
+</head>
+<body>
+  <div class="layout">
+    <div class="phone">
+      <header><span class="brand">声间</span></header>
+      <main>
+        <section id="connection-screen">
+          <span class="label">声间 / 我的电脑</span>
+          <h1>连接你的音乐电脑</h1>
+          <p>电脑保持运行，手机和电脑连接同一 Wi-Fi。输入电脑地址即可连接。</p>
+          <form id="connect-form" class="section" novalidate>
+            <label for="address">电脑地址</label>
+            <input id="address" type="url" inputmode="url" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="http://192.168.31.209:8001" aria-describedby="connection-message">
+            <button id="example" type="button" class="secondary">填入示例地址</button>
+            <div id="connection-status" class="status" role="status" aria-live="polite">
+              <strong id="connection-title">还未连接电脑</strong>
+              <p id="connection-message">填好地址后，点击连接电脑。</p>
+            </div>
+            <button id="connect" type="submit" class="primary wide" disabled>连接电脑</button>
+          </form>
+          <section id="connected" class="section" hidden>
+            <h2>音乐电脑已连接</h2>
+            <p id="connected-address" class="address"></p>
+            <p>项目与版本都在这台电脑上。</p>
+            <button id="open-projects" type="button" class="primary wide">进入我的项目</button>
+            <button id="change-address" type="button" class="secondary">更换电脑地址</button>
+          </section>
+        </section>
+        <section id="projects-screen" hidden>
+          <span class="label">声间 / 我的项目</span>
+          <h1>我的项目</h1>
+          <p>继续创作，或从新的音乐想法开始。</p>
+          <div id="project-list" class="section" role="status" aria-live="polite"></div>
+          <button id="new-project" type="button" class="primary wide">新建演示项目</button>
+          <button id="back" type="button" class="secondary">返回电脑连接</button>
+        </section>
+      </main>
+    </div>
+    <aside aria-label="隔离预览工具">
+      <span class="label">INTERACTIVE PREVIEW / V1</span>
+      <h2>地址直连交互预览</h2>
+      <p class="note">这是独立演示。操作只改变本页内存，不访问电脑、不保存凭据，也不写入真实创作数据。</p>
+      <label for="outcome">下一次连接结果</label>
+      <select id="outcome">
+        <option value="ready">成功：可以进入项目</option>
+        <option value="unreachable">失败：电脑暂时不可达</option>
+        <option value="mismatch">失败：地址对应另一台电脑</option>
+      </select>
+      <label for="projects-state">项目列表状态</label>
+      <select id="projects-state">
+        <option value="ready">已有项目</option>
+        <option value="empty">空列表</option>
+        <option value="loading">正在读取</option>
+        <option value="failure">读取失败</option>
+      </select>
+      <button id="reset" type="button" class="wide">重置预览</button>
+      <div class="section">
+        <h2>演示状态</h2>
+        <pre id="receipt" class="receipt"></pre>
+        <p>连接中会保留输入并暂停重复点击。失败后可重试；进入项目和返回连接均可操作。</p>
+      </div>
+    </aside>
+  </div>
+  <script>
+    const $ = id => document.getElementById(id);
+    let state = 'empty', connectedAddress = '', operation = 0;
+    let projectNames = ['雨后末班车', '清晨的第一首歌'];
+    function refresh() {
+      const loading = state === 'loading', ready = state === 'ready';
+      $('address').disabled = loading;
+      $('example').disabled = loading;
+      $('outcome').disabled = loading;
+      $('connect').disabled = loading || !$('address').value.trim();
+      $('connect').textContent = loading ? '正在连接…' : state === 'failure' ? '重新连接' : '连接电脑';
+      $('connect-form').hidden = ready;
+      $('connected').hidden = !ready;
+      $('connection-status').className = 'status ' + state;
+      $('connected-address').textContent = connectedAddress;
+      $('receipt').textContent = 'connection: ' + state + '\naddress: ' + (connectedAddress || $('address').value || '(empty)') + '\nprojects: ' + $('projects-state').value + '\nrealRequests: 0\nrealWrites: 0';
+    }
+    function status(next, title, message) {
+      state = next;
+      $('connection-title').textContent = title;
+      $('connection-message').textContent = message;
+      refresh();
+    }
+    $('address').addEventListener('input', () => {
+      status('empty', '还未连接电脑', '填好地址后，点击连接电脑。');
+    });
+    $('example').addEventListener('click', () => {
+      $('address').value = 'http://192.168.31.209:8001';
+      status('empty', '地址已填好', '点击连接电脑，继续打开项目。');
+      $('address').focus();
+    });
+    $('connect-form').addEventListener('submit', event => {
+      event.preventDefault();
+      if (state === 'loading') return;
+      let address;
+      try {
+        address = new URL($('address').value.trim());
+        if (!['http:', 'https:'].includes(address.protocol) || !address.hostname) throw new Error('invalid');
+      } catch {
+        status('failure', '电脑地址不完整', '请输入完整电脑地址，例如 http://192.168.31.209:8001。');
+        return;
+      }
+      const token = ++operation, outcome = $('outcome').value;
+      status('loading', '正在连接电脑', '正在确认连接并读取项目，原输入会保留。');
+      setTimeout(() => {
+        if (token !== operation) return;
+        if (outcome === 'unreachable') {
+          status('failure', '暂时无法连接电脑', '请确认电脑保持运行、手机和电脑在同一 Wi-Fi，再点击重新连接。');
+        } else if (outcome === 'mismatch') {
+          status('failure', '这个地址对应另一台电脑', '请核对电脑地址。原电脑的草稿会保留。');
+        } else {
+          connectedAddress = address.origin;
+          status('ready', '电脑已连接', '现在可以打开你的项目。');
+        }
+      }, 1000);
+    });
+    function renderProjects() {
+      $('project-list').replaceChildren();
+      const variant = $('projects-state').value;
+      if (variant !== 'ready') {
+        const messages = { empty:'还没有项目。从新的音乐想法开始吧。', loading:'正在读取项目…', failure:'项目暂时无法读取。输入和已有作品不会丢失。' };
+        const text = document.createElement('p');
+        text.textContent = messages[variant];
+        if (variant === 'failure') text.style.color = 'var(--error)';
+        $('project-list').append(text);
+        if (variant === 'failure') {
+          const retry = document.createElement('button');
+          retry.textContent = '重新读取项目';
+          retry.addEventListener('click', () => { $('projects-state').value = 'ready'; renderProjects(); });
+          $('project-list').append(retry);
+        }
+      } else {
+        for (let i = 0; i < projectNames.length; i++) {
+          const row = document.createElement('div');
+          row.className = 'row';
+          const title = document.createElement('strong');
+          title.textContent = projectNames[i];
+          const detail = document.createElement('p');
+          detail.textContent = projectNames[i] === '雨后末班车' ? '1 个已保存版本 · 独立流行' : '尚未保存版本 · 创作草稿';
+          row.append(title, detail);
+          $('project-list').append(row);
+        }
+      }
+      $('new-project').disabled = variant === 'loading';
+      refresh();
+    }
+    $('open-projects').addEventListener('click', () => { $('connection-screen').hidden = true; $('projects-screen').hidden = false; renderProjects(); });
+    $('back').addEventListener('click', () => { $('projects-screen').hidden = true; $('connection-screen').hidden = false; });
+    $('change-address').addEventListener('click', () => { connectedAddress = ''; status('empty', '输入新的电脑地址', '核对地址后，点击连接电脑。'); $('address').focus(); });
+    $('projects-state').addEventListener('change', renderProjects);
+    $('new-project').addEventListener('click', () => { if ($('projects-state').value === 'empty') projectNames = []; projectNames.push('新的音乐想法 ' + (projectNames.length + 1)); $('projects-state').value = 'ready'; renderProjects(); });
+    $('reset').addEventListener('click', () => {
+      operation++; connectedAddress = ''; projectNames = ['雨后末班车', '清晨的第一首歌'];
+      $('address').value = ''; $('outcome').value = 'ready'; $('projects-state').value = 'ready';
+      $('projects-screen').hidden = true; $('connection-screen').hidden = false;
+      status('empty', '还未连接电脑', '填好地址后，点击连接电脑。');
+    });
+    refresh();
+  </script>
+</body>
+</html>

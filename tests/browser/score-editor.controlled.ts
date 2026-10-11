@@ -64,8 +64,9 @@ test('edited ABC exports and auditions its actual notes; explicit save creates a
   await info.attach('saved-score-and-music', { body: JSON.stringify({ score, edited, savedABC, originalMusic, music, originalAudio: { frequency: originalAudio.frequency, duration: originalAudio.duration }, audio: { frequency: audio.frequency, duration: audio.duration } }, null, 2), contentType: 'application/json' });
 });
 
-for (const locale of ['zh-CN', 'en'] as const) for (const theme of ['light', 'dark'] as const) {
-  test(`${locale}/${theme}: an empty Project can save and reopen an independent example Score`, async ({ page, baseURL }, info) => {
+for (const locale of ['zh-CN', 'en'] as const) for (const savedTheme of ['light', 'dark'] as const) {
+  test(`${locale}/legacy-${savedTheme}: an empty Project can save and reopen an independent example Score`, async ({ page, baseURL }, info) => {
+    await page.addInitScript(value => localStorage.setItem('music.theme.v1', value), savedTheme);
     const { api, project } = await projectOnly(baseURL);
     const exampleABC = `${ABC}\n`;
     const requests: string[] = [], errors: string[] = [];
@@ -74,19 +75,16 @@ for (const locale of ['zh-CN', 'en'] as const) for (const theme of ['light', 'da
     const t = locale === 'en'
       ? { empty: 'No score to inspect yet', example: 'Open example Score', label: 'ABC Score text', current: 'Notation and MIDI match the current draft.', save: 'Save and select this Score', ready: 'The saved Score matches this valid draft.', open: 'Open saved Score', independent: 'This Score was explicitly saved independently, without an inference Job.', export: 'Export draft MIDI' }
       : { empty: '还没有可以查看的乐谱', example: '打开示例 Score', label: 'ABC 乐谱文本', current: '谱面和 MIDI 对应当前草稿。', save: '保存并选定此 Score', ready: '已保存 Score 对应当前有效草稿。', open: '打开已保存 Score', independent: '这份 Score 由创作者独立保存，没有推理任务。', export: '导出草稿 MIDI' };
-    await page.setViewportSize({ width: theme === 'dark' ? 390 : 1440, height: 960 });
+    await page.setViewportSize({ width: savedTheme === 'dark' ? 390 : 1440, height: 960 });
     await page.goto(`/projects/${project.id}/scores`);
     await page.locator('.preferences select').selectOption(locale);
-    if (theme === 'dark') await page.locator('.preferences button').click();
     await expect(page.getByRole('heading', { name: t.empty, exact: true })).toBeVisible();
     await page.getByRole('button', { name: t.example, exact: true }).click();
     const draft = page.getByRole('textbox', { name: t.label, exact: true });
     await expect(draft).toHaveValue(exampleABC);
     await expect(page.getByText(t.current, { exact: true })).toBeVisible();
     await page.locator('.preferences select').selectOption(locale === 'en' ? 'zh-CN' : 'en');
-    await page.locator('.preferences button').click();
     await page.locator('.preferences select').selectOption(locale);
-    await page.locator('.preferences button').click();
     await expect(draft).toHaveValue(exampleABC);
     expectMusic(await downloadMidi(page, t.export));
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
@@ -107,12 +105,12 @@ for (const locale of ['zh-CN', 'en'] as const) for (const theme of ['light', 'da
     await expect(page.getByText(t.current, { exact: true })).toBeVisible();
     await expect(page.locator('.score-notation svg')).toHaveCount(1);
     await expect(page.locator('html')).toHaveAttribute('lang', locale);
-    await expect(page.locator('html')).toHaveAttribute('data-theme', theme);
+    await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
     expect(received(await api.GET('/projects/{project_id}/jobs', { params: { path: { project_id: project.id } } }))).toEqual([]);
     expect(errors).toEqual([]);
     expect(requests.every(url => url.startsWith(baseURL!) || url.startsWith('blob:'))).toBe(true);
-    await page.screenshot({ path: info.outputPath(`${locale}-${theme}.png`), fullPage: true });
-    await info.attach('independent-score', { body: JSON.stringify({ project, score, locale, theme, requests }, null, 2), contentType: 'application/json' });
+    await page.screenshot({ path: info.outputPath(`${locale}-${savedTheme}.png`), fullPage: true });
+    await info.attach('independent-score', { body: JSON.stringify({ project, score, locale, savedTheme, requests }, null, 2), contentType: 'application/json' });
   });
 }
 

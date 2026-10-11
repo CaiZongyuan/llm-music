@@ -23,6 +23,7 @@ export function freshness(source: Source, now: number): Source['freshness'] {
   if (source.freshness !== 'fresh') return source.freshness;
   const observed = source.observed_at ? Date.parse(source.observed_at) : NaN;
   if (!Number.isFinite(observed) || observed > now) return 'unavailable';
+  if (source.max_age_seconds === null) return 'fresh';
   return now - observed >= source.max_age_seconds * 1000 ? 'stale' : 'fresh';
 }
 export function Observation({ source, now }: { source: Source; now: number }) {

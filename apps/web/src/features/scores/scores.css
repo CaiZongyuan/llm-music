@@ -1,5 +1,5 @@
 .score-list { list-style:none; margin:0; padding:0; display:grid; gap:14px }
-.score-list li { display:flex; align-items:center; justify-content:space-between; gap:20px; padding:18px; border:1px solid var(--line); border-radius:9px }
+.score-list li { display:flex; align-items:center; justify-content:space-between; gap:20px; padding:18px; border:1px solid var(--line); border-radius:var(--radius) }
 .score-list h3 { margin-bottom:8px }
 .score-list code { display:block; margin-top:8px }
 .score-back { margin-bottom:24px }
@@ -7,14 +7,14 @@
 .score-notation svg { fill:currentColor; color:var(--text) }
 .score-notation svg text { fill:currentColor }
 .score-notation svg path { fill:currentColor }
-.score-notation .abcjs-note.highlight { fill:var(--accent); color:var(--accent) }
+.score-notation .abcjs-note.highlight { fill:var(--acc); color:var(--acc) }
 .score-actions { display:flex; align-items:start; flex-wrap:wrap; gap:18px; margin:24px 0 }
 .score-download { flex:1; min-width:150px }
 .score-download small { margin-top:8px; overflow-wrap:anywhere }
 .score-source strong { overflow-wrap:anywhere }
 .score-editor-heading { margin:16px 0 24px }
-.abc-editor { display:block; width:100%; min-height:340px; resize:vertical; font:.85rem/1.8 "Cascadia Code",monospace; padding:16px; background:var(--surface); color:var(--text); border:1px solid var(--line); border-radius:9px; white-space:pre; overflow:auto }
-.abc-errors { white-space:pre-wrap; overflow-wrap:anywhere; font:.8rem/1.6 "Cascadia Code",monospace }
+.abc-editor { display:block; width:100%; min-height:340px; resize:vertical; font:.85rem/1.8 var(--mono); padding:16px; background:var(--panel); color:var(--text); border:1px solid var(--line); border-radius:var(--radius); white-space:pre; overflow:auto }
+.abc-errors { white-space:pre-wrap; overflow-wrap:anywhere; font:.8rem/1.6 var(--mono) }
 .score-editor > section { min-width:0 }
 .selected-score { margin:24px 0 }
 .selected-score details { margin:16px 0 }

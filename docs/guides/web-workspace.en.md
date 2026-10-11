@@ -20,9 +20,9 @@ The currently verified transcription input is16 seconds of PCM16, mono24 kHz or 
 
 To compare works, select two saved Versions from the same Project in “Versions”, then use the player's A/B buttons and common listening region. Music continues while inspecting Score or lyrics. The [comparison guide](web-generation.en.md#compare) explains absolute seconds, shorter endings and recovery. Reloading in the same Project can restore valid A/B choices, paused at0, without position or region.
 
-## Choose language and theme {#preferences}
+## Choose language {#preferences}
 
-The top language control offers 中文 and English. The light/dark button changes workspace colors. Navigation and refresh preserve these preferences. Switching keeps entered notes, the selected file and the current project identity. If browser storage is disabled, preferences still work in the current page; refresh may restore the defaults.
+The top language control offers 中文 and English. The workbench always uses the dark Acid Hardware theme. Navigation and refresh preserve the language preference. Switching language keeps entered notes, the selected file and the current project identity. If browser storage is disabled, language changes still work in the current page; refresh may restore the default language.
 
 ## Continue after a failure {#recover}
 

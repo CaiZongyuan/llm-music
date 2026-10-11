@@ -3,6 +3,7 @@ packages:
   - apps/docs
   - apps/web
   - apps/mobile
+  - docs/previews/mobile-workbench-v1
   - packages/api-client
 allowBuilds:
   '@scarf/scarf': false

@@ -2,17 +2,27 @@
   "name": "@llm-music/mobile",
   "main": "expo-router/entry",
   "version": "1.0.0",
+  "type": "module",
   "dependencies": {
     "@expo/ui": "~57.0.22",
+    "@llm-music/api-client": "workspace:*",
+    "@llm-music/mobile-preview": "workspace:*",
+    "@react-native-community/slider": "5.2.0",
+    "@tanstack/react-query": "5.104.1",
     "expo": "~57.0.27",
+    "expo-audio": "~57.0.5",
     "expo-constants": "~57.0.21",
+    "expo-crypto": "~57.0.3",
     "expo-device": "~57.0.2",
+    "expo-file-system": "~57.0.7",
     "expo-font": "~57.0.4",
     "expo-glass-effect": "~57.0.4",
     "expo-image": "~57.0.5",
     "expo-linking": "~57.0.12",
     "expo-router": "~57.0.25",
+    "expo-secure-store": "~57.0.4",
     "expo-splash-screen": "~57.0.9",
+    "expo-sqlite": "~57.0.4",
     "expo-status-bar": "~57.0.1",
     "expo-symbols": "~57.0.3",
     "expo-system-ui": "~57.0.4",
@@ -28,6 +38,7 @@
     "react-native-worklets": "0.10.1"
   },
   "devDependencies": {
+    "@types/node": "24.10.0",
     "@types/react": "~19.2.2",
     "@types/react-dom": "19.2.7",
     "typescript": "~6.0.3"
@@ -36,7 +47,9 @@
     "start": "node --dns-result-order=ipv4first node_modules/expo/bin/cli start --go",
     "android": "pnpm start --android",
     "web": "pnpm start --web",
-    "check": "tsc --noEmit"
+    "check": "tsc --noEmit",
+    "test": "node --experimental-strip-types --test tests/*.test.ts",
+    "check:test": "tsc --noEmit -p tsconfig.test.json"
   },
   "private": true
 }
