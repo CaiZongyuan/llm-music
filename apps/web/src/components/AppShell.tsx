@@ -8,7 +8,7 @@ import { Player } from '../features/player/Player';
 
 export function AppShell() {
   const t = useMessages(shellMessages);
-  const { locale, theme, setLocale, setTheme } = usePreferences();
+  const { locale, setLocale } = usePreferences();
   const [navOpen, setNavOpen] = useState(false);
   const projects = useQuery(projectsOptions());
   return <><a className="skip" href="#workspace">{t.skip}</a><div className="app-shell">
@@ -21,7 +21,6 @@ export function AppShell() {
       <button className="mobile-nav" type="button" onClick={() => setNavOpen(value => !value)} aria-label={t.openNav} aria-expanded={navOpen}>☰</button>
       <Link className="breadcrumb" to="/">{t.library}</Link>
       <div className="preferences"><label className="language-label">{t.language}<select aria-label={t.language} value={locale} onChange={event => setLocale(event.target.value === 'en' ? 'en' : 'zh-CN')}><option value="zh-CN">中文</option><option value="en">English</option></select></label>
-        <button type="button" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')} aria-label={theme === 'dark' ? t.light : t.dark}><span aria-hidden="true">{theme === 'dark' ? '☀' : '☾'}</span> {theme === 'dark' ? t.light : t.dark}</button>
       </div></header><main id="workspace" tabIndex={-1}><Outlet /></main></div>
   </div><Player /></>;
 }

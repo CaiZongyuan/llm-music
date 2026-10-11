@@ -1,16 +1,14 @@
 <!doctype html>
-<html lang="zh-CN" data-theme="light">
+<html lang="zh-CN" data-theme="dark">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="color-scheme" content="light dark" />
+    <meta name="color-scheme" content="dark" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <title>声间 · Music Workbench</title>
     <script>
       try {
-        const theme = localStorage.getItem('music.theme.v1');
         const locale = localStorage.getItem('music.locale.v1');
-        document.documentElement.dataset.theme = theme === 'dark' ? 'dark' : 'light';
         document.documentElement.lang = locale === 'en' ? 'en' : 'zh-CN';
       } catch {}
     </script>

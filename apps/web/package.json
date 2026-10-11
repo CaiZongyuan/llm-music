@@ -6,7 +6,7 @@
     "dev": "vite --host 127.0.0.1 --strictPort",
     "build": "vite build",
     "preview": "vite preview --host 127.0.0.1 --strictPort",
-    "check": "vite build --mode check && tsc --noEmit"
+    "check": "node --test tests/*.test.mjs && vite build --mode check && tsc --noEmit"
   },
   "dependencies": {
     "@llm-music/api-client": "workspace:*",

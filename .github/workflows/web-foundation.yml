@@ -64,7 +64,7 @@ jobs:
           pnpm client:check
           pnpm web:check
           pnpm test:browser:check
-      - name: Exercise bilingual themes and persistent Project/Asset/Job consumers
+      - name: Exercise bilingual dark workbench and persistent Project/Asset/Job consumers
         if: matrix.group == 'workspace'
         run: pnpm test:web
       - name: Exercise owned launcher startup, reuse, failures and bounded stop

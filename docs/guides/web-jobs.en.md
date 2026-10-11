@@ -30,7 +30,7 @@ When live updates disconnect, the page continues reading the same Job through th
 
 Refresh or reopen the same Project to read application-saved Jobs. A single Job's entry is `/projects/<PROJECT_ID>/jobs?jobId=<JOB_ID>`. That address reads the Job without generating or transcribing again. Do not resubmit a form to recover progress while waiting.
 
-The top controls switch 中文/English and light/dark themes. Cancellation, failure and recovery explanations follow that choice; Project names, lyrics and original inputs remain unchanged.
+The top control switches 中文/English; the workbench always uses a dark theme. Cancellation, failure and recovery explanations follow that choice; Project names, lyrics and original inputs remain unchanged.
 
 ## Local verification scope {#verification}
 

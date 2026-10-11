@@ -10,7 +10,7 @@
 .runtime-page .runtime-reasons { padding-left:20px; font-size:.82rem; line-height:1.6; }
 .runtime-page .runtime-reasons li { margin-bottom:10px; }
 .runtime-page details { margin-top:14px; }
-.runtime-page summary { cursor:pointer; font-size:.82rem; color:var(--accent); }
+.runtime-page summary { cursor:pointer; font-size:.82rem; color:var(--acc); }
 .runtime-page details .facts { margin-top:18px; }
 .runtime-page .runtime-model { border-top:1px solid var(--line); padding:18px 0; }
 .runtime-page .runtime-model h3 { margin-bottom:8px; }

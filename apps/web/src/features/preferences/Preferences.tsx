@@ -1,10 +1,9 @@
 import { createContext, useContext, useState, type ReactNode } from 'react';
 
 export type Locale = 'zh-CN' | 'en';
-export type Theme = 'light' | 'dark';
 export type Messages = Record<Locale, Record<string, string>>;
 
-type Preferences = { locale: Locale; theme: Theme; setLocale: (value: Locale) => void; setTheme: (value: Theme) => void };
+type Preferences = { locale: Locale; setLocale: (value: Locale) => void };
 const Context = createContext<Preferences | null>(null);
 
 function saved(key: string): string | null {
@@ -16,14 +15,10 @@ function persist(key: string, value: string) {
 
 export function PreferencesProvider({ children }: { children: ReactNode }) {
   const [locale, updateLocale] = useState<Locale>(() => saved('music.locale.v1') === 'en' ? 'en' : 'zh-CN');
-  const [theme, updateTheme] = useState<Theme>(() => saved('music.theme.v1') === 'dark' ? 'dark' : 'light');
   function setLocale(value: Locale) {
     updateLocale(value); persist('music.locale.v1', value); document.documentElement.lang = value;
   }
-  function setTheme(value: Theme) {
-    updateTheme(value); persist('music.theme.v1', value); document.documentElement.dataset.theme = value;
-  }
-  return <Context value={{ locale, theme, setLocale, setTheme }}>{children}</Context>;
+  return <Context value={{ locale, setLocale }}>{children}</Context>;
 }
 
 export function usePreferences() {

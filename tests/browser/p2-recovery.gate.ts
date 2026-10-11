@@ -38,7 +38,6 @@ test('both creator journeys recover all persisted identities and bytes after an 
   const name = `雨后的散步 · P2 gate · ${randomUUID().slice(0, 8)}`;
   await page.goto('/');
   await page.getByRole('combobox').selectOption('en');
-  await page.locator('.preferences button').click();
   await page.getByRole('textbox', { name: 'Project name', exact: true }).fill(name);
   await page.getByRole('textbox', { name: 'Creative notes', exact: true }).fill('保留旋律，再探索温暖钢琴。Keep the melody; explore warm piano.');
   await page.getByRole('button', { name: 'Create and start', exact: false }).click();

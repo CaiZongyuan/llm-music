@@ -6,7 +6,7 @@ import type RegionsPlugin from 'wavesurfer.js/dist/plugins/regions.esm.js';
 import { api, dataOf } from '../../lib/api';
 import { assetOptions } from '../assets/queries';
 import { versionsOptions } from '../versions/queries';
-import { useMessages, usePreferences } from '../preferences/Preferences';
+import { useMessages } from '../preferences/Preferences';
 import { compareChoice, invalidateCompareChoice, playerMediaKey, playerSelection, publishScorePlayback, selectPlayerCompare, subscribePlayerSelection, type PlayerScoreSelection, type PlayerSelection } from './index';
 import { playerMessages } from './messages';
 import './player.css';
@@ -21,7 +21,7 @@ function clock(seconds: number) {
   return `${Math.floor(total / 60)}:${String(total % 60).padStart(2, '0')}`;
 }
 function waveColors() {
-  const style = getComputedStyle(document.documentElement), accent = style.getPropertyValue('--accent').trim();
+  const style = getComputedStyle(document.documentElement), accent = style.getPropertyValue('--acc').trim();
   return { waveColor: style.getPropertyValue('--muted').trim(), progressColor: accent, cursorColor: accent };
 }
 function loadPlayerModules(attempt: number): Promise<[typeof import('wavesurfer.js'), typeof import('wavesurfer.js/dist/plugins/regions.esm.js')]> {
@@ -58,7 +58,7 @@ export function Player() {
   const projectId = selection?.projectId ?? '', key = playerMediaKey(selection);
   const choice = useSyncExternalStore(subscribePlayerSelection, () => compareChoice(projectId));
   const compare = selection?.kind === 'compare' ? selection : null;
-  const t = useMessages(playerMessages), { theme } = usePreferences();
+  const t = useMessages(playerMessages);
   const container = useRef<HTMLDivElement>(null), media = useRef<HTMLAudioElement>(null);
   const waveRef = useRef<WaveSurfer | null>(null), regions = useRef<RegionsPlugin | null>(null);
   const loaded = useRef<{ key: string; source: string; score: PlayerScoreSelection | null; duration: number; flac: boolean } | null>(null);
@@ -100,7 +100,7 @@ export function Player() {
     regions.current?.clearRegions();
     const available = Boolean(region.current && validRegion(region.current, limit.current));
     setHasRegion(available);
-    if (available && region.current) regions.current?.addRegion({ id: 'listening', ...region.current, color: 'color-mix(in srgb, var(--accent) 20%, transparent)', drag: true, resize: true, minLength: Math.min(0.1, limit.current) });
+    if (available && region.current) regions.current?.addRegion({ id: 'listening', ...region.current, color: 'color-mix(in srgb, var(--acc) 20%, transparent)', drag: true, resize: true, minLength: Math.min(0.1, limit.current) });
   }
   function failPlayback() {
     intent.current.playing = false; intent.current.bounded = false; loaded.current = null;
@@ -235,7 +235,6 @@ export function Player() {
     });
     return () => { disposed = true; };
   }, [wave, key, content.data, knownLength, comparisonValid, readFailed, reloadAttempt]);
-  useEffect(() => { wave?.setOptions(waveColors()); }, [wave, theme]);
 
   function pause() {
     intent.current.playing = false; intent.current.bounded = false;

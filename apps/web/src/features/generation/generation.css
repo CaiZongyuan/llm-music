@@ -4,9 +4,9 @@
 .feature-actions button,.feature-actions .button { font-size:.78rem; }
 .lyric-text { font:inherit; font-size:.85rem; line-height:1.85; white-space:pre-wrap; overflow-wrap:anywhere; }
 .input-snapshot { margin:20px 0; font-size:.82rem; }
-.input-snapshot summary { cursor:pointer; color:var(--accent); margin-bottom:16px; }
+.input-snapshot summary { cursor:pointer; color:var(--acc); margin-bottom:16px; }
 .input-snapshot h3 { margin:16px 0 8px; }
-.score-code { white-space:pre-wrap; overflow-wrap:anywhere; font: .82rem/1.8 "Cascadia Code",monospace; padding:18px; background:var(--surface); border:1px solid var(--line); border-radius:9px }
+.score-code { white-space:pre-wrap; overflow-wrap:anywhere; font: .82rem/1.8 var(--mono); padding:18px; background:var(--panel); border:1px solid var(--line); border-radius:var(--radius) }
 .input-snapshot p,.input-snapshot a,.input-snapshot small { overflow-wrap:anywhere; }
 .version-detail .facts dd { min-width:0; overflow-wrap:anywhere; }
 .version-detail h2 { overflow-wrap:anywhere; }
@@ -15,7 +15,7 @@
 .saved-candidate { display:flex; flex-wrap:wrap; align-items:center; gap:12px; margin-top:20px; }
 .fixture-notice { margin:16px 0; }
 .candidate-list,.version-list { list-style:none; padding:0; margin:0; display:grid; gap:12px; }
-.candidate-list a { display:block; padding:14px; border:1px solid var(--line); border-radius:9px; }
+.candidate-list a { display:block; padding:14px; border:1px solid var(--line); border-radius:var(--radius); }
 .candidate-list strong { display:block; font-size:.82rem; overflow-wrap:anywhere; }
 .candidate-list code { display:block; margin-top:8px; }
 .record-details pre { white-space:pre-wrap; overflow-wrap:anywhere; font-size:.7rem; }

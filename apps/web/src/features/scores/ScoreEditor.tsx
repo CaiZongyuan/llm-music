@@ -75,7 +75,7 @@ export function ScoreEditor({ projectId, score, initialABC, generation, branchVe
         try {
           const library = await loadABCJS();
           if (!active) return;
-          const [tune] = library.renderAbc(host, captured.abc, { responsive: 'resize', add_classes: true, staffwidth: 470, wrap: { minSpacing: 1.5, maxSpacing: 2.7, preferredMeasuresPerLine: 4 } });
+          const [tune] = library.renderAbc(host, captured.abc, { foregroundColor: 'var(--text)', selectionColor: 'var(--acc)', responsive: 'resize', add_classes: true, staffwidth: 470, wrap: { minSpacing: 1.5, maxSpacing: 2.7, preferredMeasuresPerLine: 4 } });
           if (!tune || !host.querySelector('svg')) throw new Error('No notation');
           if (tune.warnings?.length) {
             setStatus('invalid'); setCheckError({ kind: 'notation', detail: warningText(tune.warnings) }); return;
