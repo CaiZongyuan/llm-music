@@ -90,7 +90,8 @@ test('empty/loading/API outage recover through HTTP; language/theme and narrow l
   await expect(page.getByRole('alert').first()).toBeVisible();
   await expect(page.getByRole('region', { name: '服务与创作准备', exact: true })).not.toContainText('已就绪');
   await page.getByRole('combobox').selectOption('en');
-  await page.getByRole('button', { name: 'Dark mode', exact: true }).click();
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+  await expect(page.getByRole('button', { name: 'Dark mode', exact: true })).toHaveCount(0);
   await expect(page.getByRole('alert').first()).toContainText('Current state could not be read');
   await scenario(request, 'ready'); await page.getByRole('button', { name: 'Check again', exact: true }).click();
   await expect(page.getByRole('alert')).toHaveCount(0);
