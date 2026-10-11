@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="zh-cn">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>任务进度展示预览 · job-progress-v1</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<header class="preview-head">
+  <div class="preview-head-inner">
+    <div>
+      <h1>任务进度展示预览</h1>
+      <p class="muted">SPEC-016 提案：真实 GPU 推理期间，任务卡片以「阶段步骤条 + 已用时间」展示整个过程；不伪造整任务百分比。正式实现见 <a href="https://github.com/CaiZongyuan/llm-music/issues/98" target="_blank" rel="noreferrer">#98</a>。</p>
+    </div>
+    <div class="switch-row" role="group" aria-label="外观与语言">
+      <button id="lang" type="button" class="ghost">EN</button>
+      <button id="theme" type="button" class="ghost">暗色</button>
+    </div>
+  </div>
+</header>
+
+<main class="preview-shell">
+  <section class="panel" aria-labelledby="mock-title">
+    <h2 id="mock-title">模拟控制</h2>
+    <p class="muted">所有任务数据只存在于本页内存：不访问 API、数据库、ComfyUI 或 GPU，刷新即清空。</p>
+    <div class="control-grid">
+      <button id="start-generate" type="button">模拟生成（自动推进）</button>
+      <button id="start-transcribe" type="button">模拟转谱（自动推进）</button>
+      <label class="field">跳到阶段
+        <select id="jump-phase"></select>
+      </label>
+      <button id="fail" type="button">在当前阶段失败</button>
+      <button id="cancel" type="button">请求取消</button>
+      <button id="reset" type="button">回到空状态</button>
+    </div>
+    <label class="field check">
+      <input id="fake-mode" type="checkbox">
+      <span>fake 运行时视角（显示数字进度条；真实运行时只显示已证实的阶段）</span>
+    </label>
+    <p id="status-line" class="muted small" role="status"></p>
+  </section>
+
+  <section class="panel" aria-labelledby="job-title">
+    <h2 id="job-title">任务卡片</h2>
+    <div id="job-area"></div>
+  </section>
+</main>
+
+<script src="app.js"></script>
+</body>
+</html>

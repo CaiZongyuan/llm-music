@@ -1,0 +1,143 @@
+/* Token 与任务卡片样式复用 apps/web/src/styles.css 的既有视觉语言。 */
+:root {
+  font-family:Inter,"Segoe UI","Microsoft YaHei",sans-serif;
+  color-scheme:light;
+  --bg:#f7f4ef;
+  --surface:#fffdf9;
+  --soft:#f2ece2;
+  --text:#352f29;
+  --muted:#6c6257;
+  --line:#ddd4c7;
+  --accent:#365e54;
+  --accent-text:#fff;
+  --error:#873d32;
+  --error-bg:#fbede8;
+  --shadow:0 5px 22px #573f1f07;
+  background:var(--bg);
+  color:var(--text)
+}
+:root[data-theme=dark] {
+  color-scheme:dark;
+  --bg:#191e1b;
+  --surface:#232a25;
+  --soft:#2a332c;
+  --text:#f1ece2;
+  --muted:#c2bcb0;
+  --line:#4d594f;
+  --accent:#7fb5a6;
+  --accent-text:#10201b;
+  --error:#e0968a;
+  --error-bg:#3a2521;
+  --shadow:0 5px 22px #00000055
+}
+* { box-sizing:border-box }
+body { margin:0; background:var(--bg); color:var(--text) }
+a { color:var(--accent) }
+h1 { font-size:1.15rem; margin:0 0 6px }
+h2 { font-size:.95rem; margin:0 0 10px }
+.muted { color:var(--muted); font-size:.83rem; margin:4px 0 }
+.small { font-size:.75rem }
+
+.preview-head { border-bottom:1px solid var(--line); background:var(--surface) }
+.preview-head-inner {
+  max-width:880px; margin:0 auto; padding:18px 24px;
+  display:flex; gap:18px; align-items:flex-start; justify-content:space-between
+}
+.switch-row { display:flex; gap:8px; flex:none }
+
+.preview-shell {
+  max-width:880px; margin:0 auto; padding:18px 24px 60px;
+  display:grid; gap:16px
+}
+.panel {
+  background:var(--surface); border:1px solid var(--line);
+  border-radius:10px; box-shadow:var(--shadow); padding:16px 18px
+}
+
+button {
+  font:inherit; font-size:.8rem; color:var(--accent-text);
+  background:var(--accent); border:none; border-radius:8px;
+  padding:8px 12px; cursor:pointer
+}
+button.ghost {
+  background:var(--soft); color:var(--accent); border:1px solid var(--line)
+}
+button:disabled { opacity:.55; cursor:not-allowed }
+.control-grid {
+  display:grid; grid-template-columns:repeat(3, minmax(0,1fr));
+  gap:8px; margin:12px 0 4px
+}
+.field { display:flex; flex-direction:column; gap:4px; font-size:.78rem; color:var(--muted) }
+.field select {
+  font:inherit; color:var(--text); background:var(--bg);
+  border:1px solid var(--line); border-radius:6px; padding:7px 8px
+}
+.field.check { flex-direction:row; align-items:center; gap:8px; margin-top:10px; color:var(--text) }
+
+/* 任务卡片：与 JobStatus 相同的结构。 */
+.job-card { padding:20px 0; border-top:1px solid var(--line); font-size:.83rem }
+.job-card .section-heading {
+  display:flex; gap:10px; align-items:center; justify-content:space-between; margin-bottom:6px
+}
+.job-card strong { font-size:.9rem }
+.tag {
+  font-size:.68rem; padding:6px 10px; background:var(--soft);
+  border-radius:20px; color:var(--accent)
+}
+.tag.failed, .tag.cancelled { color:var(--error) }
+.job-card p { font-size:.83rem; margin:6px 0 }
+
+.loading { display:flex; align-items:center; gap:10px; font-size:.82rem; color:var(--muted); padding:12px 0 }
+.pulse { width:12px; height:12px; border-radius:50%; background:var(--accent); animation:pulse 1.5s infinite }
+@keyframes pulse { 50% { opacity:.35 } }
+@media(prefers-reduced-motion:reduce) { .pulse { animation:none } }
+
+progress { width:100%; accent-color:var(--accent) }
+
+.job-problem {
+  border:1px solid var(--error); background:var(--error-bg);
+  border-radius:8px; padding:10px 12px; margin:10px 0
+}
+.job-problem strong { color:var(--error); font-size:.8rem }
+.job-problem p { margin:4px 0 }
+.record-id { color:var(--muted); font-size:.72rem; word-break:break-all }
+
+/* SPEC-016 新增：阶段步骤条与已用时间。 */
+.stepper {
+  list-style:none; display:flex; gap:4px; margin:14px 0 4px; padding:0;
+  flex-wrap:wrap
+}
+.step {
+  flex:1 1 96px; min-width:96px; text-align:center; position:relative;
+  padding-top:14px; font-size:.72rem; color:var(--muted)
+}
+.step::before {
+  content:""; position:absolute; top:5px; left:50%; transform:translateX(-50%);
+  width:10px; height:10px; border-radius:50%;
+  border:2px solid var(--line); background:var(--surface)
+}
+.step::after {
+  content:""; position:absolute; top:10px; left:calc(50% + 9px); right:calc(-50% + 9px);
+  height:2px; background:var(--line)
+}
+.step:last-child::after { display:none }
+.step.done::before { background:var(--accent); border-color:var(--accent) }
+.step.done::after { background:var(--accent) }
+.step.done { color:var(--text) }
+.step.current { color:var(--accent); font-weight:600 }
+.step.current::before { border-color:var(--accent); background:var(--accent) }
+.step.current::after { background:var(--accent) }
+.step.failed { color:var(--error); font-weight:600 }
+.step.failed::before { border-color:var(--error); background:var(--error) }
+.step-label { display:block; padding:0 2px }
+.step-check { position:absolute; top:1px; left:calc(50% + 4px); font-size:.6rem; color:var(--accent-text); z-index:1 }
+.elapsed-line { padding-top:6px }
+.elapsed {
+  display:inline-flex; gap:6px; align-items:baseline;
+  font-variant-numeric:tabular-nums; font-size:.78rem; color:var(--muted)
+}
+.elapsed b { color:var(--text); font-weight:600 }
+@media(max-width:640px) {
+  .preview-head-inner, .preview-shell { padding-left:14px; padding-right:14px }
+  .control-grid { grid-template-columns:1fr 1fr }
+}
